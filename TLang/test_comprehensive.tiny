@@ -1,0 +1,117 @@
+// ═══════════════════════════════════════════════════
+// Antigravity v2 — Comprehensive Test Suite
+// ═══════════════════════════════════════════════════
+
+// ── Arithmetic & Precedence ──
+let a be 2 + 3 * 4
+show a
+
+let b be (2 + 3) * 4
+show b
+
+let c be 10 % 3
+show c
+
+let d be 100 / 4 - 5
+show d
+
+// ── Unary operators ──
+let neg be -42
+show neg
+
+let flag be not true
+show flag
+
+// ── Comparison operators ──
+show 10 > 5
+show 10 >= 10
+show 3 < 2
+show 3 <= 3
+show 5 == 5
+show 5 != 5
+
+// ── Boolean logic with short-circuit ──
+show true and true
+show true and false
+show false or true
+show false or false
+
+// ── Variable reassignment ──
+let x be 10
+set x to x + 5
+show x
+
+// ── String literals ──
+show "Hello, Antigravity!"
+
+// ── Block scope & shadowing ──
+let y be 5
+if true
+    let y be 100
+    show y
+show y
+
+// ── Nested scopes ──
+let outer be 1
+if true
+    let middle be 2
+    if true
+        let inner be 3
+        show outer + middle + inner
+
+// ── If / otherwise ──
+let val be 42
+if val > 40
+    show 1
+
+if val < 10
+    show 0
+otherwise
+    show 2
+
+// ── Nested if ──
+let n be 15
+if n > 10
+    if n > 20
+        show 0
+    otherwise
+        show 3
+
+// ── While loop ──
+let i be 0
+let total be 0
+while i < 5
+    set total to total + i
+    set i to i + 1
+show total
+
+// ── Repeat loop ──
+let product be 1
+repeat 5 times as j
+    set product to product * (j + 1)
+show product
+
+// ── Functions ──
+define square taking x
+    return x * x
+
+show square(4)
+
+define add taking a and b
+    return a + b
+
+show add(10, 20)
+
+// ── Function with logic ──
+define isEven taking n
+    return n % 2 == 0
+
+show isEven(4)
+show isEven(7)
+
+// ── Complex expression ──
+let result be (3 + 4) * (10 - 2) / 2
+show result
+
+// ── Done ──
+show 999

@@ -1,0 +1,13 @@
+// v1 success criteria translated to Antigravity v2 syntax
+// Expected output: 2, 4, 15
+
+let sum be 0
+let i be 1
+
+while i <= 5
+    if i % 2 == 0
+        show i
+    set sum to sum + i
+    set i to i + 1
+
+show sum
