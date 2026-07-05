@@ -1,7 +1,7 @@
 package TLang.lexer;
 
 /**
- * All token types recognized by the Antigravity v2 lexer.
+ * All token types recognized by the TLang lexer.
  */
 public enum TokenType {
     // Structure tokens (indentation-based blocks)
@@ -31,7 +31,7 @@ public enum TokenType {
     SHOW,
 
     // Control flow
-    IF, OTHERWISE, WHILE,
+    IF, OTHERWISE, WHILE, BREAK, CONTINUE,
 
     // Repeat loop
     REPEAT, TIMES, AS,

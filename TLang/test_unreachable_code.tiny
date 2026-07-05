@@ -1,0 +1,9 @@
+// test_unreachable_code.tiny
+
+define testUnreachable
+    show "Inside function"
+    return 42
+    show "This is unreachable and should trigger a warning!"
+
+testUnreachable()
+show "Finished successfully"

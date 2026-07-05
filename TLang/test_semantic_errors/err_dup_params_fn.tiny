@@ -1,0 +1,3 @@
+// Duplicate parameter names in a function
+define myFunc taking a and a
+    return a

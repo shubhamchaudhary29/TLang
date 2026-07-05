@@ -19,5 +19,7 @@ public abstract class Stmt {
         void visitForStmt(ForStmt stmt);
         void visitFunctionStmt(FunctionStmt stmt);
         void visitReturnStmt(ReturnStmt stmt);
+        void visitBreakStmt(BreakStmt stmt);
+        void visitContinueStmt(ContinueStmt stmt);
     }
 }

@@ -10,7 +10,7 @@ import TLang.lexer.Token;
 import TLang.lexer.TokenType;
 
 /**
- * Tree-walking interpreter for the Antigravity v2 language.
+ * Tree-walking interpreter for the TLang language.
  *
  * Implements both the expression visitor (returns Object) and
  * the statement visitor (returns void).  Supports integers,
@@ -80,14 +80,18 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
             Object condition = evaluate(stmt.getCondition());
             checkBoolean(condition, "while condition");
             if (!isTruthy(condition)) break;
-            execute(stmt.getBody());
+            try {
+                execute(stmt.getBody());
+            } catch (BreakException e) {
+                break;
+            } catch (ContinueException e) {
+                // Skip directly to the next condition check
+            }
         }
     }
 
     @Override
     public void visitForStmt(ForStmt stmt) {
-        // Kept for backward compatibility; repeat loops desugar
-        // into WhileStmt via the parser so this is rarely called.
         Environment previous = this.environment;
         try {
             this.environment = new Environment(previous);
@@ -96,9 +100,15 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
                 Object condition = evaluate(stmt.getCondition());
                 checkBoolean(condition, "for-loop condition");
                 if (!isTruthy(condition)) break;
-                execute(stmt.getBody());
+                try {
+                    execute(stmt.getBody());
+                } catch (ContinueException e) {
+                    // Skip body, fall through to update/increment
+                }
                 evaluate(stmt.getUpdate());
             }
+        } catch (BreakException e) {
+            // Exit loop
         } finally {
             this.environment = previous;
         }
@@ -130,6 +140,16 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
     public void visitReturnStmt(ReturnStmt stmt) {
         Object value = evaluate(stmt.getValue());
         throw new ReturnException(value);
+    }
+
+    @Override
+    public void visitBreakStmt(BreakStmt stmt) {
+        throw new BreakException();
+    }
+
+    @Override
+    public void visitContinueStmt(ContinueStmt stmt) {
+        throw new ContinueException();
     }
 
     /** Execute a list of statements in the given environment. */

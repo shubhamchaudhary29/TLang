@@ -11,6 +11,8 @@ import TLang.lexer.Token;
 import TLang.parser.Parser;
 import TLang.runtime.Interpreter;
 import TLang.runtime.RuntimeError;
+import TLang.semantic.Resolver;
+import TLang.semantic.SemanticError;
 
 /**
  * Entry point for the TinyLang interpreter.
@@ -47,6 +49,16 @@ public final class Main {
             // Stage 2: Parsing
             Parser parser = new Parser(tokens);
             List<Stmt> program = parser.parse();
+
+            // Semantic Analysis
+            Resolver resolver = new Resolver();
+            List<SemanticError> errors = resolver.resolve(program);
+            if (!errors.isEmpty()) {
+                for (SemanticError err : errors) {
+                    System.err.println(err);
+                }
+                System.exit(65);
+            }
 
             // Stage 3 & 4: Interpretation
             Interpreter interpreter = new Interpreter();

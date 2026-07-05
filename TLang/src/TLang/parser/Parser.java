@@ -9,7 +9,7 @@ import TLang.lexer.Token;
 import TLang.lexer.TokenType;
 
 /**
- * Recursive-descent parser for the Antigravity v2 language.
+ * Recursive-descent parser for the TLang language.
  *
  * Uses NEWLINE as statement terminators and INDENT/DEDENT for blocks,
  * eliminating semicolons and curly braces entirely.
@@ -80,14 +80,16 @@ public final class Parser {
     // ── Statement parsing ───────────────────────────────────────
 
     private Stmt statement() {
-        if (check(TokenType.LET))    { advance(); return varDeclaration(); }
-        if (check(TokenType.SET))    { advance(); return assignment(); }
-        if (check(TokenType.SHOW))   { advance(); return showStatement(); }
-        if (check(TokenType.IF))     { advance(); return ifStatement(); }
-        if (check(TokenType.WHILE))  { advance(); return whileStatement(); }
-        if (check(TokenType.REPEAT)) { advance(); return repeatStatement(); }
-        if (check(TokenType.DEFINE)) { advance(); return functionDeclaration(); }
-        if (check(TokenType.RETURN)) { advance(); return returnStatement(); }
+        if (check(TokenType.LET))      { advance(); return varDeclaration(); }
+        if (check(TokenType.SET))      { advance(); return assignment(); }
+        if (check(TokenType.SHOW))     { advance(); return showStatement(); }
+        if (check(TokenType.IF))       { advance(); return ifStatement(); }
+        if (check(TokenType.WHILE))    { advance(); return whileStatement(); }
+        if (check(TokenType.BREAK))    { advance(); return breakStatement(); }
+        if (check(TokenType.CONTINUE)) { advance(); return continueStatement(); }
+        if (check(TokenType.REPEAT))   { advance(); return repeatStatement(); }
+        if (check(TokenType.DEFINE))   { advance(); return functionDeclaration(); }
+        if (check(TokenType.RETURN))   { advance(); return returnStatement(); }
         return expressionStatement();
     }
 
@@ -187,17 +189,9 @@ public final class Parser {
                         syntheticToken(TokenType.PLUS, "+"),
                         new LiteralExpr(1)));
 
-        // Append the increment to the body
-        List<Stmt> augmentedBody = new ArrayList<>(bodyStatements);
-        augmentedBody.add(new ExpressionStmt(increment));
+        Stmt body = new BlockStmt(bodyStatements);
 
-        Stmt whileLoop = new WhileStmt(condition, new BlockStmt(augmentedBody));
-
-        // Wrap in a block for scoping
-        List<Stmt> wrapper = new ArrayList<>();
-        wrapper.add(init);
-        wrapper.add(whileLoop);
-        return new BlockStmt(wrapper);
+        return new ForStmt(init, condition, increment, body);
     }
 
     /** define <name> [taking <params>] NEWLINE block */
@@ -233,6 +227,20 @@ public final class Parser {
         Expr value = expression();
         consumeNewline("Expected end of line after return statement.");
         return new ReturnStmt(keyword, value);
+    }
+
+    /** break NEWLINE */
+    private Stmt breakStatement() {
+        Token keyword = previous();
+        consumeNewline("Expected end of line after break statement.");
+        return new BreakStmt(keyword);
+    }
+
+    /** continue NEWLINE */
+    private Stmt continueStatement() {
+        Token keyword = previous();
+        consumeNewline("Expected end of line after continue statement.");
+        return new ContinueStmt(keyword);
     }
 
     /** expression NEWLINE */

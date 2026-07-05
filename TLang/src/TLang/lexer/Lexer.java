@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Indentation-aware lexer for the Antigravity v2 language.
+ * Indentation-aware lexer for the TLang language.
  *
  * Produces NEWLINE, INDENT, and DEDENT tokens (Python-style)
  * instead of relying on semicolons and curly braces.
@@ -46,6 +46,8 @@ public final class Lexer {
         KEYWORDS.put("if",        TokenType.IF);
         KEYWORDS.put("otherwise", TokenType.OTHERWISE);
         KEYWORDS.put("while",     TokenType.WHILE);
+        KEYWORDS.put("break",     TokenType.BREAK);
+        KEYWORDS.put("continue",  TokenType.CONTINUE);
 
         // Repeat loop
         KEYWORDS.put("repeat",    TokenType.REPEAT);
