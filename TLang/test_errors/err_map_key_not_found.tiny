@@ -1,0 +1,4 @@
+// Expected exit code: 70
+// Expected error: Key 'email' not found in map.
+let user be {name: "Shubham"}
+show user["email"]

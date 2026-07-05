@@ -1,0 +1,40 @@
+// ═══════════════════════════════════════════════════
+// Antigravity v2 — Data Structures Error Test Suite
+// ═══════════════════════════════════════════════════
+//
+// Each file triggers a specific error. Run individually.
+//
+// 1. List index out of bounds (read)
+//    - File: test_errors/err_list_index_read.tiny
+//    - Expected exit code: 70
+//    - Expected: [line 4] Runtime error: Index 5 out of bounds for list of length 3.
+//
+// 2. List index out of bounds (write)
+//    - File: test_errors/err_list_index_write.tiny
+//    - Expected exit code: 70
+//    - Expected: [line 4] Runtime error: Index 5 out of bounds for list of length 3.
+//
+// 3. Map key not found
+//    - File: test_errors/err_map_key_not_found.tiny
+//    - Expected exit code: 70
+//    - Expected: [line 4] Runtime error: Key 'email' not found in map.
+//
+// 4. Indexing a non-list/non-map value
+//    - File: test_errors/err_index_non_collection.tiny
+//    - Expected exit code: 70
+//    - Expected: [line 4] Runtime error: Cannot index type 'integer'.
+//
+// 5. Field access on a non-map value
+//    - File: test_errors/err_field_on_non_map.tiny
+//    - Expected exit code: 70
+//    - Expected: [line 4] Runtime error: Cannot access field 'name' on integer.
+//
+// 6. Unknown method on a list
+//    - File: test_errors/err_unknown_method.tiny
+//    - Expected exit code: 70
+//    - Expected: [line 4] Runtime error: List has no method 'foo'.
+//
+// 7. Invalid assignment target (parse-time error)
+//    - File: test_errors/err_invalid_assign_target.tiny
+//    - Expected exit code: 65
+//    - Expected: [line 4] Parse error at end of input: Invalid assignment target.

@@ -1,0 +1,4 @@
+// Expected exit code: 65
+// Expected: Parse error: Malformed interpolation expression.
+let a be 5
+show "hello ${a +} world"

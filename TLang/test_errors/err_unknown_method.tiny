@@ -1,0 +1,4 @@
+// Expected exit code: 70
+// Expected error: List has no method 'foo'.
+let nums be [1, 2, 3]
+nums.foo()

@@ -1,0 +1,4 @@
+// Expected exit code: 70
+// Expected error output: [line 3] Runtime error: Value is not callable.
+let x be 10
+x()

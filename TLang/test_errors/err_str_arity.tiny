@@ -1,0 +1,3 @@
+// Expected exit code: 70
+// Expected: Runtime error: Method 'length' expects 0 argument(s) but got 1.
+show "hello".length(42)

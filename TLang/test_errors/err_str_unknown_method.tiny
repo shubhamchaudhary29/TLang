@@ -1,0 +1,3 @@
+// Expected exit code: 70
+// Expected: Runtime error: String has no method 'foo'.
+show "hello".foo()

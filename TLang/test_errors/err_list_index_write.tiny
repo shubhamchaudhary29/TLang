@@ -1,0 +1,4 @@
+// Expected exit code: 70
+// Expected error: Index 5 out of bounds for list of length 3.
+let nums be [1, 2, 3]
+set nums[5] to 99

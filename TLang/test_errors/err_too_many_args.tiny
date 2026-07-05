@@ -1,0 +1,6 @@
+// Expected exit code: 70
+// Expected error output: [line 5] Runtime error: Function 'greet' expects 1 to 2 argument(s) but got 3.
+define greet taking name and greeting be "Hello"
+    show greeting + ", " + name
+
+greet("Ana", "Hi", "Extra")

@@ -8,15 +8,18 @@ import TLang.lexer.Token;
  */
 public final class CallExpr extends Expr {
 
-    private final Token name;
+    private final Expr callee;
+    private final Token paren;
     private final List<Expr> arguments;
 
-    public CallExpr(Token name, List<Expr> arguments) {
-        this.name = name;
+    public CallExpr(Expr callee, Token paren, List<Expr> arguments) {
+        this.callee = callee;
+        this.paren = paren;
         this.arguments = arguments;
     }
 
-    public Token getName()           { return name; }
+    public Expr getCallee()          { return callee; }
+    public Token getParen()          { return paren; }
     public List<Expr> getArguments() { return arguments; }
 
     @Override

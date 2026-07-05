@@ -1,0 +1,4 @@
+// Expected exit code: 65
+// Expected error output: [line 2] Parse error at 'middle': Required parameter cannot follow default parameter.
+define greet taking first be "John" and middle and last be "Smith"
+    show first

@@ -1,0 +1,39 @@
+// ═══════════════════════════════════════════════════
+// Antigravity v2 — Functions Error Test Suite
+// ═══════════════════════════════════════════════════
+//
+// This file serves as a manifest documenting the error test scripts
+// located in the 'test_errors' directory.
+//
+// Each file intentionally triggers a specific compiler or runtime
+// error. Run them individually to verify exit codes and error messages.
+//
+// 1. Calling with too few arguments (A2)
+//    - File: test_errors/err_too_few_args.tiny
+//    - Expected exit code: 70
+//    - Expected output: [line 5] Runtime error: Function 'greet' expects 2 to 3 argument(s) but got 1.
+//
+// 2. Calling with too many arguments (A2)
+//    - File: test_errors/err_too_many_args.tiny
+//    - Expected exit code: 70
+//    - Expected output: [line 5] Runtime error: Function 'greet' expects 1 to 2 argument(s) but got 3.
+//
+// 3. Calling a non-function value (A5)
+//    - File: test_errors/err_not_callable.tiny
+//    - Expected exit code: 70
+//    - Expected output: [line 3] Runtime error: Value is not callable.
+//
+// 4. Calling an undefined name (A5)
+//    - File: test_errors/err_undefined.tiny
+//    - Expected exit code: 70
+//    - Expected output: [line 2] Runtime error: Undefined variable 'foo'.
+//
+// 5. Recursion depth exceeded (A6)
+//    - File: test_errors/err_max_recursion.tiny
+//    - Expected exit code: 70
+//    - Expected output: [line 3] Runtime error: Maximum recursion depth exceeded (limit: 1000).
+//
+// 6. Default parameter placed before a required one (A2)
+//    - File: test_errors/err_invalid_defaults.tiny
+//    - Expected exit code: 65
+//    - Expected output: [line 2] Parse error at 'middle': Required parameter cannot follow default parameter.

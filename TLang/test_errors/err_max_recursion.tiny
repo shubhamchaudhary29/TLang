@@ -1,0 +1,6 @@
+// Expected exit code: 70
+// Expected error output: [line 3] Runtime error: Maximum recursion depth exceeded (limit: 1000).
+define recurse
+    recurse()
+
+recurse()

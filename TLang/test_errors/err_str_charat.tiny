@@ -1,0 +1,3 @@
+// Expected exit code: 70
+// Expected: Runtime error: Index 10 out of bounds for string of length 5.
+show "hello".charAt(10)

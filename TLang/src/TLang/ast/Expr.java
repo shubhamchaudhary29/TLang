@@ -21,5 +21,12 @@ public abstract class Expr {
         R visitVariableExpr(VariableExpr expr);
         R visitAssignExpr(AssignExpr expr);
         R visitCallExpr(CallExpr expr);
+        R visitLambdaExpr(LambdaExpr expr);
+        R visitListExpr(ListExpr expr);
+        R visitMapExpr(MapExpr expr);
+        R visitIndexExpr(IndexExpr expr);
+        R visitFieldAccessExpr(FieldAccessExpr expr);
+        R visitIndexSetExpr(IndexSetExpr expr);
+        R visitFieldSetExpr(FieldSetExpr expr);
     }
 }

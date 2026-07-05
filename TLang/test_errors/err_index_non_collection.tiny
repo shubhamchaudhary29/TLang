@@ -1,0 +1,4 @@
+// Expected exit code: 70
+// Expected error: Cannot index type 'integer'.
+let x be 42
+show x[0]

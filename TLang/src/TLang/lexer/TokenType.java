@@ -9,7 +9,9 @@ public enum TokenType {
 
     // Grouping & punctuation
     LEFT_PAREN, RIGHT_PAREN,
-    COMMA,
+    LEFT_BRACKET, RIGHT_BRACKET,
+    LEFT_BRACE, RIGHT_BRACE,
+    COMMA, COLON, DOT,
 
     // Arithmetic operators
     PLUS, MINUS, STAR, SLASH, PERCENT,
@@ -35,7 +37,7 @@ public enum TokenType {
     REPEAT, TIMES, AS,
 
     // Functions
-    DEFINE, TAKING, RETURN,
+    DEFINE, TAKING, RETURN, FUNCTION,
 
     // Boolean keywords & values
     AND, OR, NOT,

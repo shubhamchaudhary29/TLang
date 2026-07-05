@@ -1,0 +1,97 @@
+// Expected output:
+// Hello, World!
+// Quotes: ", Backslash: \, Newline: 
+// , Tab: 	!
+// Hello, Shubham!
+// Sum: 15
+// Shubham is 22
+// Square of 4 is 16
+// 10 + 10 = 20
+// 12
+// HELLO, WORLD!
+// hello, world!
+// Hello, World!
+// true
+// false
+// 7
+// -1
+// world
+// w
+// split:
+// hello
+// world
+// this
+// is
+// a
+// test
+// hello, universe!
+// [Hello, Alice!, Hello, Bob!]
+
+// 1. Plain string literal and existing + concatenation
+let plain be "Hello, " + "World!"
+show plain
+
+// 2. Escape sequences
+let escapes be "Quotes: \", Backslash: \\, Newline: \n, Tab: \t!"
+show escapes
+
+// 3. Interpolation with a simple variable
+let name be "Shubham"
+show "Hello, ${name}!"
+
+// 4. Interpolation with an arithmetic expression
+let a be 10
+let b be 5
+show "Sum: ${a + b}"
+
+// 5. Interpolation with map field/index access
+let user be {name: "Shubham", age: 22}
+show "${user.name} is ${user.age}"
+
+// 6. Interpolation that calls a function
+define square taking x
+    return x * x
+show "Square of 4 is ${square(4)}"
+
+// 7. Multiple ${...} spans in one string
+show "${a} + ${b * 2} = ${a + b * 2}"
+
+// 8. .length(), .toUpperCase(), .toLowerCase(), .trim()
+let sample be "  Hello, World!  "
+show "hello, world".length()
+show "hello, world!".toUpperCase()
+show "HELLO, WORLD!".toLowerCase()
+show sample.trim()
+
+// 9. .contains(), .indexOf()
+let target be "hello, world"
+show target.contains("world")
+show target.contains("universe")
+show target.indexOf("world")
+show target.indexOf("universe")
+
+// 10. .substring()
+show target.substring(7, 12)
+
+// 11. .charAt()
+show target.charAt(7)
+
+// 12. .split() and repeat loop
+let csv be "hello,world,this,is,a,test"
+let pieces be csv.split(",")
+show "split:"
+repeat pieces.length() times as i
+    show pieces.get(i)
+
+// 13. .replace()
+show target.replace("world", "universe!")
+
+// 14. Function returning interpolated greeting, building list of greetings
+define makeGreeting taking guest
+    return "Hello, ${guest}!"
+
+let guests be ["Alice", "Bob"]
+let greetings be []
+repeat guests.length() times as i
+    greetings.add(makeGreeting(guests.get(i)))
+show greetings

@@ -1,0 +1,4 @@
+// Expected exit code: 70
+// Expected error: Cannot access field 'name' on integer.
+let x be 42
+show x.name

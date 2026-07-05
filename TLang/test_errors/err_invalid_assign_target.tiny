@@ -1,0 +1,3 @@
+// Expected exit code: 65
+// Expected error: Parse error at ... Invalid assignment target.
+set 5 to 10

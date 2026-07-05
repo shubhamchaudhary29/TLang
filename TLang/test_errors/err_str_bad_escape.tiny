@@ -1,0 +1,3 @@
+// Expected exit code: 65
+// Expected: Lexer error: Invalid escape sequence: \q
+show "hello \q world"

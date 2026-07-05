@@ -56,6 +56,7 @@ public final class Lexer {
         KEYWORDS.put("define",    TokenType.DEFINE);
         KEYWORDS.put("taking",    TokenType.TAKING);
         KEYWORDS.put("return",    TokenType.RETURN);
+        KEYWORDS.put("function",  TokenType.FUNCTION);
 
         // Boolean keywords
         KEYWORDS.put("and",       TokenType.AND);
@@ -175,7 +176,13 @@ public final class Lexer {
             // Grouping & punctuation
             case '(': addToken(TokenType.LEFT_PAREN);  break;
             case ')': addToken(TokenType.RIGHT_PAREN); break;
+            case '[': addToken(TokenType.LEFT_BRACKET);  break;
+            case ']': addToken(TokenType.RIGHT_BRACKET); break;
+            case '{': addToken(TokenType.LEFT_BRACE);    break;
+            case '}': addToken(TokenType.RIGHT_BRACE);   break;
             case ',': addToken(TokenType.COMMA);        break;
+            case ':': addToken(TokenType.COLON);        break;
+            case '.': addToken(TokenType.DOT);          break;
 
             // Arithmetic operators
             case '+': addToken(TokenType.PLUS);    break;
@@ -237,18 +244,57 @@ public final class Lexer {
 
     private void string() {
         int startLine = line;
+        StringBuilder builder = new StringBuilder();
+
         while (!isAtEnd() && peek() != '"') {
             if (peek() == '\n') line++;
-            advance();
+
+            if (peek() == '\\') {
+                advance(); // consume '\\'
+                if (isAtEnd()) {
+                    throw new LexerError("[line " + startLine + "] Lexer error: Unterminated string.");
+                }
+                char escapeChar = advance();
+                switch (escapeChar) {
+                    case '"':  builder.append('"'); break;
+                    case '\\': builder.append('\\'); break;
+                    case 'n':  builder.append('\n'); break;
+                    case 't':  builder.append('\t'); break;
+                    default:
+                        throw error("Invalid escape sequence: \\" + escapeChar);
+                }
+            } else if (peek() == '$' && peekNext() == '{') {
+                builder.append('$');
+                builder.append('{');
+                advance(); // consume '$'
+                advance(); // consume '{'
+
+                int braceDepth = 1;
+                while (!isAtEnd() && braceDepth > 0) {
+                    char c = advance();
+                    if (c == '\n') line++;
+                    if (c == '{') {
+                        braceDepth++;
+                    } else if (c == '}') {
+                        braceDepth--;
+                    }
+                    builder.append(c);
+                }
+
+                if (braceDepth > 0) {
+                    throw new LexerError("[line " + startLine + "] Lexer error: Unterminated string interpolation.");
+                }
+            } else {
+                builder.append(advance());
+            }
         }
+
         if (isAtEnd()) {
             throw new LexerError("[line " + startLine + "] Lexer error: Unterminated string.");
         }
         advance();  // closing "
 
-        // Extract string value without quotes
-        String value = source.substring(start + 1, current - 1);
-        addToken(TokenType.STRING, value);
+        addToken(TokenType.STRING, builder.toString());
     }
 
     private void identifier() {
