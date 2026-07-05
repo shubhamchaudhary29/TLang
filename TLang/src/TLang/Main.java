@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 
+import TLang.errors.ErrorFormatter;
 import TLang.ast.Stmt;
 import TLang.lexer.Lexer;
 import TLang.lexer.Token;
@@ -37,10 +38,10 @@ public final class Main {
             return;
         }
 
-        run(source);
+        run(source, args[0]);
     }
 
-    private static void run(String source) {
+    private static void run(String source, String fileName) {
         try {
             // Stage 1: Lexing
             Lexer lexer = new Lexer(source);
@@ -55,26 +56,34 @@ public final class Main {
             List<SemanticError> errors = resolver.resolve(program);
             if (!errors.isEmpty()) {
                 for (SemanticError err : errors) {
-                    System.err.println(err);
+                    System.err.println(ErrorFormatter.format(source, fileName, err.getLine(), err.getColumn(), "Semantic error", err.getMessage()));
                 }
                 System.exit(65);
             }
 
             // Stage 3 & 4: Interpretation
-            Interpreter interpreter = new Interpreter();
+            java.nio.file.Path scriptDir = Paths.get(fileName).toAbsolutePath().getParent();
+            TLang.runtime.ModuleLoader moduleLoader = new TLang.runtime.ModuleLoader(scriptDir);
+            Interpreter interpreter = new Interpreter(moduleLoader);
             interpreter.interpret(program);
 
         } catch (Lexer.LexerError e) {
-            System.err.println(e.getMessage());
+            System.err.println(ErrorFormatter.format(source, fileName, e.getLine(), e.getColumn(), "Lexer error", e.getRawMessage()));
             System.exit(65);
         } catch (Parser.ParseError e) {
-            System.err.println(e.getMessage());
+            Token t = e.getToken();
+            System.err.println(ErrorFormatter.format(source, fileName, t.getLine(), t.getColumn(), "Parse error", e.getRawMessage()));
             System.exit(65);
         } catch (RuntimeError e) {
-            String line = e.getToken() != null
-                    ? "[line " + e.getToken().getLine() + "] "
-                    : "";
-            System.err.println(line + "Runtime error: " + e.getMessage());
+            Token t = e.getToken();
+            if (t != null) {
+                System.err.println(ErrorFormatter.format(source, fileName, t.getLine(), t.getColumn(), "Runtime error", e.getMessage()));
+            } else {
+                System.err.println(ErrorFormatter.format(source, fileName, 0, 0, "Runtime error", e.getMessage()));
+            }
+            System.exit(70);
+        } catch (StackOverflowError e) {
+            System.err.println(ErrorFormatter.format(source, fileName, 0, 0, "Runtime error", "Maximum recursion depth exceeded (limit: 1000)."));
             System.exit(70);
         }
     }

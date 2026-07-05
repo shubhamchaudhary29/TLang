@@ -1,3 +1,6 @@
-// Expected exit code: 70
-// Expected error output: [line 2] Runtime error: Undefined variable 'foo'.
+// Expected exit code: 65
+// Expected error output:
+// test_errors/err_undefined.tiny:3:1: Semantic error: Undefined variable 'foo'.
+// foo()
+// ^
 foo()

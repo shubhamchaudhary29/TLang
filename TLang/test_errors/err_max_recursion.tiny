@@ -1,5 +1,8 @@
 // Expected exit code: 70
-// Expected error output: [line 3] Runtime error: Maximum recursion depth exceeded (limit: 1000).
+// Expected error output:
+// test_errors/err_max_recursion.tiny:4:12: Runtime error: Maximum recursion depth exceeded (limit: 1000).
+//     recurse()
+//            ^
 define recurse
     recurse()
 

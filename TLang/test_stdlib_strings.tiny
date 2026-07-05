@@ -1,0 +1,22 @@
+// Expected exit code: 0
+// Expected output:
+// 10, true, hello
+// aaaaa
+// olleh
+// true
+// false
+// --abc
+// abc--
+import strings
+
+let parts be [10, true, "hello"]
+show strings.join(parts, ", ")
+
+show strings.repeat("a", 5)
+show strings.reverse("hello")
+
+show strings.isBlank("   \n\t  ")
+show strings.isBlank("  abc  ")
+
+show strings.padLeft("abc", 5, "-")
+show strings.padRight("abc", 5, "-")

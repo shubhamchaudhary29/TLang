@@ -1,0 +1,10 @@
+// Expected exit code: 0
+// Expected output:
+// shared_module evaluated
+// 52
+// 62
+import left_module
+import right_module
+
+show left_module.left_val
+show right_module.right_val

@@ -1,4 +1,7 @@
 // Expected exit code: 70
-// Expected error: Cannot index type 'integer'.
+// Expected error:
+// test_errors/err_index_non_collection.tiny:4:7: Runtime error: Cannot index type 'integer'.
+// show x[0]
+//       ^
 let x be 42
 show x[0]

@@ -1,4 +1,7 @@
 // Expected exit code: 70
-// Expected error: List has no method 'foo'.
+// Expected error:
+// test_errors/err_unknown_method.tiny:4:6: Runtime error: List has no method 'foo'.
+// nums.foo()
+//      ^
 let nums be [1, 2, 3]
 nums.foo()

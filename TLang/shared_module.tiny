@@ -1,0 +1,2 @@
+show "shared_module evaluated"
+let value be 42

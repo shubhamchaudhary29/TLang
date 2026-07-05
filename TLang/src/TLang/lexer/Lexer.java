@@ -28,6 +28,7 @@ public final class Lexer {
     private int start   = 0;
     private int current = 0;
     private int line    = 1;
+    private int lineStart = 0;
     private boolean atLineStart = true;
 
     private static final Map<String, TokenType> KEYWORDS = new HashMap<>();
@@ -38,6 +39,7 @@ public final class Lexer {
         KEYWORDS.put("be",        TokenType.BE);
         KEYWORDS.put("set",       TokenType.SET);
         KEYWORDS.put("to",        TokenType.TO);
+        KEYWORDS.put("import",    TokenType.IMPORT);
 
         // Output
         KEYWORDS.put("show",      TokenType.SHOW);
@@ -126,6 +128,7 @@ public final class Lexer {
             if (!isAtEnd()) {
                 current++;  // skip the \n
                 line++;
+                lineStart = current;
             }
             return;  // stay in atLineStart mode
         }
@@ -168,6 +171,7 @@ public final class Lexer {
                     addSimple(TokenType.NEWLINE);
                 }
                 line++;
+                lineStart = current;
                 atLineStart = true;
                 break;
 
@@ -246,15 +250,14 @@ public final class Lexer {
 
     private void string() {
         int startLine = line;
+        int startCol = start - lineStart + 1;
         StringBuilder builder = new StringBuilder();
 
         while (!isAtEnd() && peek() != '"') {
-            if (peek() == '\n') line++;
-
             if (peek() == '\\') {
                 advance(); // consume '\\'
                 if (isAtEnd()) {
-                    throw new LexerError("[line " + startLine + "] Lexer error: Unterminated string.");
+                    throw new LexerError(startLine, startCol, "Unterminated string.");
                 }
                 char escapeChar = advance();
                 switch (escapeChar) {
@@ -274,7 +277,10 @@ public final class Lexer {
                 int braceDepth = 1;
                 while (!isAtEnd() && braceDepth > 0) {
                     char c = advance();
-                    if (c == '\n') line++;
+                    if (c == '\n') {
+                        line++;
+                        lineStart = current;
+                    }
                     if (c == '{') {
                         braceDepth++;
                     } else if (c == '}') {
@@ -284,15 +290,20 @@ public final class Lexer {
                 }
 
                 if (braceDepth > 0) {
-                    throw new LexerError("[line " + startLine + "] Lexer error: Unterminated string interpolation.");
+                    throw new LexerError(startLine, startCol, "Unterminated string interpolation.");
                 }
             } else {
-                builder.append(advance());
+                char c = advance();
+                if (c == '\n') {
+                    line++;
+                    lineStart = current;
+                }
+                builder.append(c);
             }
         }
 
         if (isAtEnd()) {
-            throw new LexerError("[line " + startLine + "] Lexer error: Unterminated string.");
+            throw new LexerError(startLine, startCol, "Unterminated string.");
         }
         advance();  // closing "
 
@@ -349,6 +360,7 @@ public final class Lexer {
         if (!isAtEnd()) {
             current++;  // skip the \n
             line++;
+            lineStart = current;
         }
         // stay in atLineStart mode
     }
@@ -361,12 +373,14 @@ public final class Lexer {
 
     private void addToken(TokenType type, Object literal) {
         String text = source.substring(start, current);
-        tokens.add(new Token(type, text, literal, line));
+        int col = start - lineStart + 1;
+        tokens.add(new Token(type, text, literal, line, col));
     }
 
     /** Add a synthetic token with no source text (NEWLINE, INDENT, DEDENT, EOF). */
     private void addSimple(TokenType type) {
-        tokens.add(new Token(type, "", null, line));
+        int col = current - lineStart + 1;
+        tokens.add(new Token(type, "", null, line, col));
     }
 
     private TokenType lastTokenType() {
@@ -377,13 +391,25 @@ public final class Lexer {
     // ── Error reporting ─────────────────────────────────────────
 
     private LexerError error(String message) {
-        return new LexerError("[line " + line + "] Lexer error: " + message);
+        int col = start - lineStart + 1;
+        return new LexerError(line, col, message);
     }
 
     /** Thrown when the lexer encounters invalid input. */
     public static class LexerError extends RuntimeException {
-        public LexerError(String message) {
+        private final int line;
+        private final int column;
+        private final String message;
+
+        public LexerError(int line, int column, String message) {
             super(message);
+            this.line = line;
+            this.column = column;
+            this.message = message;
         }
+
+        public int getLine() { return line; }
+        public int getColumn() { return column; }
+        public String getRawMessage() { return message; }
     }
 }

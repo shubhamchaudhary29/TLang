@@ -1,0 +1,16 @@
+// Expected exit code: 0
+// Expected output:
+// 10
+// 42
+// 20
+// 10
+// 32
+// 1
+import math
+
+show math.abs(-10)
+show math.abs(42)
+show math.max(10, 20)
+show math.min(10, 20)
+show math.pow(2, 5)
+show math.pow(10, 0)

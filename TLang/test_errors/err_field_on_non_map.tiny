@@ -1,4 +1,7 @@
 // Expected exit code: 70
-// Expected error: Cannot access field 'name' on integer.
+// Expected error:
+// test_errors/err_field_on_non_map.tiny:4:8: Runtime error: Cannot access field 'name' on integer.
+// show x.name
+//        ^
 let x be 42
 show x.name

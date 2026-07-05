@@ -1,0 +1,6 @@
+// Expected exit code: 70
+// Expected error output:
+// circ_b.tiny:1:8: Runtime error: Circular import detected involving module 'circ_a'.
+// import circ_a
+//        ^
+import circ_a

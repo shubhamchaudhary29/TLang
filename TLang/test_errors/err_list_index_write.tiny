@@ -1,4 +1,7 @@
 // Expected exit code: 70
-// Expected error: Index 5 out of bounds for list of length 3.
+// Expected error:
+// test_errors/err_list_index_write.tiny:4:9: Runtime error: Index 5 out of bounds for list of length 3.
+// set nums[5] to 99
+//         ^
 let nums be [1, 2, 3]
 set nums[5] to 99

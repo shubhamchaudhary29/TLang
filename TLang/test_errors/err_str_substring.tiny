@@ -1,3 +1,6 @@
 // Expected exit code: 70
-// Expected: Runtime error: Invalid substring range 3 to 10 for string of length 5.
+// Expected:
+// test_errors/err_str_substring.tiny:3:14: Runtime error: Invalid substring range 3 to 10 for string of length 5.
+// show "hello".substring(3, 10)
+//              ^
 show "hello".substring(3, 10)

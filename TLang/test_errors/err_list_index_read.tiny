@@ -1,4 +1,7 @@
 // Expected exit code: 70
-// Expected error: Index 5 out of bounds for list of length 3.
+// Expected error:
+// test_errors/err_list_index_read.tiny:4:10: Runtime error: Index 5 out of bounds for list of length 3.
+// show nums[5]
+//          ^
 let nums be [1, 2, 3]
 show nums[5]

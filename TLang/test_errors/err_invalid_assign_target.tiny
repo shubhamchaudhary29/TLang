@@ -1,3 +1,6 @@
 // Expected exit code: 65
-// Expected error: Parse error at ... Invalid assignment target.
+// Expected error:
+// test_errors/err_invalid_assign_target.tiny:4:1: Parse error: at end of input: Invalid assignment target.
+// 
+// ^
 set 5 to 10

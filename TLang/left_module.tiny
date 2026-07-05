@@ -1,0 +1,2 @@
+import shared_module
+let left_val be shared_module.value + 10

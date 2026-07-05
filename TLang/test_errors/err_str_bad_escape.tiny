@@ -1,3 +1,6 @@
 // Expected exit code: 65
-// Expected: Lexer error: Invalid escape sequence: \q
+// Expected:
+// test_errors/err_str_bad_escape.tiny:3:6: Lexer error: Invalid escape sequence: \q
+// show "hello \q world"
+//      ^
 show "hello \q world"

@@ -1,3 +1,6 @@
 // Expected exit code: 70
-// Expected: Runtime error: Index 10 out of bounds for string of length 5.
+// Expected:
+// test_errors/err_str_charat.tiny:3:14: Runtime error: Index 10 out of bounds for string of length 5.
+// show "hello".charAt(10)
+//              ^
 show "hello".charAt(10)

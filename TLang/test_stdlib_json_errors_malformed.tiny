@@ -1,0 +1,9 @@
+// Expected exit code: 70
+// Expected error output:
+// test_stdlib_json_errors_malformed.tiny:5:6: Runtime error: JSON parse error: Unexpected character '}' in JSON. (at line 1, column 16, index 15)
+// json.parse("{\"val\": [1, 2, }")
+//      ^
+import json
+
+// Malformed JSON should raise RuntimeError
+json.parse("{\"val\": [1, 2, }")

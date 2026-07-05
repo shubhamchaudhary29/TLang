@@ -1,0 +1,8 @@
+// Expected exit code: 0
+// Expected output:
+// Hello, 
+// Hello, Alice
+import greeter_module
+
+show greeter_module.prefix
+show greeter_module.greet("Alice")

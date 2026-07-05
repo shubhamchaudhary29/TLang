@@ -8,6 +8,11 @@ public final class Scope {
 
     public boolean declare(Symbol symbol) {
         if (symbols.containsKey(symbol.getName())) {
+            Symbol existing = symbols.get(symbol.getName());
+            if (existing.getLine() == 0) {
+                symbols.put(symbol.getName(), symbol);
+                return true;
+            }
             return false;
         }
         symbols.put(symbol.getName(), symbol);

@@ -25,7 +25,7 @@ public enum TokenType {
     NUMBER, STRING, IDENTIFIER,
 
     // Variable keywords
-    LET, BE, SET, TO,
+    LET, BE, SET, TO, IMPORT,
 
     // Output
     SHOW,

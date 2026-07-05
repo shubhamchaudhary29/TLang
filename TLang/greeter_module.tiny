@@ -1,0 +1,4 @@
+let prefix be "Hello, "
+
+define greet taking name
+    return prefix + name

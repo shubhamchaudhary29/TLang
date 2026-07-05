@@ -71,7 +71,7 @@ public final class Resolver implements Expr.Visitor<Void>, Stmt.Visitor {
     }
 
     private void error(Token token, String message) {
-        errors.add(new SemanticError(message, token.getLine()));
+        errors.add(new SemanticError(message, token.getLine(), token.getColumn()));
     }
 
     // ── Stmt Visitor Implementation ──────────────────────────────
@@ -131,6 +131,7 @@ public final class Resolver implements Expr.Visitor<Void>, Stmt.Visitor {
         if (s instanceof ReturnStmt) return ((ReturnStmt) s).getKeyword().getLine();
         if (s instanceof BreakStmt) return ((BreakStmt) s).getKeyword().getLine();
         if (s instanceof ContinueStmt) return ((ContinueStmt) s).getKeyword().getLine();
+        if (s instanceof ImportStmt) return ((ImportStmt) s).getName().getLine();
         if (s instanceof PrintStmt) {
             int line = getExprLine(((PrintStmt) s).getExpression());
             if (line != 1) return line;
@@ -268,6 +269,14 @@ public final class Resolver implements Expr.Visitor<Void>, Stmt.Visitor {
     public void visitContinueStmt(ContinueStmt stmt) {
         if (loopDepth == 0) {
             error(stmt.getKeyword(), "Cannot use 'continue' outside of a loop.");
+        }
+    }
+
+    @Override
+    public void visitImportStmt(ImportStmt stmt) {
+        boolean success = symbolTable.declare(new Symbol(stmt.getName().getLexeme(), SymbolKind.VARIABLE, stmt.getName().getLine()));
+        if (!success) {
+            error(stmt.getName(), "Variable '" + stmt.getName().getLexeme() + "' is already declared in this scope.");
         }
     }
 

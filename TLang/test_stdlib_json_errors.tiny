@@ -1,0 +1,9 @@
+// Expected exit code: 70
+// Expected error output:
+// test_stdlib_json_errors.tiny:5:6: Runtime error: JSON parse error: TLang has no non-integer numeric type yet. Non-integer JSON numbers are not supported. (at line 1, column 14, index 13)
+// json.parse("{\"val\": 12.34}")
+//      ^
+import json
+
+// Decimal numbers should raise RuntimeError
+json.parse("{\"val\": 12.34}")

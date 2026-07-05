@@ -1,0 +1,28 @@
+// Expected exit code: 0
+// Expected output:
+// 5
+// ok
+// true
+// 3
+// 3
+// true
+import random
+
+show random.between(5, 5)
+
+let b be random.boolean()
+if b
+    show "ok"
+otherwise
+    show "ok"
+
+let my_list be [10, 20, 30]
+let chosen be random.choice(my_list)
+show my_list.contains(chosen)
+
+let shuffled be random.shuffle(my_list)
+show shuffled.length()
+show my_list.length()
+
+// Verify original list has not been mutated
+show my_list.get(0) == 10 and my_list.get(1) == 20 and my_list.get(2) == 30

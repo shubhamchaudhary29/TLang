@@ -1,0 +1,9 @@
+// Expected exit code: 0
+// Expected output:
+// 111
+// 999
+import isolated_module
+
+let x be 111
+show x
+show isolated_module.x

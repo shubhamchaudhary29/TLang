@@ -1,5 +1,8 @@
 // Expected exit code: 70
-// Expected error output: [line 5] Runtime error: Function 'greet' expects 2 to 3 argument(s) but got 1.
+// Expected error output:
+// test_errors/err_too_few_args.tiny:6:6: Runtime error: Function 'greet' expects 2 to 3 argument(s) but got 1.
+// greet("John")
+//      ^
 define greet taking first and middle and last be "Smith"
     show first + " " + middle + " " + last
 

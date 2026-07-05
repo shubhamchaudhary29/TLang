@@ -1,0 +1,6 @@
+// Expected exit code: 65
+// Expected error output:
+// invalid_module.tiny:1:10: Parse error: at end of line: Expected expression.
+// let x be
+//          ^
+import invalid_module

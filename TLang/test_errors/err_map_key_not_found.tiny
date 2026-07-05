@@ -1,4 +1,7 @@
 // Expected exit code: 70
-// Expected error: Key 'email' not found in map.
+// Expected error:
+// test_errors/err_map_key_not_found.tiny:4:10: Runtime error: Key 'email' not found in map.
+// show user["email"]
+//          ^
 let user be {name: "Shubham"}
 show user["email"]

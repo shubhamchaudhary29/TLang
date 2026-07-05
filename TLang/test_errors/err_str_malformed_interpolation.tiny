@@ -1,4 +1,7 @@
 // Expected exit code: 65
-// Expected: Parse error: Malformed interpolation expression.
+// Expected:
+// test_errors/err_str_malformed_interpolation.tiny:4:6: Parse error: at '"hello ${a +} world"': Malformed interpolation expression.
+// show "hello ${a +} world"
+//      ^
 let a be 5
 show "hello ${a +} world"

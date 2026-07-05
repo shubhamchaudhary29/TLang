@@ -1,0 +1,17 @@
+// Expected exit code: 0
+// Expected output:
+// {"nested":{"list":[1,true,"hello",{"x":42}]}}
+// 100
+// bar
+// true
+// 999
+import json
+
+let my_map be {nested: {list: [1, true, "hello", {x: 42}]}}
+show json.stringify(my_map)
+
+let parsed be json.parse("{\"foo\": 100, \"list\": [\"bar\", true, {\"val\": 999}]}")
+show parsed.foo
+show parsed.list.get(0)
+show parsed.list.get(1)
+show parsed.list.get(2).val

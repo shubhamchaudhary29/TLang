@@ -1,0 +1,11 @@
+// Expected exit code: 0
+// Expected output:
+// true
+// true
+import time
+
+let t1 be time.now()
+show t1 > 0
+
+let elapsed be time.elapsed_seconds(t1)
+show elapsed >= 0

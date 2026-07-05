@@ -7,29 +7,47 @@
 // 1. .substring() with an invalid range
 //    - File: test_errors/err_str_substring.tiny
 //    - Expected exit code: 70
-//    - Expected: Runtime error: Invalid substring range 3 to 10 for string of length 5.
+//    - Expected:
+//      test_errors/err_str_substring.tiny:3:14: Runtime error: Invalid substring range 3 to 10 for string of length 5.
+//      show "hello".substring(3, 10)
+//                   ^
 //
 // 2. .charAt() out of bounds
 //    - File: test_errors/err_str_charat.tiny
 //    - Expected exit code: 70
-//    - Expected: Runtime error: Index 10 out of bounds for string of length 5.
+//    - Expected:
+//      test_errors/err_str_charat.tiny:3:14: Runtime error: Index 10 out of bounds for string of length 5.
+//      show "hello".charAt(10)
+//                   ^
 //
 // 3. Unknown method call on a string
 //    - File: test_errors/err_str_unknown_method.tiny
 //    - Expected exit code: 70
-//    - Expected: Runtime error: String has no method 'foo'.
+//    - Expected:
+//      test_errors/err_str_unknown_method.tiny:3:14: Runtime error: String has no method 'foo'.
+//      show "hello".foo()
+//                   ^
 //
 // 4. Wrong argument count to a string method
 //    - File: test_errors/err_str_arity.tiny
 //    - Expected exit code: 70
-//    - Expected: Runtime error: Method 'length' expects 0 argument(s) but got 1.
+//    - Expected:
+//      test_errors/err_str_arity.tiny:3:14: Runtime error: Method 'length' expects 0 argument(s) but got 1.
+//      show "hello".length(42)
+//                   ^
 //
 // 5. Unescaped bad escape sequence
 //    - File: test_errors/err_str_bad_escape.tiny
 //    - Expected exit code: 65
-//    - Expected: Lexer error: Invalid escape sequence: \q
+//    - Expected:
+//      test_errors/err_str_bad_escape.tiny:3:6: Lexer error: Invalid escape sequence: \q
+//      show "hello \q world"
+//           ^
 //
 // 6. Malformed interpolation expression
 //    - File: test_errors/err_str_malformed_interpolation.tiny
 //    - Expected exit code: 65
-//    - Expected: Parse error: Malformed interpolation expression.
+//    - Expected:
+//      test_errors/err_str_malformed_interpolation.tiny:4:6: Parse error: at '"hello ${a +} world"': Malformed interpolation expression.
+//      show "hello ${a +} world"
+//           ^

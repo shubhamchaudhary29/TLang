@@ -19,7 +19,9 @@ import TLang.lexer.TokenType;
  *   program        → (NEWLINE | statement)* EOF
  *   statement      → varDecl | assignment | showStmt | ifStmt
  *                  | whileStmt | repeatStmt | functionDecl | returnStmt
- *                  | exprStmt
+ *                  | importStmt | exprStmt
+ *
+ *   importStmt     → "import" IDENTIFIER NEWLINE
  *
  *   varDecl        → "let" IDENTIFIER "be" expression NEWLINE
  *   assignment     → "set" target "to" expression NEWLINE
@@ -90,6 +92,7 @@ public final class Parser {
         if (check(TokenType.REPEAT))   { advance(); return repeatStatement(); }
         if (check(TokenType.DEFINE))   { advance(); return functionDeclaration(); }
         if (check(TokenType.RETURN))   { advance(); return returnStatement(); }
+        if (check(TokenType.IMPORT))   { advance(); return importStatement(); }
         return expressionStatement();
     }
 
@@ -227,6 +230,13 @@ public final class Parser {
         Expr value = expression();
         consumeNewline("Expected end of line after return statement.");
         return new ReturnStmt(keyword, value);
+    }
+
+    /** import <IDENTIFIER> NEWLINE */
+    private Stmt importStatement() {
+        Token name = consume(TokenType.IDENTIFIER, "Expected module name after 'import'.");
+        consumeNewline("Expected end of line after import statement.");
+        return new ImportStmt(name);
     }
 
     /** break NEWLINE */
@@ -591,7 +601,7 @@ public final class Parser {
             Parser parser = new Parser(subTokens);
             return parser.parseExpressionOnly();
         } catch (Parser.ParseError | Lexer.LexerError e) {
-            throw new ParseError("[line " + outerToken.getLine() + "] Parse error: Malformed interpolation expression.");
+            throw error(outerToken, "Malformed interpolation expression.");
         }
     }
 
@@ -622,7 +632,7 @@ public final class Parser {
             }
 
             if (braceDepth > 0) {
-                throw new ParseError("[line " + outerToken.getLine() + "] Parse error: Malformed string interpolation.");
+                throw error(outerToken, "Malformed string interpolation.");
             }
 
             String exprSource = value.substring(exprStart, j - 1);
@@ -664,14 +674,21 @@ public final class Parser {
         if (token.getType() == TokenType.NEWLINE) location = "at end of line";
         if (token.getType() == TokenType.INDENT)  location = "at start of block";
         if (token.getType() == TokenType.DEDENT)  location = "at end of block";
-        return new ParseError("[line " + token.getLine() + "] Parse error "
-                + location + ": " + message);
+        return new ParseError(token, location + ": " + message);
     }
 
     /** Thrown when the parser encounters a syntax error. */
     public static class ParseError extends RuntimeException {
-        public ParseError(String message) {
+        private final Token token;
+        private final String message;
+
+        public ParseError(Token token, String message) {
             super(message);
+            this.token = token;
+            this.message = message;
         }
+
+        public Token getToken() { return token; }
+        public String getRawMessage() { return message; }
     }
 }

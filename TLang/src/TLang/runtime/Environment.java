@@ -69,4 +69,9 @@ public final class Environment {
         throw new RuntimeError(name,
                 "Undefined variable '" + name.getLexeme() + "'.");
     }
+
+    /** Return a copy of all values bound directly in this scope. */
+    public Map<String, Object> getValues() {
+        return new HashMap<>(values);
+    }
 }

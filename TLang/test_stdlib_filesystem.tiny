@@ -1,0 +1,22 @@
+// Expected exit code: 0
+// Expected output:
+// true
+// Hello
+// Hello World
+// true
+// false
+import filesystem
+
+let path be "temp_test_filesystem.txt"
+filesystem.write(path, "Hello")
+show filesystem.exists(path)
+show filesystem.read(path)
+
+filesystem.append(path, " World")
+show filesystem.read(path)
+
+let files be filesystem.list(".")
+show files.contains("temp_test_filesystem.txt")
+
+filesystem.delete(path)
+show filesystem.exists(path)

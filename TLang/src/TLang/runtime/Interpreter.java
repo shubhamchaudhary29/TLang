@@ -8,6 +8,7 @@ import java.util.Map;
 import TLang.ast.*;
 import TLang.lexer.Token;
 import TLang.lexer.TokenType;
+import TLang.types.Type;
 
 /**
  * Tree-walking interpreter for the TLang language.
@@ -18,11 +19,20 @@ import TLang.lexer.TokenType;
  */
 public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
 
+    private final ModuleLoader moduleLoader;
     private Environment environment;
     private int callDepth = 0;
 
     public Interpreter() {
+        this.moduleLoader = null;
         this.environment = new Environment();
+        defineGlobals();
+    }
+
+    public Interpreter(ModuleLoader moduleLoader) {
+        this.moduleLoader = moduleLoader;
+        this.environment = new Environment();
+        defineGlobals();
     }
 
     // ── Public API ──────────────────────────────────────────────
@@ -44,6 +54,107 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
     public void visitVarStmt(VarStmt stmt) {
         Object value = evaluate(stmt.getInitializer());
         environment.define(stmt.getName().getLexeme(), value);
+    }
+
+    @Override
+    public void visitImportStmt(ImportStmt stmt) {
+        if (moduleLoader == null) {
+            throw new RuntimeError(stmt.getName(), "Module loader not initialized.");
+        }
+        Map<String, Object> exports = moduleLoader.load(stmt.getName().getLexeme(), stmt.getName());
+        environment.define(stmt.getName().getLexeme(), exports);
+    }
+
+    public Environment getGlobalEnvironment() {
+        return environment;
+    }
+
+    private void defineGlobals() {
+        environment.define("read_file", new NativeFunction("read_file", 1) {
+            @Override
+            public Object call(List<Object> args, Token token) {
+                Object path = args.get(0);
+                if (Type.of(path) != Type.STRING) {
+                    throw new RuntimeError(token, "Argument to 'read_file' must be a string.");
+                }
+                return StdlibOps.readFile((String) path, token);
+            }
+        });
+
+        environment.define("write_file", new NativeFunction("write_file", 2) {
+            @Override
+            public Object call(List<Object> args, Token token) {
+                Object path = args.get(0);
+                Object content = args.get(1);
+                if (Type.of(path) != Type.STRING || Type.of(content) != Type.STRING) {
+                    throw new RuntimeError(token, "Arguments to 'write_file' must be strings.");
+                }
+                StdlibOps.writeFile((String) path, (String) content, token);
+                return null;
+            }
+        });
+
+        environment.define("file_exists", new NativeFunction("file_exists", 1) {
+            @Override
+            public Object call(List<Object> args, Token token) {
+                Object path = args.get(0);
+                if (Type.of(path) != Type.STRING) {
+                    throw new RuntimeError(token, "Argument to 'file_exists' must be a string.");
+                }
+                return StdlibOps.fileExists((String) path);
+            }
+        });
+
+        environment.define("delete_file", new NativeFunction("delete_file", 1) {
+            @Override
+            public Object call(List<Object> args, Token token) {
+                Object path = args.get(0);
+                if (Type.of(path) != Type.STRING) {
+                    throw new RuntimeError(token, "Argument to 'delete_file' must be a string.");
+                }
+                return StdlibOps.deleteFile((String) path);
+            }
+        });
+
+        environment.define("now", new NativeFunction("now", 0) {
+            @Override
+            public Object call(List<Object> args, Token token) {
+                return StdlibOps.now();
+            }
+        });
+
+        environment.define("random", new NativeFunction("random", 2) {
+            @Override
+            public Object call(List<Object> args, Token token) {
+                Object min = args.get(0);
+                Object max = args.get(1);
+                if (Type.of(min) != Type.NUMBER || Type.of(max) != Type.NUMBER) {
+                    throw new RuntimeError(token, "Arguments to 'random' must be integers.");
+                }
+                return StdlibOps.randomBetween((Integer) min, (Integer) max, token);
+            }
+        });
+
+        environment.define("to_string", new NativeFunction("to_string", 1) {
+            @Override
+            public Object call(List<Object> args, Token token) {
+                return stringify(args.get(0));
+            }
+        });
+
+        environment.define("to_integer", new NativeFunction("to_integer", 1) {
+            @Override
+            public Object call(List<Object> args, Token token) {
+                return StdlibOps.toInteger(args.get(0), token);
+            }
+        });
+
+        environment.define("type_of", new NativeFunction("type_of", 1) {
+            @Override
+            public Object call(List<Object> args, Token token) {
+                return StdlibOps.typeOf(args.get(0));
+            }
+        });
     }
 
     @Override
@@ -221,7 +332,7 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
             // ── Arithmetic ──
             case PLUS:
                 // String concatenation support
-                if (left instanceof String || right instanceof String) {
+                if (Type.of(left) == Type.STRING || Type.of(right) == Type.STRING) {
                     return stringify(left) + stringify(right);
                 }
                 checkIntegers(left, right, op);
@@ -302,29 +413,27 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
         if (expr.getCallee() instanceof FieldAccessExpr) {
             FieldAccessExpr fa = (FieldAccessExpr) expr.getCallee();
             Object target = evaluate(fa.getObject());
-            if (target instanceof List || target instanceof Map || target instanceof String) {
+            Type targetType = Type.of(target);
+            if (targetType == Type.LIST || targetType == Type.MAP || targetType == Type.STRING) {
                 String methodName = fa.getName().getLexeme();
                 List<Object> arguments = new ArrayList<>();
                 for (Expr arg : expr.getArguments()) {
                     arguments.add(evaluate(arg));
                 }
-                if (target instanceof List) {
-                    return callListMethod((List<Object>) target, methodName, arguments, fa.getName());
-                } else if (target instanceof Map) {
-                    return callMapMethod((Map<String, Object>) target, methodName, arguments, fa.getName());
-                } else {
-                    return callStringMethod((String) target, methodName, arguments, fa.getName());
+                switch (targetType) {
+                    case LIST:
+                        return callListMethod((List<Object>) target, methodName, arguments, fa.getName());
+                    case MAP:
+                        return callMapMethod((Map<String, Object>) target, methodName, arguments, fa.getName());
+                    case STRING:
+                        return callStringMethod((String) target, methodName, arguments, fa.getName());
+                    default:
+                        break;
                 }
             }
         }
 
         Object callee = evaluate(expr.getCallee());
-
-        if (!(callee instanceof TinyFunction)) {
-            throw new RuntimeError(expr.getParen(), "Value is not callable.");
-        }
-
-        TinyFunction function = (TinyFunction) callee;
 
         // Evaluate arguments
         List<Object> arguments = new ArrayList<>();
@@ -332,27 +441,43 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
             arguments.add(evaluate(arg));
         }
 
-        // Check arity
-        int required = function.getRequiredCount();
-        int total = function.getTotalCount();
-        int got = arguments.size();
-        if (got < required || got > total) {
-            String nameStr = function.getName().equals("<anonymous>") ? "Anonymous function" : "Function '" + function.getName() + "'";
-            String expectStr = (required == total) ? String.valueOf(required) : required + " to " + total;
-            throw new RuntimeError(expr.getParen(),
-                    nameStr + " expects " + expectStr + " argument(s) but got " + got + ".");
-        }
+        return executeCall(callee, arguments, expr.getParen());
+    }
 
-        callDepth++;
-        if (callDepth > 1000) {
-            callDepth--;
-            throw new RuntimeError(expr.getParen(), "Maximum recursion depth exceeded (limit: 1000).");
-        }
+    private Object executeCall(Object callee, List<Object> arguments, Token paren) {
+        if (callee instanceof TinyFunction) {
+            TinyFunction function = (TinyFunction) callee;
+            int required = function.getRequiredCount();
+            int total = function.getTotalCount();
+            int got = arguments.size();
+            if (got < required || got > total) {
+                String nameStr = function.getName().equals("<anonymous>") ? "Anonymous function" : "Function '" + function.getName() + "'";
+                String expectStr = (required == total) ? String.valueOf(required) : required + " to " + total;
+                throw new RuntimeError(paren,
+                        nameStr + " expects " + expectStr + " argument(s) but got " + got + ".");
+            }
 
-        try {
-            return function.call(this, arguments);
-        } finally {
-            callDepth--;
+            callDepth++;
+            if (callDepth > 1000) {
+                callDepth--;
+                throw new RuntimeError(paren, "Maximum recursion depth exceeded (limit: 1000).");
+            }
+
+            try {
+                return function.call(this, arguments);
+            } finally {
+                callDepth--;
+            }
+        } else if (callee instanceof NativeFunction) {
+            NativeFunction function = (NativeFunction) callee;
+            int got = arguments.size();
+            if (got != function.getArity()) {
+                throw new RuntimeError(paren,
+                        "Function '" + function.getName() + "' expects " + function.getArity() + " argument(s) but got " + got + ".");
+            }
+            return function.call(arguments, paren);
+        } else {
+            throw new RuntimeError(paren, "Cannot call a value of type '" + Type.of(callee).displayName() + "'.");
         }
     }
 
@@ -389,8 +514,9 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
         Object collection = evaluate(expr.getCollection());
         Object index = evaluate(expr.getIndex());
 
-        if (collection instanceof List) {
-            if (!(index instanceof Integer)) {
+        Type collType = Type.of(collection);
+        if (collType == Type.LIST) {
+            if (Type.of(index) != Type.NUMBER) {
                 throw new RuntimeError(expr.getBracket(), "List index must be an integer.");
             }
             List<?> list = (List<?>) collection;
@@ -402,8 +528,8 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
             return list.get(idx);
         }
 
-        if (collection instanceof Map) {
-            if (!(index instanceof String)) {
+        if (collType == Type.MAP) {
+            if (Type.of(index) != Type.STRING) {
                 throw new RuntimeError(expr.getBracket(), "Map index must be a string.");
             }
             Map<?, ?> map = (Map<?, ?>) collection;
@@ -421,7 +547,7 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
     public Object visitFieldAccessExpr(FieldAccessExpr expr) {
         Object object = evaluate(expr.getObject());
 
-        if (object instanceof Map) {
+        if (Type.of(object) == Type.MAP) {
             Map<?, ?> map = (Map<?, ?>) object;
             String key = expr.getName().getLexeme();
             if (!map.containsKey(key)) {
@@ -441,8 +567,9 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
         Object index = evaluate(expr.getIndex());
         Object value = evaluate(expr.getValue());
 
-        if (collection instanceof List) {
-            if (!(index instanceof Integer)) {
+        Type collType = Type.of(collection);
+        if (collType == Type.LIST) {
+            if (Type.of(index) != Type.NUMBER) {
                 throw new RuntimeError(expr.getBracket(), "List index must be an integer.");
             }
             List<Object> list = (List<Object>) collection;
@@ -455,8 +582,8 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
             return value;
         }
 
-        if (collection instanceof Map) {
-            if (!(index instanceof String)) {
+        if (collType == Type.MAP) {
+            if (Type.of(index) != Type.STRING) {
                 throw new RuntimeError(expr.getBracket(), "Map index must be a string.");
             }
             Map<String, Object> map = (Map<String, Object>) collection;
@@ -473,7 +600,7 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
         Object object = evaluate(expr.getObject());
         Object value = evaluate(expr.getValue());
 
-        if (object instanceof Map) {
+        if (Type.of(object) == Type.MAP) {
             Map<String, Object> map = (Map<String, Object>) object;
             map.put(expr.getName().getLexeme(), value);
             return value;
@@ -568,6 +695,10 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
                 checkMethodArity(method, args, 0, token);
                 return map.size();
             default:
+                if (map.containsKey(method)) {
+                    Object val = map.get(method);
+                    return executeCall(val, args, token);
+                }
                 throw new RuntimeError(token, "Map has no method '" + method + "'.");
         }
     }
@@ -652,16 +783,15 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
                     "Method '" + method + "' expects " + expected + " argument(s) but got " + args.size() + ".");
         }
     }
-
     private void checkMethodArgInteger(Object arg, String method, Token token) {
-        if (!(arg instanceof Integer)) {
+        if (Type.of(arg) != Type.NUMBER) {
             throw new RuntimeError(token,
                     "Method '" + method + "' expects an integer argument (got " + typeName(arg) + ").");
         }
     }
 
     private void checkMethodArgString(Object arg, String method, Token token) {
-        if (!(arg instanceof String)) {
+        if (Type.of(arg) != Type.STRING) {
             throw new RuntimeError(token,
                     "Method '" + method + "' expects a string argument (got " + typeName(arg) + ").");
         }
@@ -670,7 +800,7 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
     // ── Helpers ─────────────────────────────────────────────────
 
     private boolean isTruthy(Object value) {
-        if (value instanceof Boolean) return (boolean) value;
+        if (Type.of(value) == Type.BOOLEAN) return (boolean) value;
         return false;
     }
 
@@ -680,73 +810,78 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
         return a.equals(b);
     }
 
-    private String stringify(Object value) {
-        if (value == null) return "nil";
-        if (value instanceof Integer) return Integer.toString((int) value);
-        if (value instanceof Boolean) return Boolean.toString((boolean) value);
-        if (value instanceof String)  return (String) value;
-        if (value instanceof List) {
-            List<?> list = (List<?>) value;
-            StringBuilder sb = new StringBuilder();
-            sb.append("[");
-            for (int i = 0; i < list.size(); i++) {
-                sb.append(stringify(list.get(i)));
-                if (i < list.size() - 1) sb.append(", ");
+    public static String stringify(Object value) {
+        switch (Type.of(value)) {
+            case NULL:
+                return "nil";
+            case NUMBER:
+                return Integer.toString((int) value);
+            case BOOLEAN:
+                return Boolean.toString((boolean) value);
+            case STRING:
+                return (String) value;
+            case LIST: {
+                List<?> list = (List<?>) value;
+                StringBuilder sb = new StringBuilder();
+                sb.append("[");
+                for (int i = 0; i < list.size(); i++) {
+                    sb.append(stringify(list.get(i)));
+                    if (i < list.size() - 1) sb.append(", ");
+                }
+                sb.append("]");
+                return sb.toString();
             }
-            sb.append("]");
-            return sb.toString();
-        }
-        if (value instanceof Map) {
-            Map<?, ?> map = (Map<?, ?>) value;
-            StringBuilder sb = new StringBuilder();
-            sb.append("{");
-            int i = 0;
-            for (Map.Entry<?, ?> entry : map.entrySet()) {
-                sb.append(entry.getKey()).append(": ").append(stringify(entry.getValue()));
-                if (i < map.size() - 1) sb.append(", ");
-                i++;
+            case MAP: {
+                Map<?, ?> map = (Map<?, ?>) value;
+                StringBuilder sb = new StringBuilder();
+                sb.append("{");
+                int i = 0;
+                for (Map.Entry<?, ?> entry : map.entrySet()) {
+                    sb.append(entry.getKey()).append(": ").append(stringify(entry.getValue()));
+                    if (i < map.size() - 1) sb.append(", ");
+                    i++;
+                }
+                sb.append("}");
+                return sb.toString();
             }
-            sb.append("}");
-            return sb.toString();
+            case FUNCTION:
+            default:
+                return value.toString();
         }
-        return value.toString();
     }
 
     // ── Type checking helpers ───────────────────────────────────
 
     private void checkInteger(Object value, Token operator) {
-        if (value instanceof Integer) return;
+        if (Type.of(value) == Type.NUMBER) return;
         throw new RuntimeError(operator,
                 "Operand must be an integer (got " + typeName(value) + ").");
     }
 
     private void checkIntegers(Object left, Object right, Token operator) {
-        if (left instanceof Integer && right instanceof Integer) return;
+        if (Type.of(left) == Type.NUMBER && Type.of(right) == Type.NUMBER) return;
         throw new RuntimeError(operator,
                 "Operands must be integers (got " + typeName(left)
                 + " and " + typeName(right) + ").");
     }
 
     private void checkBoolean(Object value, Token operator) {
-        if (value instanceof Boolean) return;
+        if (Type.of(value) == Type.BOOLEAN) return;
         throw new RuntimeError(operator,
                 "Operand must be a boolean (got " + typeName(value) + ").");
     }
 
     private void checkBoolean(Object value, String context) {
-        if (value instanceof Boolean) return;
+        if (Type.of(value) == Type.BOOLEAN) return;
         throw new RuntimeError(null,
                 context + " must be a boolean (got " + typeName(value) + ").");
     }
 
     private String typeName(Object value) {
-        if (value instanceof Integer)      return "integer";
-        if (value instanceof Boolean)      return "boolean";
-        if (value instanceof String)       return "string";
-        if (value instanceof TinyFunction) return "function";
-        if (value instanceof List)         return "list";
-        if (value instanceof Map)          return "map";
-        if (value == null)                 return "nil";
-        return value.getClass().getSimpleName();
+        try {
+            return Type.of(value).displayName();
+        } catch (IllegalStateException e) {
+            return value.getClass().getSimpleName();
+        }
     }
 }

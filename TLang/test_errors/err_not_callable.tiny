@@ -1,4 +1,7 @@
 // Expected exit code: 70
-// Expected error output: [line 3] Runtime error: Value is not callable.
+// Expected error output:
+// test_errors/err_not_callable.tiny:4:2: Runtime error: Cannot call a value of type 'integer'.
+// x()
+//  ^
 let x be 10
 x()

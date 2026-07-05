@@ -11,29 +11,48 @@
 // 1. Calling with too few arguments (A2)
 //    - File: test_errors/err_too_few_args.tiny
 //    - Expected exit code: 70
-//    - Expected output: [line 5] Runtime error: Function 'greet' expects 2 to 3 argument(s) but got 1.
+//    - Expected output:
+//      test_errors/err_too_few_args.tiny:6:6: Runtime error: Function 'greet' expects 2 to 3 argument(s) but got 1.
+//      greet("John")
+//           ^
 //
 // 2. Calling with too many arguments (A2)
 //    - File: test_errors/err_too_many_args.tiny
 //    - Expected exit code: 70
-//    - Expected output: [line 5] Runtime error: Function 'greet' expects 1 to 2 argument(s) but got 3.
+//    - Expected output:
+//      test_errors/err_too_many_args.tiny:6:6: Runtime error: Function 'greet' expects 1 to 2 argument(s) but got 3.
+//      greet("Ana", "Hi", "Extra")
+//           ^
 //
 // 3. Calling a non-function value (A5)
 //    - File: test_errors/err_not_callable.tiny
 //    - Expected exit code: 70
-//    - Expected output: [line 3] Runtime error: Value is not callable.
+//    - Expected output:
+//      test_errors/err_not_callable.tiny:4:2: Runtime error: Cannot call a value of type 'integer'.
+//      x()
+//       ^
 //
 // 4. Calling an undefined name (A5)
 //    - File: test_errors/err_undefined.tiny
 //    - Expected exit code: 70
-//    - Expected output: [line 2] Runtime error: Undefined variable 'foo'.
+//    - Expected output:
+//      test_errors/err_undefined.tiny:3:1: Semantic error: Undefined variable 'foo'.
+//      foo()
+//      ^
 //
 // 5. Recursion depth exceeded (A6)
 //    - File: test_errors/err_max_recursion.tiny
 //    - Expected exit code: 70
-//    - Expected output: [line 3] Runtime error: Maximum recursion depth exceeded (limit: 1000).
+//    - Expected output:
+//      test_errors/err_max_recursion.tiny:4:12: Runtime error: Maximum recursion depth exceeded (limit: 1000).
+//          recurse()
+//                 ^
 //
 // 6. Default parameter placed before a required one (A2)
 //    - File: test_errors/err_invalid_defaults.tiny
 //    - Expected exit code: 65
-//    - Expected output: [line 2] Parse error at 'middle': Required parameter cannot follow default parameter.
+//    - Expected output:
+//      test_errors/err_invalid_defaults.tiny:3:41: Parse error: at 'middle': Required parameter cannot follow default parameter.
+//      define greet taking first be "John" and middle and last be "Smith"
+//                                              ^
+

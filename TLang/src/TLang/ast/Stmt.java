@@ -21,5 +21,6 @@ public abstract class Stmt {
         void visitReturnStmt(ReturnStmt stmt);
         void visitBreakStmt(BreakStmt stmt);
         void visitContinueStmt(ContinueStmt stmt);
+        void visitImportStmt(ImportStmt stmt);
     }
 }
