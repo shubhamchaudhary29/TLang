@@ -1,3 +1,0 @@
-// Duplicate parameter names in a lambda
-let myLambda be function taking a and a
-    return a

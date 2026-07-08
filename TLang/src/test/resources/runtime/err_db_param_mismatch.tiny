@@ -1,0 +1,7 @@
+// Expected exit code: 70
+import db
+
+let conn be db.open(":memory:")
+
+// 1 placeholder, but 2 parameters passed
+conn.query("SELECT ?", [1, 2])

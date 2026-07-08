@@ -1,0 +1,96 @@
+// Expected exit code: 0
+// Expected output:
+// === 1. Inline method (counter) ===
+// 1
+// 2
+// 2
+// === 2. Constructor function (makePerson) ===
+// Hello, my name is Shubham
+// Shubham
+// === 3. Method with extra arguments ===
+// Hi, Shubham!
+// === 4. Extracted method (no bound receiver) ===
+// Hello, my name is Shubham
+// === 5. Independent objects from same constructor ===
+// Alice
+// Bob
+// Alice
+// === 6. User method overrides builtin name ===
+// custom get: name = Shubham
+// === 7. Builtin Map methods on plain data-maps (regression check) ===
+// {name: Shubham, age: 22}
+// Shubham
+// true
+// false
+// [name, age]
+// [Shubham, 22]
+// 2
+// {name: Shubham, age: 22, city: Delhi}
+// {name: Shubham, age: 22}
+
+// ── 1. Inline method in a map literal (counter example) ──
+show "=== 1. Inline method (counter) ==="
+let counter be {count: 0, increment: function taking self
+    set self.count to self.count + 1
+    return self.count
+}
+show counter.increment()
+show counter.increment()
+show counter.count
+
+// ── 2. Constructor function idiom ──
+show "=== 2. Constructor function (makePerson) ==="
+define makePerson taking name and age
+    let self be {name: name, age: age}
+    set self.greet to function taking me
+        show "Hello, my name is " + me.name
+    return self
+
+let p be makePerson("Shubham", 22)
+p.greet()
+show p.name
+
+// ── 3. Method with extra arguments beyond receiver ──
+show "=== 3. Method with extra arguments ==="
+let greeter be {name: "Shubham", greet: function taking self and greeting
+    show greeting + ", " + self.name + "!"
+}
+greeter.greet("Hi")
+
+// ── 4. Extracting a method without calling via dot-syntax ──
+// When extracted, calling it directly is a plain call (no receiver prepended).
+// We pass the object explicitly.
+show "=== 4. Extracted method (no bound receiver) ==="
+let g be p.greet
+g(p)
+
+// ── 5. Two independent objects from the same constructor ──
+show "=== 5. Independent objects from same constructor ==="
+let p1 be makePerson("Alice", 30)
+let p2 be makePerson("Bob", 25)
+show p1.name
+show p2.name
+// Confirm they don't share state
+show p1.name
+
+// ── 6. User-defined method overrides a builtin Map method name ──
+show "=== 6. User method overrides builtin name ==="
+let obj be {name: "Shubham", get: function taking self and key
+    return "custom get: " + key + " = " + self.name
+}
+show obj.get("name")
+
+// ── 7. Builtin Map methods on plain data-maps (regression check) ──
+show "=== 7. Builtin Map methods on plain data-maps (regression check) ==="
+let user be {name: "Shubham", age: 22}
+show user
+show user.get("name")
+show user.contains("name")
+show user.contains("email")
+show user.keys()
+show user.values()
+show user.length()
+user.put("city", "Delhi")
+show user
+user.remove("city")
+show user

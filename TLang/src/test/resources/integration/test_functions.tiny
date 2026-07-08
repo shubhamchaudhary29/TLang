@@ -1,0 +1,122 @@
+// Expected output:
+// 30
+// nil
+// Hello, World!
+// Hello, Ana
+// Hi, Ana
+// Good morning, Ana
+// 120
+// 55
+// true
+// false
+// 1
+// 2
+// 3
+// 30
+// 30
+// 30
+// 25
+// 15
+// 20
+// 20
+
+// 1. Basic function, multiple params, explicit return
+define add taking a and b
+    return a + b
+show add(10, 20)
+
+// 2. Function with no return statement (implicit nil)
+define noReturn
+    let x be 10
+show noReturn()
+
+// 3. Zero-argument function
+define greetWorld
+    show "Hello, World!"
+greetWorld()
+
+// 4. Default parameters
+define greet taking name and greeting be "Hello"
+    return greeting + ", " + name
+show greet("Ana")
+show greet("Ana", "Hi")
+
+define greetMore taking name and greeting be "Hello" and timeOfDay be "morning"
+    return greeting + " " + timeOfDay + ", " + name
+show greetMore("Ana", "Good")
+
+// 5. Recursion: factorial and fibonacci
+define fact taking n
+    if n <= 1
+        return 1
+    return n * fact(n - 1)
+show fact(5)
+
+define fib taking n
+    if n <= 1
+        return n
+    return fib(n - 1) + fib(n - 2)
+show fib(10)
+
+// 6. Mutual recursion
+define isEven taking n
+    if n == 0
+        return true
+    return isOdd(n - 1)
+
+define isOdd taking n
+    if n == 0
+        return false
+    return isEven(n - 1)
+
+show isEven(4)
+show isEven(5)
+
+// 7. Closures
+define makeCounter
+    let count be 0
+    return function
+        set count to count + 1
+        return count
+
+let counter be makeCounter()
+show counter()
+show counter()
+show counter()
+
+// 8. First-class functions
+define addNum taking a and b
+    return a + b
+
+let myAdd be addNum
+show myAdd(10, 20)
+
+define runWithTen taking fn
+    return fn(10, 20)
+show runWithTen(addNum)
+
+define getAdder
+    return addNum
+show getAdder()(10, 20)
+
+// 9. Lambdas
+let square be function taking x
+    return x * x
+show square(5)
+
+let makeAdder be function taking base
+    return function taking x
+        return x + base
+let addFive be makeAdder(5)
+show addFive(10)
+
+define applyTwice taking fn and val
+    return fn(fn(val))
+
+let double be function taking x
+    return x * 2
+
+show applyTwice(double, 5)
+
+// 10. Chained calls
+show makeAdder(5)(15)

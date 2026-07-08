@@ -1,0 +1,13 @@
+// Expected exit code: 70
+import http
+
+let server be http.server(8086)
+
+server.get("/", function taking req and res
+    res.text("ok")
+)
+
+// Duplicate route registration
+server.get("/", function taking req and res
+    res.text("duplicate")
+)

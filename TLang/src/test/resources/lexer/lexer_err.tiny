@@ -1,0 +1,2 @@
+// Expected exit code: 65
+let x be "invalid escape \y sequence"

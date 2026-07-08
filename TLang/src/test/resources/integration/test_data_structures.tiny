@@ -1,0 +1,112 @@
+// Expected output:
+// [1, 2, 3]
+// 3
+// [1, 99, 3]
+// 4
+// [1, 99, 3, 42]
+// 99
+// true
+// false
+// [1, 3, 42]
+// {name: Shubham, age: 22}
+// Shubham
+// Shubham
+// {name: Shubham, age: 22, city: Delhi}
+// {name: Shubham, age: 23, city: Delhi}
+// Delhi
+// [name, age, city]
+// [Shubham, 23, Delhi]
+// true
+// false
+// 3
+// {name: Shubham, age: 23}
+// [{name: Alice, age: 30}, {name: Bob, age: 25}]
+// Alice
+// {users: [{name: Alice, age: 31}, {name: Bob, age: 25}], count: 2}
+// [10, 20, 30]
+// [10, 99, 30]
+// [1, 2, 3]
+// doubled: [2, 4, 6]
+
+// ── 1. List literal creation and show ──
+let nums be [1, 2, 3]
+show nums
+
+// ── 2. List indexing (read) ──
+show nums.length()
+
+// ── 3. set list[i] to value ──
+set nums[1] to 99
+show nums
+
+// ── 4. List methods: .add(), .length(), .get(), .remove(), .contains() ──
+nums.add(42)
+show nums.length()
+show nums
+show nums.get(1)
+show nums.contains(99)
+show nums.contains(100)
+nums.remove(1)
+show nums
+
+// ── 5. Map literal creation and show ──
+let user be {name: "Shubham", age: 22}
+show user
+
+// ── 6. Map field access both ways ──
+show user.name
+show user["name"]
+
+// ── 7. set user.name and set user["name"] ──
+set user.city to "Delhi"
+show user
+set user["age"] to 23
+show user
+
+// ── 8. Map methods: .get(), .keys(), .values(), .contains(), .length(), .put(), .remove() ──
+show user.get("city")
+show user.keys()
+show user.values()
+show user.contains("name")
+show user.contains("email")
+show user.length()
+user.remove("city")
+show user
+
+// ── 9. Nested structures ──
+let data be {users: [{name: "Alice", age: 30}, {name: "Bob", age: 25}], count: 2}
+show data.users
+show data.users[0].name
+set data.users[0].age to 31
+show data
+
+// ── 10. List/map passed into function and mutated (reference semantics) ──
+define fillList taking list
+    list.add(10)
+    list.add(20)
+    list.add(30)
+
+let myList be []
+fillList(myList)
+show myList
+
+define setSecond taking list and val
+    list.set(1, val)
+
+setSecond(myList, 99)
+show myList
+
+// ── 11. Combine with functions: build a list, apply-each with repeat ──
+define buildRange taking n
+    let result be []
+    repeat n times as i
+        result.add(i + 1)
+    return result
+
+show buildRange(3)
+
+let items be buildRange(3)
+let doubled be []
+repeat items.length() times as i
+    doubled.add(items.get(i) * 2)
+show "doubled: " + doubled

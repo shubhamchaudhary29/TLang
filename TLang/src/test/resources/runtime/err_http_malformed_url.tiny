@@ -1,0 +1,5 @@
+// Expected exit code: 70
+import http
+
+// Malformed URL without scheme
+http.get("not a url")

@@ -1,0 +1,6 @@
+// Expected exit code: 70
+import filesystem
+// Create a non-empty directory, then try rmdir non-recursively — should fail
+filesystem.mkdir("temp_rmdir_nonempty")
+filesystem.write("temp_rmdir_nonempty/file.txt", "content")
+filesystem.rmdir("temp_rmdir_nonempty")

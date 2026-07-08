@@ -1,0 +1,68 @@
+// Expected exit code: 0
+// Expected output:
+// === 1. mkdir simple directory ===
+// true
+// true
+// === 2. mkdir existing directory (no-op) ===
+// false
+// === 3. mkdir nested with recursive ===
+// true
+// true
+// true
+// === 4. rmdir empty directory ===
+// true
+// false
+// === 5. rmdir recursive with contents ===
+// true
+// false
+// === 6. rmdir non-existent (no-op) ===
+// false
+// === 7. mkdir with explicit false (non-recursive) ===
+// true
+// true
+// === Cleanup ===
+// true
+// false
+
+import filesystem
+
+// ── 1. mkdir a simple new directory ──
+show "=== 1. mkdir simple directory ==="
+show filesystem.mkdir("test_dir_temp")
+show filesystem.exists("test_dir_temp")
+
+// ── 2. mkdir the same directory again — returns false, not an error ──
+show "=== 2. mkdir existing directory (no-op) ==="
+show filesystem.mkdir("test_dir_temp")
+
+// ── 3. mkdir a nested path with recursive=true ──
+show "=== 3. mkdir nested with recursive ==="
+show filesystem.mkdir("test_dir_temp/sub/nested", true)
+show filesystem.exists("test_dir_temp/sub")
+show filesystem.exists("test_dir_temp/sub/nested")
+
+// ── 4. rmdir an empty directory ──
+show "=== 4. rmdir empty directory ==="
+show filesystem.rmdir("test_dir_temp/sub/nested")
+show filesystem.exists("test_dir_temp/sub/nested")
+
+// ── 5. rmdir a directory containing files, recursively ──
+show "=== 5. rmdir recursive with contents ==="
+// Create some content inside the directory
+filesystem.write("test_dir_temp/sub/hello.txt", "hello")
+show filesystem.rmdir("test_dir_temp/sub", true)
+show filesystem.exists("test_dir_temp/sub")
+
+// ── 6. rmdir a non-existent directory — returns false, not an error ──
+show "=== 6. rmdir non-existent (no-op) ==="
+show filesystem.rmdir("test_dir_nonexistent_xyz")
+
+// ── 7. mkdir with explicit false (non-recursive, same as 1-arg) ──
+show "=== 7. mkdir with explicit false (non-recursive) ==="
+show filesystem.mkdir("test_dir_temp/child", false)
+show filesystem.exists("test_dir_temp/child")
+
+// ── Cleanup — remove everything we created ──
+show "=== Cleanup ==="
+show filesystem.rmdir("test_dir_temp", true)
+show filesystem.exists("test_dir_temp")

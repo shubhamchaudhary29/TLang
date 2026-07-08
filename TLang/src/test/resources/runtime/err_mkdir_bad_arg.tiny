@@ -1,0 +1,4 @@
+// Expected exit code: 70
+import filesystem
+// Passing a non-boolean as the second argument to mkdir — should fail
+filesystem.mkdir("temp_bad_arg_dir", "yes")

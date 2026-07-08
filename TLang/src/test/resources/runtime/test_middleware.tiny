@@ -1,0 +1,58 @@
+import http
+import json
+
+let server be http.server(8086)
+let authCounter be 0
+
+// 1. Logger middleware
+let logger be function taking req and res and next
+    show req.method + " " + req.path
+    next()
+
+// 2. CORS middleware
+let cors be function taking req and res and next
+    res.header("access-control-allow-origin", "*")
+    next()
+
+// 3. Auth middleware
+let auth be function taking req and res and next
+    if req.path == "/authed"
+        if req.headers.contains("authorization")
+            let authHeader be req.headers.get("authorization")
+            if authHeader == "Bearer secret-token"
+                next()
+            otherwise
+                res.status(401).json({"error": "Unauthorized"})
+        otherwise
+            res.status(401).json({"error": "Unauthorized"})
+    otherwise
+        next()
+
+// 4. Short-circuit middleware (for testing no response sent fallback)
+let shortCircuit be function taking req and res and next
+    if req.path == "/no-response"
+        show "short-circuiting no-response path"
+    otherwise
+        next()
+
+server.use(logger)
+server.use(cors)
+server.use(auth)
+server.use(shortCircuit)
+
+// Test endpoints
+server.get("/", function taking req and res
+    res.text("Hello World")
+)
+
+server.get("/authed", function taking req and res
+    set authCounter to authCounter + 1
+    res.text("Authorized: count is " + authCounter)
+)
+
+server.get("/counter", function taking req and res
+    res.text("" + authCounter)
+)
+
+show "── Starting HTTP server on port 8086 ──"
+server.start()

@@ -1,3 +1,0 @@
-// Redeclaring a variable in the same scope
-let x be 10
-let x be 20

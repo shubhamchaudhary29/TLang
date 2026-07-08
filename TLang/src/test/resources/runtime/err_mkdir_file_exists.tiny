@@ -1,0 +1,5 @@
+// Expected exit code: 70
+import filesystem
+// Create a regular file, then try mkdir on the same path — should fail
+filesystem.write("temp_mkdir_file_conflict.txt", "hello")
+filesystem.mkdir("temp_mkdir_file_conflict.txt")

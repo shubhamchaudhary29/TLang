@@ -1,0 +1,8 @@
+// Expected exit code: 70
+import db
+
+let conn be db.open(":memory:")
+conn.close()
+
+// Try to query after close
+conn.query("SELECT 1", [])

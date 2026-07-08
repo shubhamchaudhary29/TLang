@@ -1,0 +1,4 @@
+// Expected exit code: 70
+import filesystem
+// mkdir with missing parent, non-recursive — should fail
+filesystem.mkdir("nonexistent_parent_xyz/child")

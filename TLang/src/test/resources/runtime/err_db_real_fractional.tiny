@@ -1,0 +1,7 @@
+// Expected exit code: 70
+import db
+
+let conn be db.open(":memory:")
+
+// Query a float/real value with a nonzero fractional part
+conn.query("SELECT 5.5 as v", [])

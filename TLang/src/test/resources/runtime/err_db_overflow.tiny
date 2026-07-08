@@ -1,0 +1,7 @@
+// Expected exit code: 70
+import db
+
+let conn be db.open(":memory:")
+
+// Query a number that exceeds 32-bit signed integer limits (2,147,483,647)
+conn.query("SELECT 9999999999 as v", [])

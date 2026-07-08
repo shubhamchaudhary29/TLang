@@ -1,0 +1,7 @@
+// Expected exit code: 70
+import db
+
+let conn be db.open(":memory:")
+
+// Query returning a BLOB
+conn.query("SELECT x'010203' as b", [])

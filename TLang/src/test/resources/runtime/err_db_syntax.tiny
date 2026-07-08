@@ -1,0 +1,7 @@
+// Expected exit code: 70
+import db
+
+let conn be db.open(":memory:")
+
+// Invalid SQL statement
+conn.execute("SELECT FROM", [])

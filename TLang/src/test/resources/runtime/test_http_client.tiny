@@ -1,0 +1,76 @@
+// Expected exit code: 0
+// Expected output:
+// === 1. GET /echo ===
+// 200
+// true
+// method=GET
+// === 2. POST /echo ===
+// 200
+// true
+// method=POST
+// body=hello
+// === 3. PUT /echo ===
+// 200
+// true
+// method=PUT
+// body=updated
+// === 4. DELETE /echo ===
+// 200
+// true
+// method=DELETE
+// === 5. GET /echo with custom header ===
+// 200
+// true
+// method=GET
+// custom=test-value-123
+// === 6. GET /status/404 (non-error) ===
+// 404
+// false
+// not found
+
+import http
+
+let base be "http://localhost:8973"
+
+// ── 1. GET /echo ──
+show "=== 1. GET /echo ==="
+let r1 be http.get(base + "/echo")
+show r1.status
+show r1.ok
+show r1.body
+
+// ── 2. POST /echo with body ──
+show "=== 2. POST /echo ==="
+let r2 be http.post(base + "/echo", "hello")
+show r2.status
+show r2.ok
+show r2.body
+
+// ── 3. PUT /echo with body ──
+show "=== 3. PUT /echo ==="
+let r3 be http.put(base + "/echo", "updated")
+show r3.status
+show r3.ok
+show r3.body
+
+// ── 4. DELETE /echo ──
+show "=== 4. DELETE /echo ==="
+let r4 be http.delete(base + "/echo")
+show r4.status
+show r4.ok
+show r4.body
+
+// ── 5. GET /echo with custom header ──
+show "=== 5. GET /echo with custom header ==="
+let hdrs be {"X-Custom": "test-value-123"}
+let r5 be http.get(base + "/echo", hdrs)
+show r5.status
+show r5.ok
+show r5.body
+
+// ── 6. GET /status/404 — should NOT throw ──
+show "=== 6. GET /status/404 (non-error) ==="
+let r6 be http.get(base + "/status/404")
+show r6.status
+show r6.ok
+show r6.body

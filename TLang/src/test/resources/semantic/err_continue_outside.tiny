@@ -1,0 +1,3 @@
+// Expected exit code: 65
+// continue outside any loop
+continue

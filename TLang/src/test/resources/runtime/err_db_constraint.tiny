@@ -1,0 +1,11 @@
+// Expected exit code: 70
+import db
+
+let conn be db.open(":memory:")
+
+conn.execute("CREATE TABLE t (v INTEGER UNIQUE)", [])
+
+conn.insert("INSERT INTO t VALUES (?)", [1])
+
+// Trigger constraint violation by inserting the duplicate value 1
+conn.insert("INSERT INTO t VALUES (?)", [1])

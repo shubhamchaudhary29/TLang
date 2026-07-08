@@ -1,0 +1,5 @@
+// Expected exit code: 70
+import http
+
+// Connection refused to a port where nothing is listening
+http.get("http://localhost:1/")

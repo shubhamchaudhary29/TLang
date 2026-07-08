@@ -1,0 +1,28 @@
+// Expected exit code: 70
+import http
+
+let server be http.server(8088)
+
+server.use(function taking req and res and next
+    next()
+    next()
+)
+
+server.get("/", function taking req and res
+    res.text("ok")
+)
+
+server.start()
+
+// Trigger request to run the middleware and double next()
+let res be http.get("http://localhost:8088/")
+
+// Stop the server so JVM can exit
+server.stop()
+
+// Check if the double-next call error is returned in the response
+if res.body.contains("next() called more than once")
+    // Force runtime error on main thread (division by zero)
+    let crash be 1 / 0
+otherwise
+    show "failed to trigger double next error"

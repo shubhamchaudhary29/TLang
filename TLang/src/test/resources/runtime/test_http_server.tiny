@@ -1,0 +1,68 @@
+import http
+import json
+
+let server be http.server(8085)
+
+// 1. GET / -> Hello World
+server.get("/", function taking req and res
+    res.text("Hello World")
+)
+
+// 2. POST /echo -> JSON containing method and body
+server.post("/echo", function taking req and res
+    res.json({"method": req.method, "body": req.body})
+)
+
+// 3. GET /headers -> returns value of x-custom header
+server.get("/headers", function taking req and res
+    let customVal be req.headers.get("x-custom")
+    res.text(customVal)
+)
+
+// 4. GET /query -> returns query parameters as JSON
+server.get("/query", function taking req and res
+    res.json(req.query)
+)
+
+// 5. GET /status -> returns 201 Created
+server.get("/status", function taking req and res
+    res.status(201).text("Created")
+)
+
+// 6. GET /json -> returns JSON object
+server.get("/json", function taking req and res
+    res.json({"message": "success", "code": 100})
+)
+
+// 7. GET /double-send -> attempts to send two responses (causes RuntimeError / 500)
+server.get("/double-send", function taking req and res
+    res.text("first")
+    res.text("second")
+)
+
+// 8. Overlapping Route Specificity: Literal beats parameter
+server.get("/users/me", function taking req and res
+    res.text("literal_me")
+)
+
+// 9. Single Parameter
+server.get("/users/:id", function taking req and res
+    res.json({"id": req.params.id})
+)
+
+// 10. Multi Parameter
+server.get("/users/:id/posts/:postId", function taking req and res
+    res.json({"id": req.params.id, "postId": req.params.postId})
+)
+
+// 11. URL-decoded parameters and POST endpoint on same shape for 405 check
+server.get("/search/:term", function taking req and res
+    res.text(req.params.term)
+)
+
+server.post("/search/:term", function taking req and res
+    res.text("post search: " + req.params.term)
+)
+
+show "── Starting HTTP server on port 8085 ──"
+server.start()

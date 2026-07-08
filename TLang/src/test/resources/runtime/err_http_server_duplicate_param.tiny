@@ -1,0 +1,9 @@
+// Expected exit code: 70
+import http
+
+let server be http.server(8087)
+
+// Duplicate parameter names ':id'
+server.get("/users/:id/friends/:id", function taking req and res
+    res.text("failed")
+)
