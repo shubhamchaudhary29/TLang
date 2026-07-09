@@ -45,12 +45,9 @@ cache.set("session_123", {userId: 42, role: "admin"}, 5)
 let session be cache.get("session_123")
 show session.userId // 42
 
-// Wait for expiration (simulated)
-time.sleep(6)
-
-// Retrieves null after expiry
-let expiredSession be cache.get("session_123")
-show expiredSession // nil
+// If we query the key after its 5-second TTL has elapsed:
+// let expiredSession be cache.get("session_123")
+// show expiredSession // nil
 ```
 
 ---

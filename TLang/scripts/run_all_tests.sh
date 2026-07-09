@@ -68,7 +68,7 @@ print('\n'.join(out))
 " "$f")
 
     # Run the test
-    actual_output=$(TLANG_TEST=true java -cp ../out:../lib/sqlite-jdbc-3.34.0.jar dev.tlang.Main "$f" 2>&1)
+    actual_output=$(TLANG_TEST=true SMTP_HOST=localhost SMTP_PORT=12345 java -cp ../out:../lib/sqlite-jdbc-3.34.0.jar:../lib/javax.mail-1.6.2.jar:../lib/activation-1.1.1.jar dev.tlang.Main "$f" 2>&1)
     actual_exit=$?
 
     # Compare exit code

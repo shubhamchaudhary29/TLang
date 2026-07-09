@@ -1,0 +1,39 @@
+// Expected exit code: 0
+// Expected output:
+// 42
+// admin
+// 1
+// 2
+// nil
+// true
+// false
+// nil
+
+import cache
+
+// 1. Store and retrieve a Map
+cache.set("map_key", {userId: 42, role: "admin"}, 3600)
+let m be cache.get("map_key")
+show m.userId
+show m.role
+
+// 2. Store and retrieve a List
+cache.set("list_key", [1, 2], 3600)
+let l be cache.get("list_key")
+show l.get(0)
+show l.get(1)
+
+// 3. Get key that was never set
+let empty be cache.get("non_existent")
+show empty
+
+// 4. Delete key return values
+let d1 be cache.delete("map_key")
+show d1
+let d2 be cache.delete("map_key")
+show d2
+
+// 5. Expiry test using negative TTL (0 - 1)
+cache.set("expired_key", "expired_val", 0 - 1)
+let expired be cache.get("expired_key")
+show expired

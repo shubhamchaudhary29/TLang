@@ -1,0 +1,5 @@
+// Expected exit code: 70
+import mail
+
+// Tries to send to localhost:12345 (which is configured in scripts/run_all_tests.sh)
+mail.send("recipient@example.com", "Subject", "Body")

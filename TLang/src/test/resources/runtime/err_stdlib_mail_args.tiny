@@ -1,0 +1,5 @@
+// Expected exit code: 70
+import mail
+
+// Non-string target email
+mail.send(12345, "subject", "body")
