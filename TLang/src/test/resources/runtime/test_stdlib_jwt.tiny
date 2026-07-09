@@ -1,0 +1,34 @@
+// Expected exit code: 0
+// Expected output:
+// true
+// 42
+// admin
+// false
+// false
+// false
+
+import jwt
+
+let payload be {userId: 42, role: "admin"}
+let secret be "my-secret"
+
+// 1. Success path
+let token be jwt.sign(payload, secret)
+let r1 be jwt.verify(token, secret)
+show r1.valid
+show r1.payload.userId
+show r1.payload.role
+
+// 2. Wrong secret
+let r2 be jwt.verify(token, "wrong-secret")
+show r2.valid
+
+// 3. Tampered token
+let r3 be jwt.verify(token + "x", secret)
+show r3.valid
+
+// 4. Expired token
+let expiredPayload be {userId: 99, exp: 1000000000}
+let expiredToken be jwt.sign(expiredPayload, secret)
+let r4 be jwt.verify(expiredToken, secret)
+show r4.valid

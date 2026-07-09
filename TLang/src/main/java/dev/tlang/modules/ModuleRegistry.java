@@ -19,6 +19,7 @@ public final class ModuleRegistry {
         REGISTRY.put("log", new LogModule());
         REGISTRY.put("crypto", new CryptoModule());
         REGISTRY.put("validate", new ValidateModule());
+        REGISTRY.put("jwt", new JwtModule());
     }
 
     public static Map<String, Object> getModule(String name) {

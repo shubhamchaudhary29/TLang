@@ -1,0 +1,5 @@
+// Expected exit code: 70
+import jwt
+
+// Non-string token argument to verify
+jwt.verify(12345, "secret")
