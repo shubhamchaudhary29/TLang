@@ -1,0 +1,17 @@
+// Expected exit code: 0
+// Expected output:
+// {"timestamp":"2026-07-09T00:00:00Z","level":"DEBUG","message":"Debug message"}
+// {"timestamp":"2026-07-09T00:00:00Z","level":"INFO","message":"Info message"}
+// {"timestamp":"2026-07-09T00:00:00Z","level":"WARN","message":"Warn message"}
+// {"timestamp":"2026-07-09T00:00:00Z","level":"ERROR","message":"Error message"}
+// {"timestamp":"2026-07-09T00:00:00Z","level":"INFO","message":"Request completed","ip":"127.0.0.1","status":200}
+
+import log
+
+log.debug("Debug message")
+log.info("Info message")
+log.warn("Warn message")
+log.error("Error message")
+
+let fields be {ip: "127.0.0.1", status: 200}
+log.info("Request completed", fields)

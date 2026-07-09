@@ -1,0 +1,34 @@
+// Expected exit code: 0
+// Expected output:
+// true
+// {}
+// false
+// email is required
+// age must be at least 18
+// role must be one of: [user, admin]
+// false
+// age must be a number
+
+import validate
+
+let schema be {email: {type: "string", required: true, pattern: "^[a-zA-Z0-9+_.-]+@[a-zA-Z0-9.-]+$"}, age: {type: "number", min: 18}, role: {type: "string", in: ["user", "admin"]}}
+
+// 1. Valid data
+let d1 be {email: "bob@example.com", age: 20, role: "admin"}
+let r1 be validate.check(d1, schema)
+show r1.valid
+show r1.errors
+
+// 2. Multiple simultaneous failures
+let d2 be {age: 16, role: "guest"}
+let r2 be validate.check(d2, schema)
+show r2.valid
+show r2.errors.email
+show r2.errors.age
+show r2.errors.role
+
+// 3. Type mismatch
+let d3 be {email: "bob@example.com", age: "twenty", role: "user"}
+let r3 be validate.check(d3, schema)
+show r3.valid
+show r3.errors.age

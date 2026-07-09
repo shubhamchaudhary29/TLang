@@ -68,7 +68,7 @@ print('\n'.join(out))
 " "$f")
 
     # Run the test
-    actual_output=$(java -cp ../out:../lib/sqlite-jdbc-3.34.0.jar dev.tlang.Main "$f" 2>&1)
+    actual_output=$(TLANG_TEST=true java -cp ../out:../lib/sqlite-jdbc-3.34.0.jar dev.tlang.Main "$f" 2>&1)
     actual_exit=$?
 
     # Compare exit code

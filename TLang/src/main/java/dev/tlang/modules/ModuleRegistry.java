@@ -15,6 +15,10 @@ public final class ModuleRegistry {
         REGISTRY.put("json", new JsonModule());
         REGISTRY.put("http", new HttpModule());
         REGISTRY.put("db", new DatabaseModule());
+        REGISTRY.put("config", new ConfigModule());
+        REGISTRY.put("log", new LogModule());
+        REGISTRY.put("crypto", new CryptoModule());
+        REGISTRY.put("validate", new ValidateModule());
     }
 
     public static Map<String, Object> getModule(String name) {

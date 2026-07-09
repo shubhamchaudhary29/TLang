@@ -1,0 +1,38 @@
+// Expected exit code: 0
+// Expected output:
+// true
+// nil
+// my_fallback
+// 9000
+// mysql://localhost:3306
+// hello
+// spaced_value
+// 9000
+
+import config
+import filesystem
+
+define getNil
+    let x be 1
+
+// 1. Reading an existing env var (making the check deterministic)
+show config.get("PATH") != getNil()
+
+// 2. Getting an absent key
+show config.get("ABSENT_KEY")
+
+// 3. Getting an absent key with default
+show config.getOr("ABSENT_KEY", "my_fallback")
+
+// 4. Load from a dynamic .env file
+filesystem.write(".env", "# This is a comment\nPORT=9000\nDB_URL=\"mysql://localhost:3306\"\nSINGLE_QUOTES='hello'\nSPACED_KEY =   spaced_value\n")
+config.load()
+
+show config.get("PORT")
+show config.get("DB_URL")
+show config.get("SINGLE_QUOTES")
+show config.get("SPACED_KEY")
+show config.require("PORT")
+
+// Clean up
+filesystem.delete(".env")

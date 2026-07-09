@@ -1,0 +1,30 @@
+// Expected exit code: 0
+// Expected output:
+// true
+// false
+// false
+// true
+// false
+// 2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824
+// 88aab3ede8d3adf94d26ab90d3bafd4a2083070c3bcce9c014ee04a443847c0b
+
+import crypto
+
+// 1. Password hashing & verification
+let h1 be crypto.hashPassword("myPassword")
+show crypto.verifyPassword("myPassword", h1)
+show crypto.verifyPassword("wrongPassword", h1)
+
+// 2. Proving salting works: same password twice generates different hashes
+let h2 be crypto.hashPassword("myPassword")
+show h1 == h2
+
+// 3. Constant-time comparison
+show crypto.compareConstantTime("token_xyz", "token_xyz")
+show crypto.compareConstantTime("token_xyz", "token_123")
+
+// 4. SHA-256 general hashing (stable and deterministic)
+show crypto.sha256("hello")
+
+// 5. HMAC-SHA256 signing (stable and deterministic)
+show crypto.hmacSha256("hello", "secret")

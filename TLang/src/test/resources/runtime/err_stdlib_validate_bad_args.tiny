@@ -1,0 +1,5 @@
+// Expected exit code: 70
+import validate
+
+// Passing non-map as first argument
+validate.check("not-a-map", {})
