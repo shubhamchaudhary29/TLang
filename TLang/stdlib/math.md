@@ -30,8 +30,8 @@ Provides basic mathematical operations for integers, such as absolute values, co
 - **Return Type**: `Number`
 - **Description**: Computes the greatest common divisor of two integers.
 
-#### `floor_div(a, b)`
-- **Signature**: `floor_div(a: Number, b: Number)`
+#### `floorDiv(a, b)`
+- **Signature**: `floorDiv(a: Number, b: Number)`
 - **Return Type**: `Number`
 - **Description**: Divides the first integer by the second, rounding down to the nearest integer.
 
@@ -58,8 +58,8 @@ show math.min(10, 20) // 10
 import math
 
 show math.pow(2, 3) // 8
-show math.floor_div(7, 2) // 3
-show math.floor_div(-7, 2) // -4
+show math.floorDiv(7, 2) // 3
+show math.floorDiv(-7, 2) // -4
 ```
 
 ### 3. Greatest Common Divisor
@@ -78,7 +78,7 @@ show math.gcd(48, 18) // 6
   - `Arguments to 'pow' must be integers.`
 - **Invalid Arithmetic**:
   - Exponent value in `pow` must be non-negative: `Exponent must be non-negative.`
-  - Dividing by zero in `floor_div`: `Division by zero.`
+  - Dividing by zero in `floorDiv`: `Division by zero.`
 
 ---
 

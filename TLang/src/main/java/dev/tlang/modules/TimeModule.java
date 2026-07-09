@@ -21,12 +21,12 @@ public final class TimeModule implements NativeModule {
             }
         });
 
-        exports.put("elapsed_seconds", new NativeFunction("elapsed_seconds", 1) {
+        exports.put("elapsedSeconds", new NativeFunction("elapsedSeconds", 1) {
             @Override
             public Object call(List<Object> args, Token token) {
                 Object start = args.get(0);
                 if (Type.of(start) != Type.NUMBER) {
-                    throw new RuntimeError(token, "Argument to 'elapsed_seconds' must be an integer.");
+                    throw new RuntimeError(token, "Argument to 'elapsedSeconds' must be an integer.");
                 }
                 return StdlibOps.now() - (Integer) start;
             }

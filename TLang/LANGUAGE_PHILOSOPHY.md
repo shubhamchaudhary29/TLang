@@ -57,6 +57,10 @@ All native and standard library modules in TLang must adhere to a strict naming 
 > [!NOTE]
 > This standard applies retroactively. Existing native modules (`math`, `http`, `db`, `json`, `filesystem`, `random`, `strings`, `time`) will be audited and adjusted to conform to this naming standard as part of subsequent standard library documentation (Phase 2) and code style cleaning (Phase 5) iterations.
 
+### 4.1 Casing Style for Multi-Word Names
+
+Standard library and native module function names containing multiple words must use **camelCase** (for example, `time.elapsedSeconds`, `math.floorDiv`, and `strings.padLeft`). Following a formal naming consistency audit (`NAMING_AUDIT.md`), this style was confirmed as the permanent convention for TLang standard library modules due to its prevalence in the library and alignment with common variables and map key casing styles in `.tiny` programs.
+
 ---
 
 ## 5. Decision Filter

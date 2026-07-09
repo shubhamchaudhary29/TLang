@@ -11,10 +11,10 @@ import math
 show math.gcd(18, 24)
 
 // Truncated division: 10 / 3 = 3. Floor division: 10 // 3 = 3
-show math.floor_div(10, 3)
+show math.floorDiv(10, 3)
 
 // Truncated division: -10 / 3 = -3. Floor division: -10 // 3 = -4
-show math.floor_div(-10, 3)
+show math.floorDiv(-10, 3)
 
 show math.sign(-100)
 show math.sign(0)

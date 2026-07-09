@@ -84,13 +84,13 @@ public final class MathModule implements NativeModule {
             }
         });
 
-        exports.put("floor_div", new NativeFunction("floor_div", 2) {
+        exports.put("floorDiv", new NativeFunction("floorDiv", 2) {
             @Override
             public Object call(List<Object> args, Token token) {
                 Object a = args.get(0);
                 Object b = args.get(1);
                 if (Type.of(a) != Type.NUMBER || Type.of(b) != Type.NUMBER) {
-                    throw new RuntimeError(token, "Arguments to 'floor_div' must be integers.");
+                    throw new RuntimeError(token, "Arguments to 'floorDiv' must be integers.");
                 }
                 int divisor = (Integer) b;
                 if (divisor == 0) {
