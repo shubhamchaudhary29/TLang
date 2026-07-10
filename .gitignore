@@ -9,8 +9,10 @@
 
 # Package Files
 *.jar
-# Do NOT ignore vendored jars in TLang/lib/
-!/TLang/lib/*.jar
+
+# Gradle build files
+/TLang/.gradle/
+/TLang/build/
 
 # IDE files
 .idea/

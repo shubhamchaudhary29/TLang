@@ -7,13 +7,15 @@
 set -uo pipefail
 cd "$(dirname "$0")"
 
-echo "── Compiling ──"
-./build.sh 2>&1
-if [ $? -ne 0 ]; then
-    echo "COMPILATION FAILED"
-    exit 1
+if [ "${GRADLE_RUNNING:-}" != "true" ]; then
+    echo "── Compiling ──"
+    ./build.sh 2>&1
+    if [ $? -ne 0 ]; then
+        echo "COMPILATION FAILED"
+        exit 1
+    fi
+    echo ""
 fi
-echo ""
 
 pass=0
 fail=0
@@ -67,8 +69,7 @@ for line in lines:
 print('\n'.join(out))
 " "$f")
 
-    # Run the test
-    actual_output=$(TLANG_TEST=true SMTP_HOST=localhost SMTP_PORT=12345 java -cp ../out:../lib/sqlite-jdbc-3.34.0.jar:../lib/javax.mail-1.6.2.jar:../lib/activation-1.1.1.jar dev.tlang.Main "$f" 2>&1)
+    actual_output=$(TLANG_TEST=true SMTP_HOST=localhost SMTP_PORT=12345 java -cp "../build/classes/java/main:../build/dependencies/*" dev.tlang.Main "$f" 2>&1)
     actual_exit=$?
 
     # Compare exit code

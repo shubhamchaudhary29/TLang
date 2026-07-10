@@ -1,0 +1,49 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'dev.tlang'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.xerial:sqlite-jdbc:3.34.0'
+    implementation 'com.sun.mail:javax.mail:1.6.2'
+    implementation 'javax.activation:activation:1.1.1'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+application {
+    mainClass = 'dev.tlang.Main'
+}
+
+// Custom task to copy runtime dependencies to build/dependencies
+tasks.register('copyDependencies', Copy) {
+    from configurations.runtimeClasspath
+    into layout.buildDirectory.dir('dependencies')
+}
+
+// Custom task to run our custom .tiny integration tests
+tasks.register('tlangTests', Exec) {
+    dependsOn compileJava
+    dependsOn 'copyDependencies'
+    group = 'verification'
+    description = 'Runs the custom TLang integration tests'
+    
+    environment 'GRADLE_RUNNING', 'true'
+    commandLine 'bash', './scripts/run_all_tests.sh'
+}
+
+// Bind tlangTests to standard check task
+tasks.named('check') {
+    dependsOn tlangTests
+}
