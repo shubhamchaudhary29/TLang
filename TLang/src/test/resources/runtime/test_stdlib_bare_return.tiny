@@ -1,0 +1,11 @@
+// Expected exit code: 0
+// Expected output:
+// nil
+// true
+
+define checkBare
+    return
+
+let val be checkBare()
+show val
+show val == nil

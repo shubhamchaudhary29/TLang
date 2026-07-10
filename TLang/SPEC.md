@@ -33,6 +33,7 @@ All tokens in TLang belong to one of the following categories defined in `TokenT
   - Control Flow: `IF` (`if`), `OTHERWISE` (`otherwise`), `WHILE` (`while`), `BREAK` (`break`), `CONTINUE` (`continue`), `REPEAT` (`repeat`), `TIMES` (`times`), `AS` (`as`)
   - Functions & Lambdas: `DEFINE` (`define`), `TAKING` (`taking`), `RETURN` (`return`), `FUNCTION` (`function`)
   - Boolean values: `TRUE` (`true`), `FALSE` (`false`)
+  - Null/nil values: `NIL` (`nil`)
 
 ### Block Structure
 TLang is an indentation-based language (Python-style) and does not use curly braces or semicolons for block boundaries.
@@ -41,6 +42,8 @@ TLang is an indentation-based language (Python-style) and does not use curly bra
   - A decrease in leading spaces/tabs pops the indentation stack and emits `DEDENT` tokens until the indentation matches an enclosing level.
   - Tabs are treated as equivalent to `4` spaces.
 - **Line Handling**: Single-line comments starting with `//` and blank lines are ignored for indentation tracking.
+- **Brace/Bracket Insignificant Newlines**: Newlines (`\n`) and their associated indentation (leading whitespace) are treated as insignificant whitespace and ignored by the lexer when they occur inside unclosed map/object braces `{...}` or list brackets `[...]`. This allows maps and lists to span multiple lines. Crucially, this newline suppression does **not** occur inside unclosed function call parentheses `(...)` to prevent interfering with nested inline lambda statements.
+- **Lambda inside Map/List Literals**: Inline lambdas (anonymous functions) can be declared directly inside map or list literals. The lexer temporarily restores newline/indentation tracking for the lambda block. However, for readability and styling, it is often cleaner to declare the lambda first, store it in a variable, and then reference that variable inside the map/list literal.
 
 ### Position and Column Tracking
 - **Convention**: Line and column tracking are **1-indexed**.
@@ -100,7 +103,7 @@ params         ::= param ( "and" param )* ;
 
 param          ::= IDENTIFIER [ "be" expression ] ;
 
-returnStmt     ::= "return" expression NEWLINE ;
+returnStmt     ::= "return" [ expression ] NEWLINE ;
 
 exprStmt       ::= expression NEWLINE ;
 
@@ -131,6 +134,7 @@ primary        ::= NUMBER
                  | STRING
                  | "true"
                  | "false"
+                 | "nil"
                  | IDENTIFIER
                  | "(" expression ")"
                  | "function" [ "taking" params ] NEWLINE block

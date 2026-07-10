@@ -26,6 +26,8 @@ public final class Lexer {
     private final String source;
     private final List<Token> tokens = new ArrayList<>();
     private final Deque<Integer> indentStack = new ArrayDeque<>();
+    private int braceBracketDepth = 0;
+    private final Deque<Integer> lambdaBraceDepthStack = new ArrayDeque<>();
 
     private int start   = 0;
     private int current = 0;
@@ -72,6 +74,7 @@ public final class Lexer {
         // Boolean literals
         KEYWORDS.put("true",      TokenType.TRUE);
         KEYWORDS.put("false",     TokenType.FALSE);
+        KEYWORDS.put("nil",       TokenType.NIL);
     }
 
     public Lexer(String source) {
@@ -141,6 +144,11 @@ public final class Lexer {
             return;  // stay in atLineStart mode
         }
 
+        if (braceBracketDepth > 0) {
+            atLineStart = false;
+            return;
+        }
+
         // Compare with current indentation level
         int currentIndent = indentStack.peek();
 
@@ -169,8 +177,10 @@ public final class Lexer {
             // Newline → emit NEWLINE and switch to line-start mode
             case '\n':
                 // Don't emit duplicate NEWLINEs
-                if (lastTokenType() != TokenType.NEWLINE) {
-                    addSimple(TokenType.NEWLINE);
+                if (braceBracketDepth == 0) {
+                    if (lastTokenType() != TokenType.NEWLINE) {
+                        addSimple(TokenType.NEWLINE);
+                    }
                 }
                 line++;
                 lineStart = current;
@@ -184,10 +194,24 @@ public final class Lexer {
             // Grouping & punctuation
             case '(': addToken(TokenType.LEFT_PAREN);  break;
             case ')': addToken(TokenType.RIGHT_PAREN); break;
-            case '[': addToken(TokenType.LEFT_BRACKET);  break;
-            case ']': addToken(TokenType.RIGHT_BRACKET); break;
-            case '{': addToken(TokenType.LEFT_BRACE);    break;
-            case '}': addToken(TokenType.RIGHT_BRACE);   break;
+            case '[':
+                braceBracketDepth++;
+                addToken(TokenType.LEFT_BRACKET);
+                break;
+            case ']':
+                restoreBraceBracketDepth();
+                braceBracketDepth--;
+                addToken(TokenType.RIGHT_BRACKET);
+                break;
+            case '{':
+                braceBracketDepth++;
+                addToken(TokenType.LEFT_BRACE);
+                break;
+            case '}':
+                restoreBraceBracketDepth();
+                braceBracketDepth--;
+                addToken(TokenType.RIGHT_BRACE);
+                break;
             case ',': addToken(TokenType.COMMA);        break;
             case ':': addToken(TokenType.COLON);        break;
             case '.': addToken(TokenType.DOT);          break;
@@ -316,6 +340,10 @@ public final class Lexer {
         while (isAlphaNumeric(peek())) advance();
         String text = source.substring(start, current);
         TokenType type = KEYWORDS.getOrDefault(text, TokenType.IDENTIFIER);
+        if (type == TokenType.FUNCTION) {
+            lambdaBraceDepthStack.push(braceBracketDepth);
+            braceBracketDepth = 0;
+        }
         addToken(type);
     }
 
@@ -395,5 +423,17 @@ public final class Lexer {
     private LexerError error(String message) {
         int col = start - lineStart + 1;
         return new LexerError(line, col, message);
+    }
+
+    private void restoreBraceBracketDepth() {
+        if (braceBracketDepth == 0 && !lambdaBraceDepthStack.isEmpty()) {
+            while (!lambdaBraceDepthStack.isEmpty()) {
+                int depth = lambdaBraceDepthStack.pop();
+                if (depth > 0) {
+                    braceBracketDepth = depth;
+                    break;
+                }
+            }
+        }
     }
 }

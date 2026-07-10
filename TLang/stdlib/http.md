@@ -83,6 +83,7 @@ Handlers receive a `req` map representing the incoming HTTP request:
 - `method`: `String` (e.g. `"GET"`, `"POST"`)
 - `path`: `String` (the requested resource path)
 - `body`: `String` (raw request payload body)
+- `json`: `Map` or `List` (parsed request payload body if `Content-Type` contains `application/json` and the body is valid JSON; otherwise `null`)
 - `headers`: `Map` (incoming header keys are lowercased)
 - `query`: `Map` (query parameters parsed from URL)
 - `params`: `Map` (wildcard/path parameters like `:id`)
@@ -165,3 +166,4 @@ server.start()
 - **Thread Safety**: The HTTP server runs on a background thread pool managed by Java's `HttpServer`, but all handler dispatching is serialized via synchronizing on the single-threaded tree-walking interpreter (`synchronized (interpreter)`).
 - **Header Case**: Incoming request header keys are lower-cased automatically (e.g. `req.headers.get("authorization")`).
 - **Synchronous Execution**: All client requests block the interpreter thread until completion or timeout (default timeout is 10 seconds).
+- **Lambda inside Map/List Literals**: Inline lambdas (`function taking req and res ...`) can be defined directly inside map/list literals (the lexer handles restoring newline tracking for the lambda block). For cleaner code organization, you can also declare the lambda first, store it in a variable, and reference it inside the map/list literal.

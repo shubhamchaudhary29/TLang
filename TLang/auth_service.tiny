@@ -1,0 +1,143 @@
+import config
+import log
+import crypto
+import validate
+import jwt
+import http
+import db
+import json
+
+define getNull
+    let x be 1
+
+let null be getNull()
+
+config.load()
+let portVal be config.getOr("PORT", "8080")
+let port be json.parse(portVal)
+let jwtSecret be config.getOr("JWT_SECRET", "super-secret-key")
+let dbPath be config.getOr("DB_PATH", "auth.db")
+
+log.info("Starting auth service. Port: " + portVal + ", DB: " + dbPath)
+
+let conn be db.open(dbPath)
+
+// Initialize database table
+conn.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE, password_hash TEXT)", [])
+
+let signupSchema be {email: {type: "string", required: true, pattern: "^[a-zA-Z0-9+_.-]+@[a-zA-Z0-9.-]+$"}, password: {type: "string", required: true, min: 6}}
+
+let loginSchema be {email: {type: "string", required: true}, password: {type: "string", required: true}}
+
+let signupHandler be function taking req and res
+    log.info("Received signup request")
+    let bodyMap be json.parse(req.body)
+    let validationResult be validate.check(bodyMap, signupSchema)
+    if not validationResult.valid
+        log.warn("Signup validation failed")
+        res.status(400).json({"errors": validationResult.errors})
+        return null
+    otherwise
+        let email be bodyMap.email
+        let password be bodyMap.password
+
+        // Check if user already exists
+        let existingUsers be conn.query("SELECT id FROM users WHERE email = ?", [email])
+        if existingUsers.length() > 0
+            log.warn("Signup failed: user already exists: " + email)
+            res.status(400).json({"error": "User already exists"})
+            return null
+        otherwise
+            let hash be crypto.hashPassword(password)
+            conn.insert("INSERT INTO users (email, password_hash) VALUES (?, ?)", [email, hash])
+            
+            // Get the generated ID
+            let lastIdRes be conn.query("SELECT last_insert_rowid() as id", [])
+            let userId be lastIdRes.get(0).get("id")
+
+            log.info("User created successfully: " + email + " (ID: " + userId + ")")
+            res.status(201).json({"id": userId, "email": email})
+            return null
+
+let loginHandler be function taking req and res
+    log.info("Received login request")
+    let bodyMap be json.parse(req.body)
+    let validationResult be validate.check(bodyMap, loginSchema)
+    if not validationResult.valid
+        log.warn("Login validation failed")
+        res.status(400).json({"errors": validationResult.errors})
+        return null
+    otherwise
+        let email be bodyMap.email
+        let password be bodyMap.password
+
+        let users be conn.query("SELECT id, password_hash FROM users WHERE email = ?", [email])
+        if users.length() == 0
+            log.warn("Login failed: user not found: " + email)
+            res.status(401).json({"error": "Invalid email or password"})
+            return null
+        otherwise
+            let user be users.get(0)
+            let storedHash be user.get("password_hash")
+            let isPasswordCorrect be crypto.verifyPassword(password, storedHash)
+            if not isPasswordCorrect
+                log.warn("Login failed: incorrect password for " + email)
+                res.status(401).json({"error": "Invalid email or password"})
+                return null
+            otherwise
+                let payload be {userId: user.get("id"), email: email}
+                let token be jwt.sign(payload, jwtSecret)
+                log.info("Login successful: " + email)
+                res.json({"token": token})
+                return null
+
+let meHandler be function taking req and res
+    log.info("Received GET /me request")
+    if not req.headers.contains("authorization")
+        log.warn("GET /me failed: Authorization header missing")
+        res.status(401).json({"error": "Authorization header required"})
+        return null
+    otherwise
+        let authHeader be req.headers.get("authorization")
+        // Check for "Bearer " prefix
+        let token be ""
+        if authHeader.length() > 7
+            let prefix be authHeader.substring(0, 7)
+            if prefix == "Bearer "
+                set token to authHeader.substring(7, authHeader.length())
+            otherwise
+                log.warn("GET /me failed: Invalid authorization prefix")
+                res.status(401).json({"error": "Invalid authorization token format"})
+                return null
+        otherwise
+            log.warn("GET /me failed: Invalid authorization header length")
+            res.status(401).json({"error": "Invalid authorization token format"})
+            return null
+        
+        let jwtResult be jwt.verify(token, jwtSecret)
+        if not jwtResult.valid
+            log.warn("GET /me failed: Invalid JWT token")
+            res.status(401).json({"error": "Invalid token"})
+            return null
+        otherwise
+            let userId be jwtResult.payload.userId
+            let email be jwtResult.payload.email
+            log.info("Successfully fetched profile for user: " + email)
+            res.json({"id": userId, "email": email})
+            return null
+
+// Test route to force a crash/RuntimeError inside a request handler (to test server crash behavior)
+let crashHandler be function taking req and res
+    log.info("Received request to crash route")
+    let x be 1 / 0
+    res.text("This should never be returned")
+    return null
+
+let server be http.server(port)
+server.post("/signup", signupHandler)
+server.post("/login", loginHandler)
+server.get("/me", meHandler)
+server.get("/crash", crashHandler)
+
+log.info("Starting http server...")
+server.start()

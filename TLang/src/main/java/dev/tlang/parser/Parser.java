@@ -228,10 +228,15 @@ public final class Parser {
         return new FunctionStmt(name, params, defaults, body);
     }
 
-    /** return <expression> NEWLINE */
+    /** return [expression] NEWLINE */
     private Stmt returnStatement() {
         Token keyword = previous();
-        Expr value = expression();
+        Expr value;
+        if (check(TokenType.NEWLINE) || check(TokenType.EOF)) {
+            value = new LiteralExpr(null);
+        } else {
+            value = expression();
+        }
         consumeNewline("Expected end of line after return statement.");
         return new ReturnStmt(keyword, value);
     }
@@ -425,6 +430,10 @@ public final class Parser {
         if (match(TokenType.FALSE)) {
             lastExprEndedWithBlock = false;
             return new LiteralExpr(false);
+        }
+        if (match(TokenType.NIL)) {
+            lastExprEndedWithBlock = false;
+            return new LiteralExpr(null);
         }
 
         if (match(TokenType.IDENTIFIER)) {

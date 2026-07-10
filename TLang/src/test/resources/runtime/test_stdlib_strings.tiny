@@ -7,6 +7,9 @@
 // false
 // --abc
 // abc--
+// 123
+// -45
+// 789
 import strings
 
 let parts be [10, true, "hello"]
@@ -20,3 +23,7 @@ show strings.isBlank("  abc  ")
 
 show strings.padLeft("abc", 5, "-")
 show strings.padRight("abc", 5, "-")
+
+show strings.toNumber("123")
+show strings.toNumber("-45")
+show strings.toNumber("  789  ")

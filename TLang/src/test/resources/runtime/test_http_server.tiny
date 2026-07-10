@@ -13,6 +13,11 @@ server.post("/echo", function taking req and res
     res.json({"method": req.method, "body": req.body})
 )
 
+// 2b. POST /json-body -> returns req.json
+server.post("/json-body", function taking req and res
+    res.json({"json": req.json})
+)
+
 // 3. GET /headers -> returns value of x-custom header
 server.get("/headers", function taking req and res
     let customVal be req.headers.get("x-custom")

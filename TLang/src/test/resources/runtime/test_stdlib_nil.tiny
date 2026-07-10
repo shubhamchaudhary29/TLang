@@ -1,0 +1,10 @@
+// Expected exit code: 0
+// Expected output:
+// nil
+// is nil
+
+let x be nil
+show x
+
+if x == nil
+    show "is nil"

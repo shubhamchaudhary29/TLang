@@ -1,0 +1,4 @@
+// Expected exit code: 70
+import strings
+
+show strings.toNumber("abc")

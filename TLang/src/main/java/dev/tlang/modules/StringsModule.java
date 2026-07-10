@@ -142,6 +142,22 @@ public final class StringsModule implements NativeModule {
                 return sb.toString();
             }
         });
+
+        exports.put("toNumber", new NativeFunction("toNumber", 1) {
+            @Override
+            public Object call(List<Object> args, Token token) {
+                Object strVal = args.get(0);
+                if (Type.of(strVal) != Type.STRING) {
+                    throw new RuntimeError(token, "Argument to 'toNumber' must be a string.");
+                }
+                String str = (String) strVal;
+                try {
+                    return Integer.parseInt(str.trim());
+                } catch (NumberFormatException e) {
+                    throw new RuntimeError(token, "'toNumber' expected a numeric string, got '" + str + "'.");
+                }
+            }
+        });
     }
 
     @Override

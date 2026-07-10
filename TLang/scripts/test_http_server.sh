@@ -7,7 +7,7 @@ echo "── Building TLang ──"
 "$PROJECT_DIR/scripts/build.sh" 2>&1
 
 echo "── Starting HTTP server ──"
-java -cp "$PROJECT_DIR/out:$PROJECT_DIR/lib/sqlite-jdbc-3.34.0.jar" dev.tlang.Main "$PROJECT_DIR/src/test/resources/runtime/test_http_server.tiny" &
+java -cp "$PROJECT_DIR/out:$PROJECT_DIR/lib/sqlite-jdbc-3.34.0.jar:$PROJECT_DIR/lib/javax.mail-1.6.2.jar:$PROJECT_DIR/lib/activation-1.1.1.jar" dev.tlang.Main "$PROJECT_DIR/src/test/resources/runtime/test_http_server.tiny" &
 SERVER_PID=$!
 
 cleanup() {
@@ -61,6 +61,22 @@ check_equals "GET /" "$res" "Hello World"
 # 2. POST /echo
 res=$(curl -s -X POST -d "hello payload" http://localhost:8085/echo)
 check_equals "POST /echo" "$res" '{"method":"POST","body":"hello payload"}'
+
+# 2b. POST /json-body valid JSON
+res=$(curl -s -X POST -H "Content-Type: application/json" -d '{"foo": "bar"}' http://localhost:8085/json-body)
+check_equals "POST /json-body valid JSON" "$res" '{"json":{"foo":"bar"}}'
+
+# 2c. POST /json-body text/plain
+res=$(curl -s -X POST -H "Content-Type: text/plain" -d '{"foo": "bar"}' http://localhost:8085/json-body)
+check_equals "POST /json-body text/plain" "$res" '{"json":null}'
+
+# 2d. POST /json-body malformed JSON
+res=$(curl -s -X POST -H "Content-Type: application/json" -d '{"foo":' http://localhost:8085/json-body)
+check_equals "POST /json-body malformed JSON" "$res" '{"json":null}'
+
+# 2e. POST /json-body empty body
+res=$(curl -s -X POST -H "Content-Type: application/json" -d '' http://localhost:8085/json-body)
+check_equals "POST /json-body empty body" "$res" '{"json":null}'
 
 # 3. GET /headers
 res=$(curl -s -H "X-Custom: header-value" http://localhost:8085/headers)

@@ -32,10 +32,11 @@ Provides a standard, predictable interface for reading application configuration
 ### 1. Load `.env` and Read Configuration
 ```tiny
 import config
+import strings
 
 config.load()
 
-let port be config.getOr("PORT", "8080")
+let port be strings.toNumber(config.getOr("PORT", "8080"))
 let dbUrl be config.require("DATABASE_URL")
 
 show "Running on port: " + port
@@ -66,5 +67,5 @@ let debugMode be config.getOr("DEBUG_MODE", "false")
 
 ## Notes
 - **Precedence**: System environment variables always take precedence over values loaded from a `.env` file.
-- **Types**: All configuration values are returned as `String` representations. The caller must manually convert them to other types (e.g. using `toInteger`).
+- **Types**: All configuration values are returned as `String` representations. The caller must manually convert them to other types (e.g. using `strings.toNumber`).
 - **Load timing**: `load()` should typically be called once at the entry point of the application before reading any config keys.

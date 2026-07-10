@@ -8,7 +8,7 @@ echo "── Building TLang ──"
 
 echo "── Starting HTTP server with middleware ──"
 rm -f server.log
-java -cp "$PROJECT_DIR/out:$PROJECT_DIR/lib/sqlite-jdbc-3.34.0.jar" dev.tlang.Main "$PROJECT_DIR/src/test/resources/runtime/test_middleware.tiny" > server.log 2>&1 &
+java -cp "$PROJECT_DIR/out:$PROJECT_DIR/lib/sqlite-jdbc-3.34.0.jar:$PROJECT_DIR/lib/javax.mail-1.6.2.jar:$PROJECT_DIR/lib/activation-1.1.1.jar" dev.tlang.Main "$PROJECT_DIR/src/test/resources/runtime/test_middleware.tiny" > server.log 2>&1 &
 SERVER_PID=$!
 
 cleanup() {

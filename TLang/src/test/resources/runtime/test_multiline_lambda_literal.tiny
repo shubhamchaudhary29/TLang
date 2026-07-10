@@ -1,0 +1,11 @@
+// Expected exit code: 0
+// Expected output:
+// hello
+
+let x be [
+    function taking a
+        show a
+]
+
+let f be x[0]
+f("hello")

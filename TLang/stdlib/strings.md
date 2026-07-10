@@ -35,6 +35,11 @@ Provides helper functions for manipulating, formatting, padding, and inspecting 
 - **Return Type**: `String`
 - **Description**: Pads the right side of a string with a single character until it reaches the specified width.
 
+#### `toNumber(str)`
+- **Signature**: `toNumber(str: String)`
+- **Return Type**: `Number`
+- **Description**: Parses a string as an integer and returns it as a `NUMBER`. Throws a `RuntimeError` if the string is not a valid integer.
+
 ---
 
 ## Examples
@@ -69,9 +74,11 @@ show strings.padRight("42", 5, " ") // "42   "
   - `Argument to 'isBlank' must be a string.`
   - `Arguments to 'padLeft' must be (string, integer, string).`
   - `Arguments to 'padRight' must be (string, integer, string).`
+  - `Argument to 'toNumber' must be a string.`
 - **Argument constraint failures**:
   - Negative repeat count: `Repeat count must be non-negative.`
   - Padding string length must be exactly 1: `Padding character must be a string of length 1.`
+  - Invalid integer string: `'toNumber' expected a numeric string, got 'abc'.`
 
 ---
 

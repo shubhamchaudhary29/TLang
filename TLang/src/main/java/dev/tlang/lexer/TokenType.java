@@ -41,7 +41,7 @@ public enum TokenType {
 
     // Boolean keywords & values
     AND, OR, NOT,
-    TRUE, FALSE,
+    TRUE, FALSE, NIL,
 
     // End of file
     EOF

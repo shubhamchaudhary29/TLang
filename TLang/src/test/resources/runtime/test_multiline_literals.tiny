@@ -1,0 +1,42 @@
+// Expected exit code: 0
+// Expected output:
+// {a: 1, b: 2, c: 3}
+// [1, 2, 3]
+// [{id: 1}, {id: 2}]
+// {items: [1, 2]}
+
+// 1. Multi-line map literal
+let myMap be {
+    "a": 1,
+    "b": 2,
+    "c": 3
+}
+show myMap
+
+// 2. Multi-line list literal
+let myList be [
+    1,
+    2,
+    3
+]
+show myList
+
+// 3. List of maps, multi-line
+let listMaps be [
+    {
+        "id": 1
+    },
+    {
+        "id": 2
+    }
+]
+show listMaps
+
+// 4. Map with list, multi-line
+let mapList be {
+    "items": [
+        1,
+        2
+    ]
+}
+show mapList

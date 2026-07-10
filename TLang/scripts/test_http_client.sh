@@ -60,7 +60,7 @@ echo "── Test server ready ──"
 
 # 5. Run the TLang HTTP client test
 echo "── Running test_http_client.tiny ──"
-java -cp "$OUT_DIR:$PROJECT_DIR/lib/sqlite-jdbc-3.34.0.jar" dev.tlang.Main "$PROJECT_DIR/src/test/resources/runtime/test_http_client.tiny"
+java -cp "$OUT_DIR:$PROJECT_DIR/lib/sqlite-jdbc-3.34.0.jar:$PROJECT_DIR/lib/javax.mail-1.6.2.jar:$PROJECT_DIR/lib/activation-1.1.1.jar" dev.tlang.Main "$PROJECT_DIR/src/test/resources/runtime/test_http_client.tiny"
 TEST_EXIT=$?
 
 # 6. Cleanup happens via trap

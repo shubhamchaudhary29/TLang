@@ -7,6 +7,10 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
+import dev.tlang.lexer.Token;
+import dev.tlang.lexer.TokenType;
+import dev.tlang.runtime.json.JsonParser;
+
 /**
  * Helper to wrap an HttpExchange into a TLang request Map.
  */
@@ -41,6 +45,22 @@ public final class RequestWrapper {
             headersMap.put(key.toLowerCase(), String.join(", ", entry.getValue()));
         }
         req.put("headers", headersMap);
+
+        // Parse JSON body if content-type is application/json
+        Object parsedJson = null;
+        String contentType = (String) headersMap.get("content-type");
+        if (contentType != null && contentType.toLowerCase().contains("application/json")) {
+            if (!body.trim().isEmpty()) {
+                try {
+                    Token dummyToken = new Token(TokenType.IDENTIFIER, "json", null, 1);
+                    JsonParser parser = new JsonParser(body, dummyToken);
+                    parsedJson = parser.parse();
+                } catch (Exception e) {
+                    // Leave as null on parsing errors
+                }
+            }
+        }
+        req.put("json", parsedJson);
 
         return req;
     }

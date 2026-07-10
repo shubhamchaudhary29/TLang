@@ -227,6 +227,25 @@ public final class DatabaseModule implements NativeModule {
                     connMap.put("update", executeFn);
                     connMap.put("delete", executeFn);
 
+                    connMap.put("lastInsertId", new NativeFunction("lastInsertId", 1) {
+                        @Override
+                        public Object call(List<Object> subArgs, Token subToken) {
+                            Connection connVal = connRef[0];
+                            if (connVal == null) {
+                                throw new RuntimeError(subToken, "Database connection is closed.");
+                            }
+                            try (PreparedStatement stmt = connVal.prepareStatement("SELECT last_insert_rowid()");
+                                 ResultSet rs = stmt.executeQuery()) {
+                                if (rs.next()) {
+                                    return rs.getInt(1);
+                                }
+                                throw new RuntimeError(subToken, "Failed to retrieve last insert ID.");
+                            } catch (SQLException e) {
+                                throw new RuntimeError(subToken, "Database error: " + e.getMessage());
+                            }
+                        }
+                    }.setExpectsReceiver(true));
+
                     connMap.put("close", new NativeFunction("close", 1) {
                         @Override
                         public Object call(List<Object> subArgs, Token subToken) {

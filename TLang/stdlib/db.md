@@ -42,6 +42,11 @@ The database connection map returned by `open` exposes the following methods:
 - **Return Type**: `Number` (Integer)
 - **Description**: Alias for `execute`. Executes a DELETE statement and returns the number of affected rows.
 
+#### `lastInsertId()`
+- **Signature**: `conn.lastInsertId()`
+- **Return Type**: `Number` (Integer)
+- **Description**: Returns the ID of the last row inserted on this connection (`last_insert_rowid()`). Note that this value represents the most recent insertion across any table on this connection.
+
 #### `close()`
 - **Signature**: `conn.close()`
 - **Return Type**: `Null`
@@ -70,6 +75,7 @@ conn.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, age INTEGER
 // Insert values
 let rowsAffected be conn.insert("INSERT INTO users (name, age) VALUES (?, ?)", ["Bob", 28])
 show rowsAffected // 1
+show conn.lastInsertId() // 1
 
 // Query values
 let results be conn.query("SELECT * FROM users WHERE age > ?", [20])
