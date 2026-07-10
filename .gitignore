@@ -1,0 +1,32 @@
+# Compiled class files
+*.class
+
+# Log files
+*.log
+
+# Database files (local dev database)
+*.db
+
+# Package Files
+*.jar
+# Do NOT ignore vendored jars in TLang/lib/
+!/TLang/lib/*.jar
+
+# IDE files
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Compilation output
+/out/
+/TLang/out/
+
+# Temp files/folders
+/TLang/temp_rmdir_bad_arg/
+/TLang/temp_rmdir_nonempty/
+/TLang/temp_mkdir_file_conflict.txt
+/TLang/temp_rmdir_file_conflict.txt
+/TLang/scripts/temp_mkdir_file_conflict.txt
+/TLang/scripts/temp_rmdir_file_conflict.txt
+/TLang/scripts/temp_rmdir_nonempty/
