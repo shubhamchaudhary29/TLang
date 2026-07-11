@@ -189,14 +189,13 @@ public class FormatterTest {
         };
 
         for (String filePath : representativeFiles) {
-            String path = "/home/gigachad/Trash/TLang/" + filePath;
-            File file = new File(path);
-            assertTrue(file.exists(), "Test fixture must exist: " + path);
+            File file = new File(filePath);
+            assertTrue(file.exists(), "Test fixture must exist: " + filePath);
 
-            String originalSource = new String(Files.readAllBytes(Paths.get(path)));
+            String originalSource = new String(Files.readAllBytes(Paths.get(filePath)));
 
             // 1. Run original
-            String originalOutput = runInterpreter(originalSource, path);
+            String originalOutput = runInterpreter(originalSource, filePath);
 
             // 2. Format
             String formattedSource = formatSource(originalSource);
@@ -205,7 +204,7 @@ public class FormatterTest {
             assertIdempotent(originalSource);
 
             // 4. Run formatted
-            String formattedOutput = runInterpreter(formattedSource, path);
+            String formattedOutput = runInterpreter(formattedSource, filePath);
 
             // 5. Compare stdout execution output
             assertEquals(originalOutput, formattedOutput, "Formatting must preserve program behavior for " + filePath);
