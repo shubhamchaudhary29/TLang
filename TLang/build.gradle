@@ -11,6 +11,7 @@ repositories {
 }
 
 dependencies {
+    implementation 'org.eclipse.lsp4j:org.eclipse.lsp4j:0.23.0'
     implementation 'org.xerial:sqlite-jdbc:3.34.0'
     implementation 'com.sun.mail:javax.mail:1.6.2'
     implementation 'javax.activation:activation:1.1.1'

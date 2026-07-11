@@ -1,0 +1,51 @@
+{
+  "name": "tlang-vscode",
+  "displayName": "TLang VS Code Support",
+  "description": "Minimal VS Code support for TLang (Tiny) files containing syntax highlighting and LSP diagnostics.",
+  "version": "0.0.1",
+  "publisher": "devtlang",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "languages": [
+      {
+        "id": "tiny",
+        "aliases": [
+          "TLang",
+          "tiny"
+        ],
+        "extensions": [
+          ".tiny"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "tiny",
+        "scopeName": "source.tiny",
+        "path": "./syntaxes/tiny.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "TLang Configuration",
+      "properties": {
+        "tlang.executablePath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the local TLang executable (e.g. build/install/tlang/bin/tlang)."
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  }
+}
