@@ -10,6 +10,7 @@ public final class TLangCLI {
         COMMANDS.put("run", new RunCommand());
         COMMANDS.put("version", new VersionCommand());
         COMMANDS.put("help", new HelpCommand());
+        COMMANDS.put("fmt", new FmtCommand());
     }
 
     public static void main(String[] args) {
@@ -52,7 +53,7 @@ public final class TLangCLI {
     }
 
     private static boolean isReserved(String cmd) {
-        return cmd.equals("fmt") || cmd.equals("doctor") || cmd.equals("test")
+        return cmd.equals("doctor") || cmd.equals("test")
             || cmd.equals("repl") || cmd.equals("new") || cmd.equals("install")
             || cmd.equals("publish") || cmd.equals("lsp");
     }

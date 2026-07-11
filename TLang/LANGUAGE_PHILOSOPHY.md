@@ -75,3 +75,13 @@ Before any new feature, API, or module is proposed, it must pass through the fol
    - *If no*: It does not belong in the TLang core. Consider if it should be an external tool, a third-party package, or if it is simply out of scope (Rule 3 & Rule 4).
 4. **Does this follow the naming consistency standard (Section 4)?**
    - *If no*: The methods/verbs must be renamed to match the established patterns before being merged (Rule 5).
+
+---
+
+## 6. See Also
+
+For practical guides and reference material, see:
+- **[Getting Started Guide](docs/getting-started.md)**: A step-by-step introduction to installing and running TLang.
+- **[Language Reference Guide](docs/language-reference.md)**: A developer-friendly walkthrough of the language constructs.
+- **[Standard Library Reference](docs/stdlib/index.md)**: Comprehensive documentation on all built-in native modules.
+- **[Language Specification (SPEC.md)](SPEC.md)**: The formal grammar and evaluation specification.

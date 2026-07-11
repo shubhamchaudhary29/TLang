@@ -31,7 +31,7 @@ synchronized (interpreter) {
 ```
 
 ### Integration Test Evidence
-In our `test_auth_service.sh` integration suite, we verify:
+In our `examples/test_auth_service.sh` integration suite, we verify:
 1. Hit `/crash` (which performs division by zero `1 / 0`).
 2. Status code returned is `500`.
 3. Body contains `"Runtime Error: Division by zero."`.

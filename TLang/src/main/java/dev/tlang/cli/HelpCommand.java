@@ -7,11 +7,11 @@ public final class HelpCommand implements Command {
         System.out.println();
         System.out.println("Usage:");
         System.out.println("  tlang run <file>");
+        System.out.println("  tlang fmt [--check] <file>");
         System.out.println("  tlang version");
         System.out.println("  tlang help");
         System.out.println();
         System.out.println("Future commands:");
-        System.out.println("  fmt");
         System.out.println("  doctor");
         System.out.println("  test");
         System.out.println("  repl");

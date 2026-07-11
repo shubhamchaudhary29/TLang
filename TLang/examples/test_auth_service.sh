@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 echo "── Building TLang ──"
 "$PROJECT_DIR/scripts/build.sh" 2>&1
@@ -18,7 +18,7 @@ rm -f test_auth.db
 rm -f auth_server.log
 
 echo "── Starting Auth Service on port 8087 ──"
-java -cp "$PROJECT_DIR/out:$PROJECT_DIR/lib/sqlite-jdbc-3.34.0.jar:$PROJECT_DIR/lib/javax.mail-1.6.2.jar:$PROJECT_DIR/lib/activation-1.1.1.jar" dev.tlang.Main "$PROJECT_DIR/auth_service.tiny" > auth_server.log 2>&1 &
+java -cp "$PROJECT_DIR/build/classes/java/main:$PROJECT_DIR/build/dependencies/*" dev.tlang.Main "$PROJECT_DIR/examples/auth_service.tiny" > auth_server.log 2>&1 &
 SERVER_PID=$!
 
 cleanup() {

@@ -232,3 +232,13 @@ The following features are **explicitly out of scope** for TLang v1.0. Future to
 - **Executable Suite**: The `.tiny` files located under `src/test/resources` (across the `lexer`, `parser`, `semantic`, `runtime`, and `integration` directories) define the formal conformance suite for TLang.
 - **Validation**: All changes to the language runtime must verify against this baseline using the `scripts/run_all_tests.sh` runner, which must remain 100% green.
 - **Spec Updates**: Any intentional change to the grammar or runtime semantics must be accompanied by an update to `SPEC.md` within the same revision.
+
+---
+
+## 7. See Also
+
+For practical guides and reference material, see:
+- **[Getting Started Guide](docs/getting-started.md)**: A step-by-step introduction to installing and running TLang.
+- **[Language Reference Guide](docs/language-reference.md)**: A developer-friendly walkthrough of the language constructs.
+- **[Standard Library Reference](docs/stdlib/index.md)**: Comprehensive documentation on all built-in native modules.
+- **[Language Philosophy (LANGUAGE_PHILOSOPHY.md)](LANGUAGE_PHILOSOPHY.md)**: The developer-experience-first principles guiding TLang's design.
