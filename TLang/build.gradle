@@ -24,6 +24,14 @@ java {
 
 application {
     mainClass = 'dev.tlang.Main'
+    applicationName = 'tlang'
+}
+
+processResources {
+    inputs.property "version", project.version
+    filesMatching("version.properties") {
+        expand "version": project.version
+    }
 }
 
 // Custom task to copy runtime dependencies to build/dependencies
