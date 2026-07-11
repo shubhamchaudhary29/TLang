@@ -5,6 +5,7 @@ public final class Symbol {
     private final SymbolKind kind;
     private final int line;
     private final int column;
+    private Scope scope;
 
     public Symbol(String name, SymbolKind kind, int line, int column) {
         this.name = name;
@@ -17,4 +18,6 @@ public final class Symbol {
     public SymbolKind getKind() { return kind; }
     public int getLine() { return line; }
     public int getColumn() { return column; }
+    public Scope getScope() { return scope; }
+    public void setScope(Scope scope) { this.scope = scope; }
 }

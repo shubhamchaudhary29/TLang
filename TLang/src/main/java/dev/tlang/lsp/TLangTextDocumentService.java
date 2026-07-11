@@ -2,11 +2,13 @@ package dev.tlang.lsp;
 
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
+import org.eclipse.lsp4j.jsonrpc.messages.Either3;
 import org.eclipse.lsp4j.services.TextDocumentService;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -20,11 +22,25 @@ import dev.tlang.parser.Parser;
 import dev.tlang.resolver.Resolver;
 import dev.tlang.resolver.Symbol;
 import dev.tlang.resolver.SymbolReference;
+import dev.tlang.resolver.Scope;
+import org.eclipse.lsp4j.jsonrpc.ResponseErrorException;
+import org.eclipse.lsp4j.jsonrpc.messages.ResponseError;
+import org.eclipse.lsp4j.jsonrpc.messages.ResponseErrorCode;
 
 public final class TLangTextDocumentService implements TextDocumentService {
     private final TLangLanguageServer server;
     private final Map<String, String> documentContents = new ConcurrentHashMap<>();
     private final Map<String, List<SymbolReference>> documentSymbolReferences = new ConcurrentHashMap<>();
+
+    private static final Set<String> KEYWORDS = Set.of(
+        "let", "be", "set", "to", "import",
+        "show",
+        "if", "otherwise", "while", "break", "continue",
+        "repeat", "times", "as",
+        "define", "taking", "return", "function",
+        "and", "or", "not",
+        "true", "false", "nil"
+    );
 
     public TLangTextDocumentService(TLangLanguageServer server) {
         this.server = server;
@@ -212,6 +228,149 @@ public final class TLangTextDocumentService implements TextDocumentService {
             }
 
             return locations;
+        });
+    }
+
+    @Override
+    public CompletableFuture<Either3<Range, PrepareRenameResult, PrepareRenameDefaultBehavior>> prepareRename(PrepareRenameParams params) {
+        return CompletableFuture.supplyAsync(() -> {
+            String uri = params.getTextDocument().getUri();
+            Position pos = params.getPosition();
+            List<SymbolReference> refs = documentSymbolReferences.get(uri);
+            if (refs == null) {
+                throw new ResponseErrorException(new ResponseError(
+                    ResponseErrorCode.RequestFailed,
+                    "No resolved symbol references in this document",
+                    null
+                ));
+            }
+
+            Symbol targetSymbol = null;
+            Range symbolRange = null;
+            for (SymbolReference ref : refs) {
+                int lspLine = ref.getLine() - 1;
+                int lspCol = ref.getColumn() - 1;
+                if (pos.getLine() == lspLine && pos.getCharacter() >= lspCol && pos.getCharacter() < lspCol + ref.getLength()) {
+                    targetSymbol = ref.getSymbol();
+                    symbolRange = new Range(
+                        new Position(lspLine, lspCol),
+                        new Position(lspLine, lspCol + ref.getLength())
+                    );
+                    break;
+                }
+            }
+
+            if (targetSymbol == null) {
+                throw new ResponseErrorException(new ResponseError(
+                    ResponseErrorCode.RequestFailed,
+                    "No renameable symbol found under cursor",
+                    null
+                ));
+            }
+
+            // Reject built-ins
+            if (targetSymbol.getLine() == 0) {
+                throw new ResponseErrorException(new ResponseError(
+                    ResponseErrorCode.RequestFailed,
+                    "Cannot rename built-in symbol: '" + targetSymbol.getName() + "'",
+                    null
+                ));
+            }
+
+            return Either3.forFirst(symbolRange);
+        });
+    }
+
+    @Override
+    public CompletableFuture<WorkspaceEdit> rename(RenameParams params) {
+        return CompletableFuture.supplyAsync(() -> {
+            String uri = params.getTextDocument().getUri();
+            Position pos = params.getPosition();
+            String newName = params.getNewName();
+
+            // Validate identifier syntax
+            if (newName == null || newName.isEmpty() || !newName.matches("^[a-zA-Z_][a-zA-Z0-9_]*$")) {
+                throw new ResponseErrorException(new ResponseError(
+                    ResponseErrorCode.InvalidParams,
+                    "Invalid identifier name: '" + newName + "'",
+                    null
+                ));
+            }
+
+            // Validate keywords
+            if (KEYWORDS.contains(newName)) {
+                throw new ResponseErrorException(new ResponseError(
+                    ResponseErrorCode.InvalidParams,
+                    "Cannot rename to reserved keyword '" + newName + "'",
+                    null
+                ));
+            }
+
+            List<SymbolReference> refs = documentSymbolReferences.get(uri);
+            if (refs == null) {
+                throw new ResponseErrorException(new ResponseError(
+                    ResponseErrorCode.RequestFailed,
+                    "No resolved symbol references in this document",
+                    null
+                ));
+            }
+
+            Symbol targetSymbol = null;
+            for (SymbolReference ref : refs) {
+                int lspLine = ref.getLine() - 1;
+                int lspCol = ref.getColumn() - 1;
+                if (pos.getLine() == lspLine && pos.getCharacter() >= lspCol && pos.getCharacter() < lspCol + ref.getLength()) {
+                    targetSymbol = ref.getSymbol();
+                    break;
+                }
+            }
+
+            if (targetSymbol == null) {
+                throw new ResponseErrorException(new ResponseError(
+                    ResponseErrorCode.RequestFailed,
+                    "No symbol found at position " + pos.getLine() + ":" + pos.getCharacter(),
+                    null
+                ));
+            }
+
+            // Reject built-ins
+            if (targetSymbol.getLine() == 0) {
+                throw new ResponseErrorException(new ResponseError(
+                    ResponseErrorCode.RequestFailed,
+                    "Cannot rename built-in symbol: '" + targetSymbol.getName() + "'",
+                    null
+                ));
+            }
+
+            // Validate collision in the same scope
+            Scope scope = targetSymbol.getScope();
+            if (scope != null) {
+                Symbol existing = scope.get(newName);
+                if (existing != null && existing != targetSymbol) {
+                    throw new ResponseErrorException(new ResponseError(
+                        ResponseErrorCode.RequestFailed,
+                        "Name collision: '" + newName + "' is already declared in the same scope",
+                        null
+                    ));
+                }
+            }
+
+            List<TextEdit> edits = new ArrayList<>();
+            for (SymbolReference ref : refs) {
+                if (ref.getSymbol() == targetSymbol) {
+                    int lspLine = ref.getLine() - 1;
+                    int lspCol = ref.getColumn() - 1;
+                    Range range = new Range(
+                            new Position(lspLine, lspCol),
+                            new Position(lspLine, lspCol + ref.getLength())
+                    );
+                    edits.add(new TextEdit(range, newName));
+                }
+            }
+
+            WorkspaceEdit result = new WorkspaceEdit();
+            result.setChanges(Map.of(uri, edits));
+            return result;
         });
     }
 

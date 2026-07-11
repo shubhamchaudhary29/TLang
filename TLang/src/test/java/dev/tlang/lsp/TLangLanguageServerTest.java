@@ -9,6 +9,17 @@ import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.nio.file.Paths;
+
+import dev.tlang.ast.Stmt;
+import dev.tlang.lexer.Lexer;
+import dev.tlang.lexer.Token;
+import dev.tlang.parser.Parser;
+import dev.tlang.resolver.Resolver;
+import dev.tlang.errors.SemanticError;
+import dev.tlang.interpreter.Interpreter;
+import dev.tlang.modules.ModuleLoader;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -387,6 +398,201 @@ public final class TLangLanguageServerTest {
         var res = server.getTextDocumentService().references(params).get();
         assertNotNull(res);
         assertTrue(res.isEmpty());
+    }
+
+    @Test
+    public void testRenameVariableSuccess() throws Exception {
+        String uri = "file:///test_rename_success.tiny";
+        String source = "let x be 42\nshow x\nset x to x + 1\n";
+        server.getTextDocumentService().didOpen(new DidOpenTextDocumentParams(
+                new TextDocumentItem(uri, "tiny", 1, source)
+        ));
+
+        // Rename 'x' at line 1 (let x be 42) -> char 4
+        RenameParams params = new RenameParams(new TextDocumentIdentifier(uri), new Position(0, 4), "myNewVar");
+        WorkspaceEdit edit = server.getTextDocumentService().rename(params).get();
+        
+        assertNotNull(edit);
+        List<TextEdit> edits = edit.getChanges().get(uri);
+        assertNotNull(edits);
+        assertEquals(4, edits.size()); // declaration + 3 usages (show x, set x to x + 1)
+        
+        // Let's apply edits programmatically and verify the result
+        String modified = applyEdits(source, edits);
+        assertEquals("let myNewVar be 42\nshow myNewVar\nset myNewVar to myNewVar + 1\n", modified);
+    }
+
+    @Test
+    public void testRenameShadowing() throws Exception {
+        String uri = "file:///test_rename_shadow.tiny";
+        String source = "let x be 10\nif x > 5\n  let x be 20\n  show x\nshow x\n";
+        server.getTextDocumentService().didOpen(new DidOpenTextDocumentParams(
+                new TextDocumentItem(uri, "tiny", 1, source)
+        ));
+
+        // Rename the inner shadowed 'x' at line 2 (let x be 20) -> Position(2, 6)
+        RenameParams params = new RenameParams(new TextDocumentIdentifier(uri), new Position(2, 6), "innerX");
+        WorkspaceEdit edit = server.getTextDocumentService().rename(params).get();
+
+        assertNotNull(edit);
+        List<TextEdit> edits = edit.getChanges().get(uri);
+        assertNotNull(edits);
+        assertEquals(2, edits.size()); // inner declaration + inner usage (show x)
+
+        String modified = applyEdits(source, edits);
+        assertEquals("let x be 10\nif x > 5\n  let innerX be 20\n  show innerX\nshow x\n", modified);
+    }
+
+    @Test
+    public void testPrepareRenameBuiltin() {
+        String uri = "file:///test_prepare_builtin.tiny";
+        String source = "show now()\n";
+        server.getTextDocumentService().didOpen(new DidOpenTextDocumentParams(
+                new TextDocumentItem(uri, "tiny", 1, source)
+        ));
+
+        // Prepare rename on built-in 'now' -> Position(0, 5)
+        PrepareRenameParams params = new PrepareRenameParams(new TextDocumentIdentifier(uri), new Position(0, 5));
+        var ex = assertThrows(Exception.class, () -> {
+            server.getTextDocumentService().prepareRename(params).get();
+        });
+        assertTrue(ex.getMessage().contains("Cannot rename built-in symbol"));
+    }
+
+    @Test
+    public void testRenameInvalidIdentifier() {
+        String uri = "file:///test_rename_invalid.tiny";
+        String source = "let x be 42\n";
+        server.getTextDocumentService().didOpen(new DidOpenTextDocumentParams(
+                new TextDocumentItem(uri, "tiny", 1, source)
+        ));
+
+        // Rename to '1x' (invalid identifier)
+        RenameParams params = new RenameParams(new TextDocumentIdentifier(uri), new Position(0, 4), "1x");
+        var ex = assertThrows(Exception.class, () -> {
+            server.getTextDocumentService().rename(params).get();
+        });
+        assertTrue(ex.getMessage().contains("Invalid identifier name"));
+    }
+
+    @Test
+    public void testRenameReservedKeyword() {
+        String uri = "file:///test_rename_keyword.tiny";
+        String source = "let x be 42\n";
+        server.getTextDocumentService().didOpen(new DidOpenTextDocumentParams(
+                new TextDocumentItem(uri, "tiny", 1, source)
+        ));
+
+        // Rename to 'let' (reserved keyword)
+        RenameParams params = new RenameParams(new TextDocumentIdentifier(uri), new Position(0, 4), "let");
+        var ex = assertThrows(Exception.class, () -> {
+            server.getTextDocumentService().rename(params).get();
+        });
+        assertTrue(ex.getMessage().contains("Cannot rename to reserved keyword"));
+    }
+
+    @Test
+    public void testRenameScopeCollision() {
+        String uri = "file:///test_rename_collision.tiny";
+        String source = "let x be 10\nlet y be 20\n";
+        server.getTextDocumentService().didOpen(new DidOpenTextDocumentParams(
+                new TextDocumentItem(uri, "tiny", 1, source)
+        ));
+
+        // Rename 'x' (Position(0, 4)) to 'y' (which is already declared in same scope)
+        RenameParams params = new RenameParams(new TextDocumentIdentifier(uri), new Position(0, 4), "y");
+        var ex = assertThrows(Exception.class, () -> {
+            server.getTextDocumentService().rename(params).get();
+        });
+        assertTrue(ex.getMessage().contains("Name collision"));
+    }
+
+    @Test
+    public void testPrepareRenameEmpty() {
+        String uri = "file:///test_prepare_empty.tiny";
+        String source = "let x be 42\n";
+        server.getTextDocumentService().didOpen(new DidOpenTextDocumentParams(
+                new TextDocumentItem(uri, "tiny", 1, source)
+        ));
+
+        // Prepare rename on empty space (Position(0, 0) - 'let' is a keyword, not a symbol)
+        PrepareRenameParams params = new PrepareRenameParams(new TextDocumentIdentifier(uri), new Position(0, 0));
+        var ex = assertThrows(Exception.class, () -> {
+            server.getTextDocumentService().prepareRename(params).get();
+        });
+        assertTrue(ex.getMessage().contains("No renameable symbol found"));
+    }
+
+    @Test
+    public void testRenameEndToEndApply() throws Exception {
+        String uri = "file:///test_rename_e2e.tiny";
+        String source = "let result be 0\ndefine accumulate taking val\n  set result to result + val\naccumulate(10)\naccumulate(20)\n";
+        server.getTextDocumentService().didOpen(new DidOpenTextDocumentParams(
+                new TextDocumentItem(uri, "tiny", 1, source)
+        ));
+
+        // Rename 'accumulate' at line 2 (define accumulate taking val) -> Position(1, 7)
+        RenameParams params = new RenameParams(new TextDocumentIdentifier(uri), new Position(1, 7), "addValue");
+        WorkspaceEdit edit = server.getTextDocumentService().rename(params).get();
+
+        assertNotNull(edit);
+        List<TextEdit> edits = edit.getChanges().get(uri);
+        assertNotNull(edits);
+        assertEquals(3, edits.size()); // declaration + 2 calls
+
+        String modified = applyEdits(source, edits);
+        
+        // 1. Lexing
+        Lexer lexer = new Lexer(modified);
+        List<Token> tokens = lexer.tokenize();
+        assertNotNull(tokens);
+
+        // 2. Parsing
+        Parser parser = new Parser(tokens);
+        List<Stmt> program = parser.parse();
+        assertNotNull(program);
+
+        // 3. Resolving
+        Resolver resolver = new Resolver();
+        List<SemanticError> errors = resolver.resolve(program);
+        assertTrue(errors.isEmpty(), "Expected no semantic errors after rename but got: " + errors);
+
+        // 4. Interpretation
+        ModuleLoader moduleLoader = new ModuleLoader(Paths.get("."));
+        Interpreter interpreter = new Interpreter(moduleLoader);
+        interpreter.interpret(program);
+        
+        // Ensure interpreter ran successfully and modified the environment
+        Object resultVal = interpreter.getGlobalEnvironment().getValues().get("result");
+        assertEquals(30, resultVal);
+    }
+
+    private String applyEdits(String source, List<TextEdit> edits) {
+        List<TextEdit> sorted = new ArrayList<>(edits);
+        sorted.sort((e1, e2) -> {
+            Position p1 = e1.getRange().getStart();
+            Position p2 = e2.getRange().getStart();
+            if (p1.getLine() != p2.getLine()) {
+                return Integer.compare(p2.getLine(), p1.getLine());
+            }
+            return Integer.compare(p2.getCharacter(), p1.getCharacter());
+        });
+
+        String[] lines = source.split("\\r?\\n", -1);
+        for (TextEdit edit : sorted) {
+            Range range = edit.getRange();
+            int startLine = range.getStart().getLine();
+            int startChar = range.getStart().getCharacter();
+            int endLine = range.getEnd().getLine();
+            int endChar = range.getEnd().getCharacter();
+
+            assertEquals(startLine, endLine);
+            String line = lines[startLine];
+            String prefix = line.substring(0, startChar);
+            String suffix = line.substring(endChar);
+            lines[startLine] = prefix + edit.getNewText() + suffix;
+        }
+        return String.join("\n", lines);
     }
 }
 

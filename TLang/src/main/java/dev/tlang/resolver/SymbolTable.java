@@ -36,7 +36,12 @@ public final class SymbolTable {
 
     public boolean declare(Symbol symbol) {
         if (scopes.isEmpty()) return false;
-        return scopes.get(scopes.size() - 1).declare(symbol);
+        Scope currentScope = scopes.get(scopes.size() - 1);
+        boolean success = currentScope.declare(symbol);
+        if (success) {
+            symbol.setScope(currentScope);
+        }
+        return success;
     }
 
     public Symbol resolve(String name) {
