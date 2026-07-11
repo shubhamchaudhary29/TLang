@@ -27,6 +27,8 @@ public final class TLangLanguageServer implements LanguageServer, LanguageClient
         ServerCapabilities capabilities = new ServerCapabilities();
         capabilities.setTextDocumentSync(TextDocumentSyncKind.Full);
         capabilities.setHoverProvider(true);
+        capabilities.setDefinitionProvider(true);
+        capabilities.setReferencesProvider(true);
         InitializeResult result = new InitializeResult(capabilities);
         return CompletableFuture.completedFuture(result);
     }

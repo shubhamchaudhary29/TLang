@@ -1,6 +1,7 @@
 package dev.tlang.lsp;
 
 import org.eclipse.lsp4j.*;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.TextDocumentService;
 
 import java.util.ArrayList;
@@ -127,6 +128,90 @@ public final class TLangTextDocumentService implements TextDocumentService {
                 }
             }
             return null;
+        });
+    }
+
+    @Override
+    public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> definition(DefinitionParams params) {
+        return CompletableFuture.supplyAsync(() -> {
+            String uri = params.getTextDocument().getUri();
+            Position pos = params.getPosition();
+            List<SymbolReference> refs = documentSymbolReferences.get(uri);
+            if (refs == null) {
+                return Either.forLeft(new ArrayList<>());
+            }
+
+            for (SymbolReference ref : refs) {
+                int lspLine = ref.getLine() - 1;
+                int lspCol = ref.getColumn() - 1;
+                if (pos.getLine() == lspLine && pos.getCharacter() >= lspCol && pos.getCharacter() < lspCol + ref.getLength()) {
+                    Symbol sym = ref.getSymbol();
+                    if (sym.getLine() == 0) {
+                        return Either.forLeft(new ArrayList<>());
+                    }
+
+                    int declLine = sym.getLine() - 1;
+                    int declCol = sym.getColumn() - 1;
+                    int declLength = sym.getName().length();
+
+                    Range range = new Range(
+                            new Position(declLine, declCol),
+                            new Position(declLine, declCol + declLength)
+                    );
+
+                    Location location = new Location(uri, range);
+                    List<Location> locations = new ArrayList<>();
+                    locations.add(location);
+                    return Either.forLeft(locations);
+                }
+            }
+            return Either.forLeft(new ArrayList<>());
+        });
+    }
+
+    @Override
+    public CompletableFuture<List<? extends Location>> references(ReferenceParams params) {
+        return CompletableFuture.supplyAsync(() -> {
+            String uri = params.getTextDocument().getUri();
+            Position pos = params.getPosition();
+            List<SymbolReference> refs = documentSymbolReferences.get(uri);
+            if (refs == null) {
+                return new ArrayList<>();
+            }
+
+            Symbol targetSymbol = null;
+            for (SymbolReference ref : refs) {
+                int lspLine = ref.getLine() - 1;
+                int lspCol = ref.getColumn() - 1;
+                if (pos.getLine() == lspLine && pos.getCharacter() >= lspCol && pos.getCharacter() < lspCol + ref.getLength()) {
+                    targetSymbol = ref.getSymbol();
+                    break;
+                }
+            }
+
+            if (targetSymbol == null) {
+                return new ArrayList<>();
+            }
+
+            List<Location> locations = new ArrayList<>();
+            for (SymbolReference ref : refs) {
+                if (ref.getSymbol() == targetSymbol) {
+                    boolean isDecl = (ref.getLine() == targetSymbol.getLine() && ref.getColumn() == targetSymbol.getColumn());
+                    if (isDecl && !params.getContext().isIncludeDeclaration()) {
+                        continue;
+                    }
+
+                    int lspLine = ref.getLine() - 1;
+                    int lspCol = ref.getColumn() - 1;
+                    Range range = new Range(
+                            new Position(lspLine, lspCol),
+                            new Position(lspLine, lspCol + ref.getLength())
+                    );
+                    locations.add(new Location(uri, range));
+                }
+            }
+
+            return locations;
         });
     }
 

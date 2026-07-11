@@ -67,6 +67,21 @@ function handleMessage(msg) {
         console.log(JSON.stringify(msg.result, null, 2));
         console.log('------------------------------');
         triggerNextStep();
+    } else if (msg.id === 200) {
+        console.log('\n--- Received Definition Response ---');
+        console.log(JSON.stringify(msg.result, null, 2));
+        console.log('-----------------------------------');
+        triggerNextStep();
+    } else if (msg.id === 300) {
+        console.log('\n--- Received References Response (Outer foo, includeDeclaration: true) ---');
+        console.log(JSON.stringify(msg.result, null, 2));
+        console.log('------------------------------------------------------------------------');
+        triggerNextStep();
+    } else if (msg.id === 301) {
+        console.log('\n--- Received References Response (Inner shadowed foo, includeDeclaration: false) ---');
+        console.log(JSON.stringify(msg.result, null, 2));
+        console.log('----------------------------------------------------------------------------------');
+        triggerNextStep();
     }
 }
 
@@ -100,7 +115,7 @@ function triggerNextStep() {
             }
         });
     } else if (step === 3) {
-        console.log('\nStep 2: Correcting the error by declaring "foo"');
+        console.log('\nStep 2: Correcting the error by declaring "foo" with shadowing');
         send({
             jsonrpc: '2.0',
             method: 'textDocument/didChange',
@@ -110,7 +125,7 @@ function triggerNextStep() {
                     version: 2
                 },
                 contentChanges: [{
-                    text: 'let foo be 42\nshow foo\n'
+                    text: 'let foo be 42\nif true\n  let foo be 100\n  show foo\nshow foo\n'
                 }]
             }
         });
@@ -131,7 +146,61 @@ function triggerNextStep() {
             }
         });
     } else if (step === 5) {
-        console.log('\nStep 4: Creating two simultaneous undefined variable errors ("foo" and "bar")');
+        console.log('\nStep 4: Go-to-Definition of variable "foo" at Line 4, Char 5');
+        send({
+            jsonrpc: '2.0',
+            id: 200,
+            method: 'textDocument/definition',
+            params: {
+                textDocument: {
+                    uri: 'file://' + path.join(__dirname, 'test.tiny')
+                },
+                position: {
+                    line: 4,
+                    character: 5
+                }
+            }
+        });
+    } else if (step === 6) {
+        console.log('\nStep 5: Find References of outer "foo" at Line 4, Char 5 (includeDeclaration: true)');
+        send({
+            jsonrpc: '2.0',
+            id: 300,
+            method: 'textDocument/references',
+            params: {
+                textDocument: {
+                    uri: 'file://' + path.join(__dirname, 'test.tiny')
+                },
+                position: {
+                    line: 4,
+                    character: 5
+                },
+                context: {
+                    includeDeclaration: true
+                }
+            }
+        });
+    } else if (step === 7) {
+        console.log('\nStep 6: Find References of inner shadowed "foo" at Line 3, Char 7 (includeDeclaration: false)');
+        send({
+            jsonrpc: '2.0',
+            id: 301,
+            method: 'textDocument/references',
+            params: {
+                textDocument: {
+                    uri: 'file://' + path.join(__dirname, 'test.tiny')
+                },
+                position: {
+                    line: 3,
+                    character: 7
+                },
+                context: {
+                    includeDeclaration: false
+                }
+            }
+        });
+    } else if (step === 8) {
+        console.log('\nStep 7: Creating two simultaneous undefined variable errors ("foo" and "bar")');
         send({
             jsonrpc: '2.0',
             method: 'textDocument/didChange',
@@ -145,7 +214,7 @@ function triggerNextStep() {
                 }]
             }
         });
-    } else if (step === 6) {
+    } else if (step === 9) {
         console.log('\nVerification complete. Exiting.');
         send({
             jsonrpc: '2.0',

@@ -212,5 +212,181 @@ public final class TLangLanguageServerTest {
         Hover hover2 = server.getTextDocumentService().hover(params2).get();
         assertNull(hover2);
     }
+
+    @Test
+    public void testDefinitionVariable() throws Exception {
+        String uri = "file:///test_def_var.tiny";
+        String source = "let x be 42\nshow x\n";
+        server.getTextDocumentService().didOpen(new DidOpenTextDocumentParams(
+                new TextDocumentItem(uri, "tiny", 1, source)
+        ));
+
+        // Definition of 'x' on line 2 (show x) -> 'x' starts at char 5
+        DefinitionParams params = new DefinitionParams(new TextDocumentIdentifier(uri), new Position(1, 5));
+        var result = server.getTextDocumentService().definition(params).get();
+        assertTrue(result.isLeft());
+        var locations = result.getLeft();
+        assertEquals(1, locations.size());
+        assertEquals(uri, locations.get(0).getUri());
+        assertEquals(0, locations.get(0).getRange().getStart().getLine()); // Line 1
+        assertEquals(4, locations.get(0).getRange().getStart().getCharacter()); // Column 5
+        assertEquals(0, locations.get(0).getRange().getEnd().getLine());
+        assertEquals(5, locations.get(0).getRange().getEnd().getCharacter());
+    }
+
+    @Test
+    public void testDefinitionFunctionAndParameter() throws Exception {
+        String uri = "file:///test_def_fn.tiny";
+        String source = "define add taking a and b\n  return a + b\nlet sum be add(1, 2)\n";
+        server.getTextDocumentService().didOpen(new DidOpenTextDocumentParams(
+                new TextDocumentItem(uri, "tiny", 1, source)
+        ));
+
+        // Definition of 'add' on line 3 (let sum be add(1,2)) -> 'add' starts at char 11
+        DefinitionParams params1 = new DefinitionParams(new TextDocumentIdentifier(uri), new Position(2, 11));
+        var result1 = server.getTextDocumentService().definition(params1).get();
+        assertTrue(result1.isLeft());
+        var locations1 = result1.getLeft();
+        assertEquals(1, locations1.size());
+        assertEquals(0, locations1.get(0).getRange().getStart().getLine()); // Line 1
+        assertEquals(7, locations1.get(0).getRange().getStart().getCharacter()); // "add" starts at char 7 (0-indexed)
+        assertEquals(10, locations1.get(0).getRange().getEnd().getCharacter());
+
+        // Definition of 'a' on line 2 (return a + b) -> 'a' is at char 9
+        DefinitionParams params2 = new DefinitionParams(new TextDocumentIdentifier(uri), new Position(1, 9));
+        var result2 = server.getTextDocumentService().definition(params2).get();
+        assertTrue(result2.isLeft());
+        var locations2 = result2.getLeft();
+        assertEquals(1, locations2.size());
+        assertEquals(0, locations2.get(0).getRange().getStart().getLine()); // Line 1
+        assertEquals(18, locations2.get(0).getRange().getStart().getCharacter()); // "a" starts at char 18
+        assertEquals(19, locations2.get(0).getRange().getEnd().getCharacter());
+    }
+
+    @Test
+    public void testDefinitionBuiltin() throws Exception {
+        String uri = "file:///test_def_builtin.tiny";
+        String source = "show now()\n";
+        server.getTextDocumentService().didOpen(new DidOpenTextDocumentParams(
+                new TextDocumentItem(uri, "tiny", 1, source)
+        ));
+
+        // Definition of 'now' on line 1 -> 'now' starts at char 5
+        DefinitionParams params = new DefinitionParams(new TextDocumentIdentifier(uri), new Position(0, 5));
+        var result = server.getTextDocumentService().definition(params).get();
+        assertTrue(result.isLeft());
+        assertTrue(result.getLeft().isEmpty());
+    }
+
+    @Test
+    public void testDefinitionEmpty() throws Exception {
+        String uri = "file:///test_def_empty.tiny";
+        String source = "let x be 42\n";
+        server.getTextDocumentService().didOpen(new DidOpenTextDocumentParams(
+                new TextDocumentItem(uri, "tiny", 1, source)
+        ));
+
+        // Definition over empty space or keywords
+        DefinitionParams params1 = new DefinitionParams(new TextDocumentIdentifier(uri), new Position(0, 0));
+        var result1 = server.getTextDocumentService().definition(params1).get();
+        assertTrue(result1.isLeft());
+        assertTrue(result1.getLeft().isEmpty());
+
+        DefinitionParams params2 = new DefinitionParams(new TextDocumentIdentifier(uri), new Position(0, 3));
+        var result2 = server.getTextDocumentService().definition(params2).get();
+        assertTrue(result2.isLeft());
+        assertTrue(result2.getLeft().isEmpty());
+    }
+
+    @Test
+    public void testReferencesVariableAndShadowing() throws Exception {
+        String uri = "file:///test_ref_shadow.tiny";
+        String source = "let x be 10\nif x > 5\n  let x be 20\n  show x\nshow x\n";
+        server.getTextDocumentService().didOpen(new DidOpenTextDocumentParams(
+                new TextDocumentItem(uri, "tiny", 1, source)
+        ));
+
+        // 1. References of outer 'x' at Line 0, Char 4, with includeDeclaration: true
+        ReferenceParams paramsOuterInclude = new ReferenceParams(
+                new TextDocumentIdentifier(uri),
+                new Position(0, 4),
+                new ReferenceContext(true)
+        );
+        var res1 = server.getTextDocumentService().references(paramsOuterInclude).get();
+        assertEquals(3, res1.size());
+        
+        // Assert outer 'x' references (line 0, line 1, line 4)
+        boolean hasLine0 = res1.stream().anyMatch(l -> l.getRange().getStart().getLine() == 0 && l.getRange().getStart().getCharacter() == 4);
+        boolean hasLine1 = res1.stream().anyMatch(l -> l.getRange().getStart().getLine() == 1 && l.getRange().getStart().getCharacter() == 3);
+        boolean hasLine4 = res1.stream().anyMatch(l -> l.getRange().getStart().getLine() == 4 && l.getRange().getStart().getCharacter() == 5);
+        assertTrue(hasLine0);
+        assertTrue(hasLine1);
+        assertTrue(hasLine4);
+
+        // 2. References of outer 'x' with includeDeclaration: false
+        ReferenceParams paramsOuterExclude = new ReferenceParams(
+                new TextDocumentIdentifier(uri),
+                new Position(0, 4),
+                new ReferenceContext(false)
+        );
+        var res2 = server.getTextDocumentService().references(paramsOuterExclude).get();
+        assertEquals(2, res2.size());
+        assertFalse(res2.stream().anyMatch(l -> l.getRange().getStart().getLine() == 0)); // No declaration
+        assertTrue(res2.stream().anyMatch(l -> l.getRange().getStart().getLine() == 1));
+        assertTrue(res2.stream().anyMatch(l -> l.getRange().getStart().getLine() == 4));
+
+        // 3. References of inner shadowed 'x' at Line 3, Char 7, with includeDeclaration: true
+        ReferenceParams paramsInnerInclude = new ReferenceParams(
+                new TextDocumentIdentifier(uri),
+                new Position(3, 7),
+                new ReferenceContext(true)
+        );
+        var res3 = server.getTextDocumentService().references(paramsInnerInclude).get();
+        assertEquals(2, res3.size());
+        
+        // Assert inner 'x' references (line 2, line 3)
+        boolean hasLine2 = res3.stream().anyMatch(l -> l.getRange().getStart().getLine() == 2 && l.getRange().getStart().getCharacter() == 6);
+        boolean hasLine3 = res3.stream().anyMatch(l -> l.getRange().getStart().getLine() == 3 && l.getRange().getStart().getCharacter() == 7);
+        assertTrue(hasLine2);
+        assertTrue(hasLine3);
+    }
+
+    @Test
+    public void testReferencesFunction() throws Exception {
+        String uri = "file:///test_ref_fn.tiny";
+        String source = "define add taking a and b\n  return a + b\nlet sum be add(1, 2)\nshow add(3, 4)\n";
+        server.getTextDocumentService().didOpen(new DidOpenTextDocumentParams(
+                new TextDocumentItem(uri, "tiny", 1, source)
+        ));
+
+        // References of 'add' at Line 2, Char 11, with includeDeclaration: false
+        ReferenceParams paramsExclude = new ReferenceParams(
+                new TextDocumentIdentifier(uri),
+                new Position(2, 11),
+                new ReferenceContext(false)
+        );
+        var res = server.getTextDocumentService().references(paramsExclude).get();
+        assertEquals(2, res.size());
+        assertTrue(res.stream().anyMatch(l -> l.getRange().getStart().getLine() == 2 && l.getRange().getStart().getCharacter() == 11));
+        assertTrue(res.stream().anyMatch(l -> l.getRange().getStart().getLine() == 3 && l.getRange().getStart().getCharacter() == 5));
+    }
+
+    @Test
+    public void testReferencesEmpty() throws Exception {
+        String uri = "file:///test_ref_empty.tiny";
+        String source = "let x be 42\n";
+        server.getTextDocumentService().didOpen(new DidOpenTextDocumentParams(
+                new TextDocumentItem(uri, "tiny", 1, source)
+        ));
+
+        ReferenceParams params = new ReferenceParams(
+                new TextDocumentIdentifier(uri),
+                new Position(0, 0), // 'l' in let
+                new ReferenceContext(true)
+        );
+        var res = server.getTextDocumentService().references(params).get();
+        assertNotNull(res);
+        assertTrue(res.isEmpty());
+    }
 }
 

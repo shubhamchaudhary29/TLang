@@ -43,7 +43,7 @@ public final class Resolver implements Expr.Visitor<Void>, Stmt.Visitor {
         for (Stmt stmt : program) {
             if (stmt instanceof FunctionStmt) {
                 FunctionStmt fn = (FunctionStmt) stmt;
-                Symbol symbol = new Symbol(fn.getName().getLexeme(), SymbolKind.FUNCTION, fn.getName().getLine());
+                Symbol symbol = new Symbol(fn.getName().getLexeme(), SymbolKind.FUNCTION, fn.getName().getLine(), fn.getName().getColumn());
                 boolean success = symbolTable.declare(symbol);
                 if (!success) {
                     error(fn.getName(), "Function '" + fn.getName().getLexeme() + "' is already declared in this scope.");
@@ -102,7 +102,7 @@ public final class Resolver implements Expr.Visitor<Void>, Stmt.Visitor {
         if (stmt.getInitializer() != null) {
             resolve(stmt.getInitializer());
         }
-        Symbol symbol = new Symbol(stmt.getName().getLexeme(), SymbolKind.VARIABLE, stmt.getName().getLine());
+        Symbol symbol = new Symbol(stmt.getName().getLexeme(), SymbolKind.VARIABLE, stmt.getName().getLine(), stmt.getName().getColumn());
         boolean success = symbolTable.declare(symbol);
         if (!success) {
             error(stmt.getName(), "Variable '" + stmt.getName().getLexeme() + "' is already declared in this scope.");
@@ -128,7 +128,7 @@ public final class Resolver implements Expr.Visitor<Void>, Stmt.Visitor {
         for (Stmt s : stmt.getStatements()) {
             if (s instanceof FunctionStmt) {
                 FunctionStmt fn = (FunctionStmt) s;
-                Symbol symbol = new Symbol(fn.getName().getLexeme(), SymbolKind.FUNCTION, fn.getName().getLine());
+                Symbol symbol = new Symbol(fn.getName().getLexeme(), SymbolKind.FUNCTION, fn.getName().getLine(), fn.getName().getColumn());
                 boolean success = symbolTable.declare(symbol);
                 if (!success) {
                     error(fn.getName(), "Function '" + fn.getName().getLexeme() + "' is already declared in this scope.");
@@ -254,7 +254,7 @@ public final class Resolver implements Expr.Visitor<Void>, Stmt.Visitor {
                 error(param, "Duplicate parameter '" + param.getLexeme() + "' in function definition.");
             } else {
                 paramNames.add(param.getLexeme());
-                Symbol symbol = new Symbol(param.getLexeme(), SymbolKind.PARAMETER, param.getLine());
+                Symbol symbol = new Symbol(param.getLexeme(), SymbolKind.PARAMETER, param.getLine(), param.getColumn());
                 symbolTable.declare(symbol);
                 recordSymbolRef(param, symbol);
             }
@@ -264,7 +264,7 @@ public final class Resolver implements Expr.Visitor<Void>, Stmt.Visitor {
         for (Stmt s : stmt.getBody()) {
             if (s instanceof FunctionStmt) {
                 FunctionStmt fn = (FunctionStmt) s;
-                Symbol symbol = new Symbol(fn.getName().getLexeme(), SymbolKind.FUNCTION, fn.getName().getLine());
+                Symbol symbol = new Symbol(fn.getName().getLexeme(), SymbolKind.FUNCTION, fn.getName().getLine(), fn.getName().getColumn());
                 boolean success = symbolTable.declare(symbol);
                 if (!success) {
                     error(fn.getName(), "Function '" + fn.getName().getLexeme() + "' is already declared in this scope.");
@@ -306,7 +306,7 @@ public final class Resolver implements Expr.Visitor<Void>, Stmt.Visitor {
 
     @Override
     public void visitImportStmt(ImportStmt stmt) {
-        Symbol symbol = new Symbol(stmt.getName().getLexeme(), SymbolKind.VARIABLE, stmt.getName().getLine());
+        Symbol symbol = new Symbol(stmt.getName().getLexeme(), SymbolKind.VARIABLE, stmt.getName().getLine(), stmt.getName().getColumn());
         boolean success = symbolTable.declare(symbol);
         if (!success) {
             error(stmt.getName(), "Variable '" + stmt.getName().getLexeme() + "' is already declared in this scope.");
@@ -394,7 +394,7 @@ public final class Resolver implements Expr.Visitor<Void>, Stmt.Visitor {
                 error(param, "Duplicate parameter '" + param.getLexeme() + "' in lambda definition.");
             } else {
                 paramNames.add(param.getLexeme());
-                Symbol symbol = new Symbol(param.getLexeme(), SymbolKind.PARAMETER, param.getLine());
+                Symbol symbol = new Symbol(param.getLexeme(), SymbolKind.PARAMETER, param.getLine(), param.getColumn());
                 symbolTable.declare(symbol);
                 recordSymbolRef(param, symbol);
             }
@@ -404,7 +404,7 @@ public final class Resolver implements Expr.Visitor<Void>, Stmt.Visitor {
         for (Stmt s : expr.getBody()) {
             if (s instanceof FunctionStmt) {
                 FunctionStmt fn = (FunctionStmt) s;
-                Symbol symbol = new Symbol(fn.getName().getLexeme(), SymbolKind.FUNCTION, fn.getName().getLine());
+                Symbol symbol = new Symbol(fn.getName().getLexeme(), SymbolKind.FUNCTION, fn.getName().getLine(), fn.getName().getColumn());
                 boolean success = symbolTable.declare(symbol);
                 if (!success) {
                     error(fn.getName(), "Function '" + fn.getName().getLexeme() + "' is already declared in this scope.");

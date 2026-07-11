@@ -13,15 +13,15 @@ public final class SymbolTable {
     }
 
     private void declareGlobalFunctions() {
-        declare(new Symbol("read_file", SymbolKind.FUNCTION, 0));
-        declare(new Symbol("write_file", SymbolKind.FUNCTION, 0));
-        declare(new Symbol("file_exists", SymbolKind.FUNCTION, 0));
-        declare(new Symbol("delete_file", SymbolKind.FUNCTION, 0));
-        declare(new Symbol("now", SymbolKind.FUNCTION, 0));
-        declare(new Symbol("random", SymbolKind.FUNCTION, 0));
-        declare(new Symbol("to_string", SymbolKind.FUNCTION, 0));
-        declare(new Symbol("to_integer", SymbolKind.FUNCTION, 0));
-        declare(new Symbol("type_of", SymbolKind.FUNCTION, 0));
+        declare(new Symbol("read_file", SymbolKind.FUNCTION, 0, 0));
+        declare(new Symbol("write_file", SymbolKind.FUNCTION, 0, 0));
+        declare(new Symbol("file_exists", SymbolKind.FUNCTION, 0, 0));
+        declare(new Symbol("delete_file", SymbolKind.FUNCTION, 0, 0));
+        declare(new Symbol("now", SymbolKind.FUNCTION, 0, 0));
+        declare(new Symbol("random", SymbolKind.FUNCTION, 0, 0));
+        declare(new Symbol("to_string", SymbolKind.FUNCTION, 0, 0));
+        declare(new Symbol("to_integer", SymbolKind.FUNCTION, 0, 0));
+        declare(new Symbol("type_of", SymbolKind.FUNCTION, 0, 0));
     }
 
     public void beginScope() {
