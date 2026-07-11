@@ -136,4 +136,81 @@ public final class TLangLanguageServerTest {
         PublishDiagnosticsParams paramsResolved = publishedDiagnostics.get(1);
         assertTrue(paramsResolved.getDiagnostics().isEmpty());
     }
+
+    @Test
+    public void testHoverVariable() throws Exception {
+        String uri = "file:///test_hover_var.tiny";
+        String source = "let x be 42\nshow x\n";
+        server.getTextDocumentService().didOpen(new DidOpenTextDocumentParams(
+                new TextDocumentItem(uri, "tiny", 1, source)
+        ));
+
+        // Hover over 'x' on line 1 (let x be 42) -> 'x' starts at char 4
+        HoverParams params1 = new HoverParams(new TextDocumentIdentifier(uri), new Position(0, 4));
+        Hover hover1 = server.getTextDocumentService().hover(params1).get();
+        assertNotNull(hover1);
+        assertEquals("x: variable\ndeclared at line 1", hover1.getContents().getRight().getValue());
+
+        // Hover over 'x' on line 2 (show x) -> 'x' starts at char 5
+        HoverParams params2 = new HoverParams(new TextDocumentIdentifier(uri), new Position(1, 5));
+        Hover hover2 = server.getTextDocumentService().hover(params2).get();
+        assertNotNull(hover2);
+        assertEquals("x: variable\ndeclared at line 1", hover2.getContents().getRight().getValue());
+    }
+
+    @Test
+    public void testHoverFunctionAndParameter() throws Exception {
+        String uri = "file:///test_hover_fn.tiny";
+        String source = "define add taking a and b\n  return a + b\nlet sum be add(1, 2)\n";
+        server.getTextDocumentService().didOpen(new DidOpenTextDocumentParams(
+                new TextDocumentItem(uri, "tiny", 1, source)
+        ));
+
+        // Hover over 'add' on line 3 (let sum be add(1,2)) -> 'add' starts at char 11 on line 3 (index 2)
+        HoverParams params1 = new HoverParams(new TextDocumentIdentifier(uri), new Position(2, 11));
+        Hover hover1 = server.getTextDocumentService().hover(params1).get();
+        assertNotNull(hover1);
+        assertEquals("add: function\ndeclared at line 1", hover1.getContents().getRight().getValue());
+
+        // Hover over 'a' on line 2 (return a + b) -> 'a' is at char 9 on line 2 (index 1)
+        HoverParams params2 = new HoverParams(new TextDocumentIdentifier(uri), new Position(1, 9));
+        Hover hover2 = server.getTextDocumentService().hover(params2).get();
+        assertNotNull(hover2);
+        assertEquals("a: parameter\ndeclared at line 1", hover2.getContents().getRight().getValue());
+    }
+
+    @Test
+    public void testHoverBuiltin() throws Exception {
+        String uri = "file:///test_hover_builtin.tiny";
+        String source = "show now()\n";
+        server.getTextDocumentService().didOpen(new DidOpenTextDocumentParams(
+                new TextDocumentItem(uri, "tiny", 1, source)
+        ));
+
+        // Hover over 'now' on line 1 -> 'now' starts at char 5
+        HoverParams params = new HoverParams(new TextDocumentIdentifier(uri), new Position(0, 5));
+        Hover hover = server.getTextDocumentService().hover(params).get();
+        assertNotNull(hover);
+        assertEquals("now: function\nbuilt-in", hover.getContents().getRight().getValue());
+    }
+
+    @Test
+    public void testHoverEmpty() throws Exception {
+        String uri = "file:///test_hover_empty.tiny";
+        String source = "let x be 42\n";
+        server.getTextDocumentService().didOpen(new DidOpenTextDocumentParams(
+                new TextDocumentItem(uri, "tiny", 1, source)
+        ));
+
+        // Hover over empty space on line 1 (char 0, which is 'l') -> not a symbol reference
+        HoverParams params1 = new HoverParams(new TextDocumentIdentifier(uri), new Position(0, 0));
+        Hover hover1 = server.getTextDocumentService().hover(params1).get();
+        assertNull(hover1);
+
+        // Hover over whitespace
+        HoverParams params2 = new HoverParams(new TextDocumentIdentifier(uri), new Position(0, 3));
+        Hover hover2 = server.getTextDocumentService().hover(params2).get();
+        assertNull(hover2);
+    }
 }
+

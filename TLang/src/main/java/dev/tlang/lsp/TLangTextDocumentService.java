@@ -6,6 +6,7 @@ import org.eclipse.lsp4j.services.TextDocumentService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 import dev.tlang.ast.Stmt;
@@ -16,10 +17,13 @@ import dev.tlang.lexer.Lexer;
 import dev.tlang.lexer.Token;
 import dev.tlang.parser.Parser;
 import dev.tlang.resolver.Resolver;
+import dev.tlang.resolver.Symbol;
+import dev.tlang.resolver.SymbolReference;
 
 public final class TLangTextDocumentService implements TextDocumentService {
     private final TLangLanguageServer server;
     private final Map<String, String> documentContents = new ConcurrentHashMap<>();
+    private final Map<String, List<SymbolReference>> documentSymbolReferences = new ConcurrentHashMap<>();
 
     public TLangTextDocumentService(TLangLanguageServer server) {
         this.server = server;
@@ -48,6 +52,7 @@ public final class TLangTextDocumentService implements TextDocumentService {
     public void didClose(DidCloseTextDocumentParams params) {
         String uri = params.getTextDocument().getUri();
         documentContents.remove(uri);
+        documentSymbolReferences.remove(uri);
         if (server.getClient() != null) {
             server.getClient().publishDiagnostics(new PublishDiagnosticsParams(uri, new ArrayList<>()));
         }
@@ -72,14 +77,17 @@ public final class TLangTextDocumentService implements TextDocumentService {
             // Stage 3: Semantic Analysis
             Resolver resolver = new Resolver();
             List<SemanticError> errors = resolver.resolve(program);
+            documentSymbolReferences.put(uri, resolver.getSymbolReferences());
             if (errors != null) {
                 for (SemanticError err : errors) {
                     diagnostics.add(createDiagnostic(source, err.getMessage(), err.getLine(), err.getColumn(), null));
                 }
             }
         } catch (LexerError e) {
+            documentSymbolReferences.remove(uri);
             diagnostics.add(createDiagnostic(source, e.getRawMessage(), e.getLine(), e.getColumn(), null));
         } catch (ParseError e) {
+            documentSymbolReferences.remove(uri);
             Token t = e.getToken();
             if (t != null) {
                 diagnostics.add(createDiagnostic(source, e.getRawMessage(), t.getLine(), t.getColumn(), t.getLexeme()));
@@ -87,12 +95,39 @@ public final class TLangTextDocumentService implements TextDocumentService {
                 diagnostics.add(createDiagnostic(source, e.getRawMessage(), 1, 1, null));
             }
         } catch (Throwable t) {
+            documentSymbolReferences.remove(uri);
             diagnostics.add(createDiagnostic(source, "Internal LSP Error: " + t.getMessage(), 1, 1, null));
         }
 
         if (server.getClient() != null) {
             server.getClient().publishDiagnostics(new PublishDiagnosticsParams(uri, diagnostics));
         }
+    }
+
+    @Override
+    public CompletableFuture<Hover> hover(HoverParams params) {
+        return CompletableFuture.supplyAsync(() -> {
+            String uri = params.getTextDocument().getUri();
+            Position pos = params.getPosition();
+            List<SymbolReference> refs = documentSymbolReferences.get(uri);
+            if (refs == null) return null;
+
+            for (SymbolReference ref : refs) {
+                int lspLine = ref.getLine() - 1;
+                int lspCol = ref.getColumn() - 1;
+                if (pos.getLine() == lspLine && pos.getCharacter() >= lspCol && pos.getCharacter() < lspCol + ref.getLength()) {
+                    Symbol sym = ref.getSymbol();
+                    String content = sym.getName() + ": " + sym.getKind().name().toLowerCase() + "\n" +
+                                     (sym.getLine() == 0 ? "built-in" : "declared at line " + sym.getLine());
+                    
+                    MarkupContent markup = new MarkupContent(MarkupKind.MARKDOWN, content);
+                    Hover hover = new Hover(markup);
+                    hover.setRange(new Range(new Position(lspLine, lspCol), new Position(lspLine, lspCol + ref.getLength())));
+                    return hover;
+                }
+            }
+            return null;
+        });
     }
 
     private Diagnostic createDiagnostic(String source, String message, int line, int column, String lexeme) {

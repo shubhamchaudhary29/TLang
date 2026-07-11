@@ -26,6 +26,7 @@ public final class TLangLanguageServer implements LanguageServer, LanguageClient
     public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
         ServerCapabilities capabilities = new ServerCapabilities();
         capabilities.setTextDocumentSync(TextDocumentSyncKind.Full);
+        capabilities.setHoverProvider(true);
         InitializeResult result = new InitializeResult(capabilities);
         return CompletableFuture.completedFuture(result);
     }

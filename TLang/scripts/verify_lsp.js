@@ -62,6 +62,11 @@ function handleMessage(msg) {
     } else if (msg.id === 1) {
         console.log('Server Initialized successfully.');
         triggerNextStep();
+    } else if (msg.id === 100) {
+        console.log('\n--- Received Hover Response ---');
+        console.log(JSON.stringify(msg.result, null, 2));
+        console.log('------------------------------');
+        triggerNextStep();
     }
 }
 
@@ -110,7 +115,23 @@ function triggerNextStep() {
             }
         });
     } else if (step === 4) {
-        console.log('\nStep 3: Creating two simultaneous undefined variable errors ("foo" and "bar")');
+        console.log('\nStep 3: Hovering over variable "foo" at Line 0, Char 4');
+        send({
+            jsonrpc: '2.0',
+            id: 100,
+            method: 'textDocument/hover',
+            params: {
+                textDocument: {
+                    uri: 'file://' + path.join(__dirname, 'test.tiny')
+                },
+                position: {
+                    line: 0,
+                    character: 4
+                }
+            }
+        });
+    } else if (step === 5) {
+        console.log('\nStep 4: Creating two simultaneous undefined variable errors ("foo" and "bar")');
         send({
             jsonrpc: '2.0',
             method: 'textDocument/didChange',
@@ -124,7 +145,7 @@ function triggerNextStep() {
                 }]
             }
         });
-    } else if (step === 5) {
+    } else if (step === 6) {
         console.log('\nVerification complete. Exiting.');
         send({
             jsonrpc: '2.0',
