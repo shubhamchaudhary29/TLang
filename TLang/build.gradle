@@ -63,3 +63,98 @@ tasks.register('tlangTests', Exec) {
 tasks.named('check') {
     dependsOn tlangTests
 }
+
+// jpackage task integration for native installers
+def jpackageVersion = project.version.toString().split('-')[0]
+
+tasks.register('jpackageLinux', Exec) {
+    dependsOn 'installDist'
+    group = 'distribution'
+    description = 'Builds the Linux .deb installer package'
+    
+    onlyIf {
+        org.gradle.internal.os.OperatingSystem.current().isLinux()
+    }
+    
+    doFirst {
+        mkdir "${layout.buildDirectory.get().asFile}/jpackage"
+    }
+
+    commandLine 'jpackage',
+        '--type', 'deb',
+        '--name', 'tlang',
+        '--app-version', jpackageVersion,
+        '--input', "${layout.buildDirectory.get().asFile}/install/tlang/lib",
+        '--main-jar', tasks.named('jar').get().archiveFileName.get(),
+        '--main-class', 'dev.tlang.Main',
+        '--dest', "${layout.buildDirectory.get().asFile}/jpackage",
+        '--resource-dir', 'packaging/linux',
+        '--vendor', 'TLang',
+        '--description', 'TLang Programming Language'
+}
+
+tasks.register('jpackageMac', Exec) {
+    dependsOn 'installDist'
+    group = 'distribution'
+    description = 'Builds the macOS .pkg installer package'
+    
+    onlyIf {
+        org.gradle.internal.os.OperatingSystem.current().isMacOsX()
+    }
+    
+    doFirst {
+        mkdir "${layout.buildDirectory.get().asFile}/jpackage"
+    }
+
+    commandLine 'jpackage',
+        '--type', 'pkg',
+        '--name', 'TLang',
+        '--app-version', jpackageVersion,
+        '--input', "${layout.buildDirectory.get().asFile}/install/tlang/lib",
+        '--main-jar', tasks.named('jar').get().archiveFileName.get(),
+        '--main-class', 'dev.tlang.Main',
+        '--dest', "${layout.buildDirectory.get().asFile}/jpackage",
+        '--resource-dir', 'packaging/macos',
+        '--vendor', 'TLang',
+        '--description', 'TLang Programming Language'
+}
+
+tasks.register('jpackageWindows', Exec) {
+    dependsOn 'installDist'
+    group = 'distribution'
+    description = 'Builds the Windows .msi installer package'
+    
+    onlyIf {
+        org.gradle.internal.os.OperatingSystem.current().isWindows()
+    }
+    
+    doFirst {
+        mkdir "${layout.buildDirectory.get().asFile}/jpackage"
+    }
+
+    commandLine 'jpackage',
+        '--type', 'msi',
+        '--name', 'TLang',
+        '--app-version', jpackageVersion,
+        '--input', "${layout.buildDirectory.get().asFile}/install/tlang/lib",
+        '--main-jar', tasks.named('jar').get().archiveFileName.get(),
+        '--main-class', 'dev.tlang.Main',
+        '--dest', "${layout.buildDirectory.get().asFile}/jpackage",
+        '--resource-dir', 'packaging/windows',
+        '--vendor', 'TLang',
+        '--description', 'TLang Programming Language'
+}
+
+tasks.register('jpackage') {
+    group = 'distribution'
+    description = 'Builds the native installer for the current platform'
+    
+    if (org.gradle.internal.os.OperatingSystem.current().isLinux()) {
+        dependsOn 'jpackageLinux'
+    } else if (org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
+        dependsOn 'jpackageMac'
+    } else if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
+        dependsOn 'jpackageWindows'
+    }
+}
+

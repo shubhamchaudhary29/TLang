@@ -1,0 +1,11 @@
+#!/bin/sh
+set -e
+
+# Create symlink for standard system-wide path (common for Intel Mac)
+mkdir -p /usr/local/bin
+ln -sf "/Applications/TLang.app/Contents/MacOS/TLang" /usr/local/bin/tlang
+
+# Create symlink for Apple Silicon Homebrew path if the folder exists
+if [ -d "/opt/homebrew/bin" ]; then
+    ln -sf "/Applications/TLang.app/Contents/MacOS/TLang" /opt/homebrew/bin/tlang
+fi

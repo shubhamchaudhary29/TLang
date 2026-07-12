@@ -1,0 +1,5 @@
+#!/bin/sh
+set -e
+
+# Symlink the jpackage binary to a system-wide PATH location
+ln -sf /opt/tlang/bin/tlang /usr/bin/tlang

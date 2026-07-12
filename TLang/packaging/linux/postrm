@@ -1,0 +1,7 @@
+#!/bin/sh
+set -e
+
+# Clean up the symlink when the package is removed or purged
+if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
+    rm -f /usr/bin/tlang
+fi
