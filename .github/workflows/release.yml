@@ -11,6 +11,9 @@ jobs:
   package:
     name: Build & Package (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: TLang
     strategy:
       fail-fast: false
       matrix:
@@ -41,7 +44,7 @@ jobs:
         if: always()
         with:
           name: installer-${{ matrix.os }}
-          path: build/jpackage/*
+          path: TLang/build/jpackage/*
           if-no-files-found: warn
 
       # Linux Verification Step
