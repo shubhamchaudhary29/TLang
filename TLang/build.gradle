@@ -81,6 +81,7 @@ tasks.register('jpackageLinux', Exec) {
     }
 
     commandLine 'jpackage',
+        '--verbose',
         '--type', 'deb',
         '--name', 'tlang',
         '--app-version', jpackageVersion,
@@ -107,6 +108,7 @@ tasks.register('jpackageMac', Exec) {
     }
 
     commandLine 'jpackage',
+        '--verbose',
         '--type', 'pkg',
         '--name', 'TLang',
         '--app-version', jpackageVersion,
@@ -133,6 +135,7 @@ tasks.register('jpackageWindows', Exec) {
     }
 
     commandLine 'jpackage',
+        '--verbose',
         '--type', 'msi',
         '--name', 'TLang',
         '--app-version', jpackageVersion,
