@@ -3,6 +3,8 @@ name: Release Packaging
 on:
   push:
     branches: [ main ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ main ]
   workflow_dispatch:
@@ -51,7 +53,7 @@ jobs:
       - name: Install & Verify (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sudo dpkg -i build/jpackage/tlang_1.0_amd64.deb
+          sudo dpkg -i build/jpackage/tlang_*_amd64.deb
           # Verify PATH resolution with clean environment
           env -i PATH=/usr/bin:/bin tlang version
           env -i PATH=/usr/bin:/bin tlang help
@@ -67,7 +69,7 @@ jobs:
       - name: Install & Verify (macOS)
         if: matrix.os == 'macos-latest'
         run: |
-          sudo installer -pkg build/jpackage/TLang-1.0.pkg -target /
+          sudo installer -pkg build/jpackage/TLang-*.pkg -target /
           # Verify PATH resolution with clean environment
           env -i PATH=/usr/local/bin:/usr/bin:/bin tlang version
           env -i PATH=/usr/local/bin:/usr/bin:/bin tlang help
@@ -77,8 +79,10 @@ jobs:
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
+          # Resolve the MSI path dynamically using wildcard
+          $msiPath = Resolve-Path build\jpackage\TLang-*.msi | Select-Object -ExpandProperty Path
           # Install silently and wait for completion
-          Start-Process msiexec.exe -ArgumentList '/i', 'build\jpackage\TLang-1.0.msi', '/qn', '/norestart' -NoNewWindow -Wait
+          Start-Process msiexec.exe -ArgumentList '/i', "`"$msiPath`"", '/qn', '/norestart' -NoNewWindow -Wait
           
           # Verify installation folder exists
           if (!(Test-Path "C:\Program Files\TLang\TLang.exe")) {
@@ -105,3 +109,59 @@ jobs:
           # Run tlang version and tlang help via PATH resolution
           tlang version
           tlang help
+
+  release:
+    name: Create GitHub Release
+    needs: package
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Extract Clean Version
+        id: get_version
+        run: |
+          # Remove leading 'v' from tag name
+          TAG_NAME="${{ github.ref_name }}"
+          CLEAN_VERSION="${TAG_NAME#v}"
+          echo "version=${CLEAN_VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/installer-ubuntu-latest/*
+            artifacts/installer-macos-latest/*
+            artifacts/installer-windows-latest/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          body: |
+            ## TLang ${{ github.ref_name }}
+
+            This release includes:
+            - **TLang CLI**: The compiler and runtime interpreter.
+            - **TLang LSP**: The language server protocol implementation supporting diagnostics, go-to-definition, find-references, document symbols, and formatting.
+            - **TLang Formatter**: The code formatter for standardizing TLang script files.
+
+            ### Installation Instructions
+
+            #### Linux (.deb)
+            Download `tlang_${{ steps.get_version.outputs.version }}_amd64.deb` and install it via:
+            ```bash
+            sudo dpkg -i tlang_${{ steps.get_version.outputs.version }}_amd64.deb
+            ```
+
+            #### macOS (.pkg)
+            Download `TLang-${{ steps.get_version.outputs.version }}.pkg` and double-click to install, or run:
+            ```bash
+            sudo installer -pkg TLang-${{ steps.get_version.outputs.version }}.pkg -target /
+            ```
+
+            #### Windows (.msi)
+            Download `TLang-${{ steps.get_version.outputs.version }}.msi` and double-click to run the installer.
