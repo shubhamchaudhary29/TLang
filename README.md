@@ -2,7 +2,7 @@
 
 TLang is a canonical, opinionated, domain-specific, easy to use programming language designed from the ground up for backend web development. TLang rejects the concept of a "general-purpose" scripting language and instead offers a battery-included, type-safe ecosystem with native modules for HTTP servers, databases (SQLite), cryptography, configuration, and input validation.
 
-TLang focuses entirely on developer productivity, absolute semantic clarity, and safe, concurrent web requests, easy to use.
+TLang focuses entirely on developer productivity, absolute semantic clarity, and safe, concurrent web requests.
 
 ---
 
