@@ -1,0 +1,6 @@
+// Expected exit code: 70
+// Expected error: Runtime error: First argument to 'set' must be a string.
+import cache
+
+// Non-string key
+cache.set(12345, "value", 3600)

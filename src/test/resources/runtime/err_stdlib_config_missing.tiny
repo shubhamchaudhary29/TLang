@@ -1,0 +1,6 @@
+// Expected exit code: 70
+// Expected error: Runtime error: Configuration key 'NON_EXISTENT_REQUIRED_KEY' is required but not set.
+import config
+
+// Missing required key must throw RuntimeError and exit with 70
+config.require("NON_EXISTENT_REQUIRED_KEY")

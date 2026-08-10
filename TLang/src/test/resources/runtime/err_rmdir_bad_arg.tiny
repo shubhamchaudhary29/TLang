@@ -1,5 +1,0 @@
-// Expected exit code: 70
-import filesystem
-// Passing a non-boolean as the second argument to rmdir — should fail
-filesystem.mkdir("temp_rmdir_bad_arg")
-filesystem.rmdir("temp_rmdir_bad_arg", 42)

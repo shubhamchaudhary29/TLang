@@ -1,5 +1,0 @@
-// Expected exit code: 70
-import cache
-
-// Non-string key
-cache.set(12345, "value", 3600)

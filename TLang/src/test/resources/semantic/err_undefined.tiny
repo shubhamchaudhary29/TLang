@@ -1,3 +1,0 @@
-// Expected exit code: 65
-// Referencing an undefined variable
-show y

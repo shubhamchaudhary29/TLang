@@ -1,5 +1,0 @@
-// Expected exit code: 70
-import config
-
-// Missing required key must throw RuntimeError and exit with 70
-config.require("NON_EXISTENT_REQUIRED_KEY")
