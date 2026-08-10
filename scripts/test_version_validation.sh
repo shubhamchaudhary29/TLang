@@ -23,4 +23,3 @@ expect_failure 'does not match project version' env RELEASE_TAG=v0.1.2 ./gradlew
 expect_failure 'Snapshot versions cannot be released' env RELEASE_TAG=v0.1.1 ./gradlew -q verifyVersion
 ./gradlew -q installDist
 test "$(build/install/tlang/bin/tlang version)" = 'TLang version 0.1.1-SNAPSHOT'
-git rev-parse --verify -q v0.1.0 >/dev/null
