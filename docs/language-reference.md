@@ -17,7 +17,7 @@ show "Result: ${1 + 2 * 3}"
 ```
 
 ### Number
-All numbers in TLang are 64-bit floating-point values (equivalent to `double` in Java).
+Numbers are signed 32-bit Java integers (`Integer`). Numeric tokens contain decimal digits only, from `0` through `2147483647`; a leading minus is the unary `-` operator, not part of the token. Integer literals outside that range fail during lexing. Decimal and exponent notation are not supported.
 
 ### Boolean
 Represented by the literals `true` and `false`.

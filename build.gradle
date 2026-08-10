@@ -11,7 +11,7 @@ repositories {
 
 dependencies {
     implementation 'org.eclipse.lsp4j:org.eclipse.lsp4j:0.23.0'
-    implementation 'org.xerial:sqlite-jdbc:3.34.0'
+    implementation 'org.xerial:sqlite-jdbc:3.53.2.0'
     implementation 'com.sun.mail:javax.mail:1.6.2'
     implementation 'javax.activation:activation:1.1.1'
 
@@ -100,8 +100,20 @@ tasks.register('verifyDocs', Exec) {
     commandLine 'bash', './scripts/verify_docs.sh'
 }
 
+tasks.register('verifyDocsTest', Exec) {
+    group = 'verification'
+    description = 'Tests documentation validation rejection and acceptance cases.'
+    commandLine 'bash', './scripts/test_verify_docs.sh'
+}
+
+tasks.register('versionValidationTest', Exec) {
+    group = 'verification'
+    description = 'Exercises the production Gradle version validation task.'
+    commandLine 'bash', './scripts/test_version_validation.sh'
+}
+
 tasks.named('check') {
-    dependsOn 'verifyDocs'
+    dependsOn 'verifyDocs', 'verifyDocsTest', 'versionValidationTest'
 }
 
 // jpackage task integration for native installers

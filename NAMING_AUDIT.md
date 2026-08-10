@@ -71,23 +71,19 @@ We scanned the codebase for references to `elapsed_seconds` and `floor_div` insi
 
 ### 1. `elapsed_seconds` -> `elapsedSeconds` (5 total references across 2 files)
 - **Tests** (1 call site):
-  - [src/test/resources/runtime/test_stdlib_time.tiny](file:///home/gigachad/Trash/TLang/src/test/resources/runtime/test_stdlib_time.tiny#L10):
+  - [src/test/resources/runtime/test_stdlib_time.tiny](src/test/resources/runtime/test_stdlib_time.tiny):
     `let elapsed be time.elapsed_seconds(t1)`
 - **Documentation** (4 references):
-  - [stdlib/time.md](file:///home/gigachad/Trash/TLang/stdlib/time.md#L13-L14): `#### elapsed_seconds(startTime)`
-  - [stdlib/time.md](file:///home/gigachad/Trash/TLang/stdlib/time.md#L28): `let duration be time.elapsed_seconds(start)`
-  - [stdlib/time.md](file:///home/gigachad/Trash/TLang/stdlib/time.md#L36): `Argument to 'elapsed_seconds' must be an integer.`
+  - `stdlib/time.md`: `elapsed_seconds` references
 
 ### 2. `floor_div` -> `floorDiv` (7 total references across 2 files)
 - **Tests** (2 call sites):
-  - [src/test/resources/runtime/test_stdlib_math.tiny](file:///home/gigachad/Trash/TLang/src/test/resources/runtime/test_stdlib_math.tiny#L14):
+  - [src/test/resources/runtime/test_stdlib_math.tiny](src/test/resources/runtime/test_stdlib_math.tiny):
     `show math.floor_div(10, 3)`
-  - [src/test/resources/runtime/test_stdlib_math.tiny](file:///home/gigachad/Trash/TLang/src/test/resources/runtime/test_stdlib_math.tiny#L17):
+  - `src/test/resources/runtime/test_stdlib_math.tiny`:
     `show math.floor_div(-10, 3)`
 - **Documentation** (5 references):
-  - [stdlib/math.md](file:///home/gigachad/Trash/TLang/stdlib/math.md#L33-L34): `#### floor_div(a, b)`
-  - [stdlib/math.md](file:///home/gigachad/Trash/TLang/stdlib/math.md#L61-L62): `show math.floor_div(7, 2)` / `show math.floor_div(-7, 2)`
-  - [stdlib/math.md](file:///home/gigachad/Trash/TLang/stdlib/math.md#L81): `Dividing by zero in 'floor_div'`
+  - `stdlib/math.md`: `floor_div` references
 
 ---
 

@@ -1,2 +1,3 @@
 // Expected exit code: 65
+// Expected error: Parse error: at end of line: Expected expression.
 show (

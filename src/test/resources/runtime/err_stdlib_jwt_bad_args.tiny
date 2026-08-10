@@ -1,4 +1,5 @@
 // Expected exit code: 70
+// Expected error: Runtime error: First argument to 'verify' must be a string.
 import jwt
 
 // Non-string token argument to verify

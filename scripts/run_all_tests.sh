@@ -3,7 +3,7 @@
 # Handles:
 #   - "// Expected exit code: N" metadata (defaults to 0)
 #   - "// Expected output:" blocks (strips "// " prefix only, preserving indentation)
-#   - Files with no expected output header (skip output comparison)
+#   - "// Expected error: text" assertions for deterministic diagnostics
 set -uo pipefail
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$PROJECT_DIR"
@@ -21,6 +21,7 @@ fi
 pass=0
 fail=0
 skip=0
+diagnostic_assertions=0
 errors=""
 
 # Support files that are imported by other tests (not standalone)
@@ -70,6 +71,8 @@ for line in lines:
 print('\n'.join(out))
 " "$f")
 
+    expected_error=$(sed -n 's|^// Expected error: *||p' "$f" | head -1)
+
     actual_output=$(TLANG_TEST=true SMTP_HOST=localhost SMTP_PORT=12345 java -cp "$PROJECT_DIR/build/classes/java/main:$PROJECT_DIR/build/dependencies/*" dev.tlang.Main "$f" 2>&1 | tr -d '\r')
     actual_exit=$?
 
@@ -79,6 +82,15 @@ print('\n'.join(out))
         errors+="FAIL: $f (exit code: expected $expected_exit, got $actual_exit)"$'\n'
         errors+="  output: $(echo "$actual_output" | head -3)"$'\n'
         continue
+    fi
+
+    if [ -n "$expected_error" ] && [[ "$actual_output" != *"$expected_error"* ]]; then
+        fail=$((fail+1))
+        errors+="FAIL: $f (expected diagnostic missing: $expected_error)"$'\n'
+        continue
+    fi
+    if [ -n "$expected_error" ]; then
+        diagnostic_assertions=$((diagnostic_assertions+1))
     fi
 
     # Compare output (only if expected output is non-empty)
@@ -93,15 +105,19 @@ print('\n'.join(out))
             echo "PASS: $f"
         fi
     else
-        # No expected output defined — just check exit code was correct
+        # Error fixtures may assert a diagnostic fragment; others check exit status.
         pass=$((pass+1))
-        echo "PASS: $f (exit code only)"
+        if [ -n "$expected_error" ]; then
+            echo "PASS: $f (exit code and diagnostic)"
+        else
+            echo "PASS: $f (exit code only)"
+        fi
     fi
 done
 
 echo ""
 echo "══════════════════════════════════════"
-echo "Results: $pass passed, $fail failed"
+echo "Results: $pass passed, $fail failed, $diagnostic_assertions diagnostic assertions"
 echo "══════════════════════════════════════"
 if [ $fail -gt 0 ]; then
     echo ""
