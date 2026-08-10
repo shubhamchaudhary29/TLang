@@ -1,0 +1,210 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'dev.tlang'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.eclipse.lsp4j:org.eclipse.lsp4j:0.23.0'
+    implementation 'org.xerial:sqlite-jdbc:3.34.0'
+    implementation 'com.sun.mail:javax.mail:1.6.2'
+    implementation 'javax.activation:activation:1.1.1'
+
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+application {
+    mainClass = 'dev.tlang.Main'
+    applicationName = 'tlang'
+}
+
+processResources {
+    inputs.property "version", project.version
+    filesMatching("version.properties") {
+        expand "version": project.version
+    }
+}
+
+def semanticVersion = ~/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/
+tasks.register('verifyVersion') {
+    group = 'verification'
+    description = 'Validates the project version and an optional release tag.'
+    doLast {
+        def currentVersion = project.version.toString()
+        if (!currentVersion || !(currentVersion ==~ semanticVersion)) {
+            throw new GradleException("Version must be a semantic version without a leading 'v': ${currentVersion}")
+        }
+        def releaseTag = System.getenv('RELEASE_TAG')
+        if (releaseTag) {
+            if (!releaseTag.matches(/^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/)) {
+                throw new GradleException("Release tag must be v<semantic-version>: ${releaseTag}")
+            }
+            if (currentVersion.endsWith('-SNAPSHOT')) {
+                throw new GradleException('Snapshot versions cannot be released.')
+            }
+            if (releaseTag.substring(1) != currentVersion) {
+                throw new GradleException("Release tag ${releaseTag} does not match project version ${currentVersion}.")
+            }
+        }
+    }
+}
+
+// Custom task to copy runtime dependencies to build/dependencies
+tasks.register('copyDependencies', Copy) {
+    from configurations.runtimeClasspath
+    into layout.buildDirectory.dir('dependencies')
+}
+
+// Custom task to run our custom .tiny integration tests
+tasks.register('tlangTests', Exec) {
+    dependsOn compileJava
+    dependsOn 'copyDependencies'
+    group = 'verification'
+    description = 'Runs the custom TLang integration tests'
+    
+    environment 'GRADLE_RUNNING', 'true'
+    commandLine 'bash', './scripts/run_all_tests.sh'
+}
+
+// Bind tlangTests to standard check task
+tasks.named('check') {
+    dependsOn tlangTests, 'verifyVersion'
+}
+
+tasks.register('distributionSmokeTest', Exec) {
+    dependsOn 'installDist'
+    group = 'verification'
+    description = 'Exercises the installed distribution, including a path containing spaces.'
+    commandLine 'bash', './scripts/release_smoke_test.sh'
+}
+
+tasks.register('verifyDocs', Exec) {
+    group = 'verification'
+    description = 'Validates local Markdown links.'
+    commandLine 'bash', './scripts/verify_docs.sh'
+}
+
+tasks.named('check') {
+    dependsOn 'verifyDocs'
+}
+
+// jpackage task integration for native installers
+def jpackageVersion = project.version.toString().split('-')[0]
+def requireReleaseVersion = {
+    if (project.version.toString().endsWith('-SNAPSHOT')) {
+        throw new GradleException('Native installers require a non-snapshot release version.')
+    }
+}
+
+tasks.register('jpackageLinux', Exec) {
+    dependsOn 'installDist'
+    group = 'distribution'
+    description = 'Builds the Linux .deb installer package'
+    
+    onlyIf {
+        org.gradle.internal.os.OperatingSystem.current().isLinux()
+    }
+    
+    doFirst {
+        requireReleaseVersion()
+        mkdir "${layout.buildDirectory.get().asFile}/jpackage"
+    }
+
+    commandLine 'jpackage',
+        '--verbose',
+        '--type', 'deb',
+        '--name', 'tlang',
+        '--app-version', jpackageVersion,
+        '--input', "${layout.buildDirectory.get().asFile}/install/tlang/lib",
+        '--main-jar', tasks.named('jar').get().archiveFileName.get(),
+        '--main-class', 'dev.tlang.Main',
+        '--dest', "${layout.buildDirectory.get().asFile}/jpackage",
+        '--resource-dir', 'packaging/linux',
+        '--vendor', 'TLang',
+        '--description', 'TLang Programming Language'
+}
+
+tasks.register('jpackageMac', Exec) {
+    dependsOn 'installDist'
+    group = 'distribution'
+    description = 'Builds the macOS .pkg installer package'
+    
+    onlyIf {
+        org.gradle.internal.os.OperatingSystem.current().isMacOsX()
+    }
+    
+    doFirst {
+        requireReleaseVersion()
+        mkdir "${layout.buildDirectory.get().asFile}/jpackage"
+    }
+
+    commandLine 'jpackage',
+        '--verbose',
+        '--type', 'pkg',
+        '--name', 'TLang',
+        '--app-version', jpackageVersion,
+        '--input', "${layout.buildDirectory.get().asFile}/install/tlang/lib",
+        '--main-jar', tasks.named('jar').get().archiveFileName.get(),
+        '--main-class', 'dev.tlang.Main',
+        '--dest', "${layout.buildDirectory.get().asFile}/jpackage",
+        '--resource-dir', 'packaging/macos',
+        '--vendor', 'TLang',
+        '--description', 'TLang Programming Language'
+}
+
+tasks.register('jpackageWindows', Exec) {
+    dependsOn 'installDist'
+    group = 'distribution'
+    description = 'Builds the Windows .msi installer package'
+    
+    onlyIf {
+        org.gradle.internal.os.OperatingSystem.current().isWindows()
+    }
+    
+    doFirst {
+        requireReleaseVersion()
+        mkdir "${layout.buildDirectory.get().asFile}/jpackage"
+    }
+
+    commandLine 'jpackage',
+        '--verbose',
+        '--type', 'msi',
+        '--name', 'TLang',
+        '--app-version', jpackageVersion,
+        '--input', "${layout.buildDirectory.get().asFile}/install/tlang/lib",
+        '--main-jar', tasks.named('jar').get().archiveFileName.get(),
+        '--main-class', 'dev.tlang.Main',
+        '--dest', "${layout.buildDirectory.get().asFile}/jpackage",
+        '--resource-dir', 'packaging/windows',
+        '--vendor', 'TLang',
+        '--description', 'TLang Programming Language'
+}
+
+tasks.register('jpackage') {
+    group = 'distribution'
+    description = 'Builds the native installer for the current platform'
+    
+    if (org.gradle.internal.os.OperatingSystem.current().isLinux()) {
+        dependsOn 'jpackageLinux'
+    } else if (org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
+        dependsOn 'jpackageMac'
+    } else if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
+        dependsOn 'jpackageWindows'
+    }
+}

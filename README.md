@@ -1,8 +1,6 @@
-# TLang — The Easiest Language for Backend Development
+# TLang
 
-TLang is a canonical, opinionated, domain-specific, easy to use programming language designed from the ground up for backend web development. TLang rejects the concept of a "general-purpose" scripting language and instead offers a battery-included, type-safe ecosystem with native modules for HTTP servers, databases (SQLite), cryptography, configuration, and input validation.
-
-TLang focuses entirely on developer productivity, absolute semantic clarity, and safe, concurrent web requests.
+TLang is a small, dynamically typed scripting language for straightforward backend APIs. It includes native modules for HTTP servers, SQLite, cryptography, configuration, JSON, and validation. It is currently best suited to small services and scripts: HTTP handlers share an interpreter lock, so request execution is serialized rather than concurrent.
 
 ---
 
@@ -66,7 +64,7 @@ server.start()
 Explore the TLang guides and references:
 - **[Getting Started Guide](docs/getting-started.md)**: A step-by-step introduction to installing and writing your first TLang script.
 - **[Language Reference](docs/language-reference.md)**: Human-readable guide to variables, control flow, functions/lambdas, list/map literals, modules, and `nil`.
-- **[Standard Library Reference](docs/stdlib/index.md)**: Detailed reference pages for all 15 native modules (e.g. `http`, `db`, `jwt`, `crypto`).
+- **[Standard Library Reference](docs/stdlib/index.md)**: Detailed reference pages for the available native modules.
 - **[Auth Service Example Walkthrough](docs/examples/auth-service.md)**: An in-depth architectural look at the complete backend user registration and authentication service example.
 
 ---

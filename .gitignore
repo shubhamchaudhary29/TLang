@@ -12,8 +12,8 @@
 !gradle-wrapper.jar
 
 # Gradle build files
-/TLang/.gradle/
-/TLang/build/
+/.gradle/
+/build/
 
 # IDE files
 .idea/
@@ -23,13 +23,19 @@
 
 # Compilation output
 /out/
-/TLang/out/
+/out/
 
 # Temp files/folders
-/TLang/temp_rmdir_bad_arg/
-/TLang/temp_rmdir_nonempty/
-/TLang/temp_mkdir_file_conflict.txt
-/TLang/temp_rmdir_file_conflict.txt
-/TLang/scripts/temp_mkdir_file_conflict.txt
-/TLang/scripts/temp_rmdir_file_conflict.txt
-/TLang/scripts/temp_rmdir_nonempty/
+/temp_rmdir_bad_arg/
+/temp_rmdir_nonempty/
+/temp_mkdir_file_conflict.txt
+/temp_rmdir_file_conflict.txt
+/scripts/temp_mkdir_file_conflict.txt
+/scripts/temp_rmdir_file_conflict.txt
+/scripts/temp_rmdir_nonempty/
+
+# Editor extension dependencies and packages
+/editors/vscode/node_modules/
+/editors/vscode/*.vsix
+/editors/vscode/.vscode-test/
+/auth.db

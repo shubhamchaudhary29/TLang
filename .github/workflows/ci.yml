@@ -1,5 +1,8 @@
 name: TLang CI
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [ main ]
@@ -20,9 +23,19 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
-      - name: Make Gradle wrapper executable
-        run: chmod +x TLang/gradlew
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
 
-      - name: Run build and check tasks
-        working-directory: TLang
-        run: ./gradlew build check
+      - name: Build, test, and validate version
+        run: ./gradlew clean check
+
+      - name: Build distribution and run installed CLI smoke test
+        run: ./gradlew distributionSmokeTest
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: build/reports/tests/test
+          if-no-files-found: ignore
