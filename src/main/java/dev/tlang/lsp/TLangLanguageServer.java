@@ -5,6 +5,7 @@ import org.eclipse.lsp4j.InitializeResult;
 import org.eclipse.lsp4j.ServerCapabilities;
 import org.eclipse.lsp4j.TextDocumentSyncKind;
 import org.eclipse.lsp4j.RenameOptions;
+import org.eclipse.lsp4j.CompletionOptions;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.LanguageClientAware;
 import org.eclipse.lsp4j.services.LanguageServer;
@@ -30,6 +31,7 @@ public final class TLangLanguageServer implements LanguageServer, LanguageClient
         capabilities.setHoverProvider(true);
         capabilities.setDefinitionProvider(true);
         capabilities.setReferencesProvider(true);
+        capabilities.setCompletionProvider(new CompletionOptions(false, java.util.List.of(".")));
         
         RenameOptions renameOptions = new RenameOptions();
         renameOptions.setPrepareProvider(true);

@@ -8,6 +8,9 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.Collections;
 
 /**
  * Indentation-aware lexer for the TLang language.
@@ -80,6 +83,11 @@ public final class Lexer {
     public Lexer(String source) {
         this.source = source;
         this.indentStack.push(0);
+    }
+
+    /** Stable lexer-owned keyword metadata for editor and validation tooling. */
+    public static Set<String> getKeywords() {
+        return Collections.unmodifiableSet(new TreeSet<>(KEYWORDS.keySet()));
     }
 
     // ── Public entry point ──────────────────────────────────────
