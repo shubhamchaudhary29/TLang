@@ -6,6 +6,7 @@
 
 # Database files (local dev database)
 *.db
+*.sqlite
 
 # Package Files
 *.jar
@@ -14,6 +15,7 @@
 # Gradle build files
 /.gradle/
 /build/
+/benchmark-results/
 
 # IDE files
 .idea/

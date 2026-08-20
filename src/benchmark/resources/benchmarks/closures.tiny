@@ -1,0 +1,6 @@
+define makeAdder taking base
+  return function taking value
+    return base + value
+
+let addFive be makeAdder(5)
+let result be addFive(37)

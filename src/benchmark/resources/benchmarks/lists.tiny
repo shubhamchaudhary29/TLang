@@ -1,0 +1,7 @@
+let values be []
+repeat 100 times as index
+  values.add(index)
+
+let result be 0
+repeat values.length() times as index
+  set result to result + values.get(index)

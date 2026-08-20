@@ -1,0 +1,6 @@
+define add taking left and right
+  return left + right
+
+let result be 0
+repeat 100 times as index
+  set result to add(result, index)
