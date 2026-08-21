@@ -55,4 +55,28 @@ public final class Route {
         String[] parts = normalizedPath.substring(1).split("/");
         return Arrays.asList(parts);
     }
+
+    /** Match an already-tokenized request path without network or server state. */
+    public boolean matches(String requestMethod, List<String> requestSegments) {
+        if (!method.equalsIgnoreCase(requestMethod) || segments.size() != requestSegments.size()) {
+            return false;
+        }
+        for (int i = 0; i < segments.size(); i++) {
+            String pattern = segments.get(i);
+            if (!pattern.startsWith(":") && !pattern.equals(requestSegments.get(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public int specificityScore() {
+        int score = 0;
+        for (String segment : segments) {
+            if (!segment.startsWith(":")) {
+                score++;
+            }
+        }
+        return score;
+    }
 }

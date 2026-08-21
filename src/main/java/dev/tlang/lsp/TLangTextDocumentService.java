@@ -31,16 +31,9 @@ public final class TLangTextDocumentService implements TextDocumentService {
     private final TLangLanguageServer server;
     private final Map<String, String> documentContents = new ConcurrentHashMap<>();
     private final Map<String, List<SymbolReference>> documentSymbolReferences = new ConcurrentHashMap<>();
+    private final CompletionAnalyzer completionAnalyzer = new CompletionAnalyzer();
 
-    private static final Set<String> KEYWORDS = Set.of(
-        "let", "be", "set", "to", "import",
-        "show",
-        "if", "otherwise", "while", "break", "continue",
-        "repeat", "times", "as",
-        "define", "taking", "return", "function",
-        "and", "or", "not",
-        "true", "false", "nil"
-    );
+    private static final Set<String> KEYWORDS = Lexer.getKeywords();
 
     public TLangTextDocumentService(TLangLanguageServer server) {
         this.server = server;
@@ -78,6 +71,27 @@ public final class TLangTextDocumentService implements TextDocumentService {
     @Override
     public void didSave(DidSaveTextDocumentParams params) {
         // Handled dynamically on didChange/didOpen
+    }
+
+    @Override
+    public CompletableFuture<Either<List<CompletionItem>, CompletionList>> completion(CompletionParams params) {
+        String uri = params.getTextDocument().getUri();
+        String source = documentContents.get(uri);
+        if (source == null) {
+            return CompletableFuture.completedFuture(Either.forLeft(List.of()));
+        }
+        try {
+            List<CompletionItem> items = completionAnalyzer.complete(uri, source, params.getPosition());
+            return CompletableFuture.completedFuture(Either.forLeft(items));
+        } catch (RuntimeException exception) {
+            // Completion is best-effort and must not destabilize the language server
+            // while a document is malformed or changing concurrently.
+            if (server.getClient() != null) {
+                server.getClient().logMessage(new MessageParams(
+                    MessageType.Error, "TLang completion failed: " + exception.getMessage()));
+            }
+            return CompletableFuture.completedFuture(Either.forLeft(List.of()));
+        }
     }
 
     private void runDiagnostics(String uri, String source) {

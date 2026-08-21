@@ -1,0 +1,13 @@
+define makeMultiplier taking factor
+  return function taking value
+    return factor * value
+
+let double be makeMultiplier(2)
+let values be []
+repeat 50 times as index
+  values.add(double(index))
+
+let summary be {count: values.length(), total: 0}
+repeat values.length() times as index
+  set summary.total to summary.total + values.get(index)
+let result be summary.total

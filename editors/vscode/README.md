@@ -1,6 +1,9 @@
 # TLang VS Code Support
 
-This extension adds syntax highlighting and real-time syntax/semantic diagnostics (via Language Server Protocol) for `.tiny` (TLang) files in VS Code.
+This extension adds syntax highlighting and Language Server Protocol support for
+`.tiny` (TLang) files in VS Code. The Java language server provides real-time
+syntax/semantic diagnostics, hover, definition, references, rename, and
+context-aware completion for visible bindings and known module exports.
 
 ## Quick Start / Setup
 

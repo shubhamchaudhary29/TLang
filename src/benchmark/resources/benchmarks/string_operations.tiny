@@ -1,0 +1,4 @@
+let result be ""
+repeat 25 times as index
+  set result to result + "tiny"
+set result to result.substring(0, 20).toUpperCase()

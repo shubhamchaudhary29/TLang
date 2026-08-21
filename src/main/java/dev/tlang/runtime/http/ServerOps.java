@@ -156,8 +156,8 @@ public final class ServerOps {
         int bestScore = -1;
 
         for (Route r : routes) {
-            if (r.method.equalsIgnoreCase(method) && matchesPath(r.segments, reqSegments)) {
-                int score = calculateSpecificityScore(r.segments);
+            if (r.matches(method, reqSegments)) {
+                int score = r.specificityScore();
                 if (score > bestScore) {
                     bestScore = score;
                     matchedRoute = r;
@@ -169,7 +169,7 @@ public final class ServerOps {
         if (matchedRoute == null) {
             Set<String> allowedMethods = new LinkedHashSet<>();
             for (Route r : routes) {
-                if (matchesPath(r.segments, reqSegments)) {
+                if (r.matches(r.method, reqSegments)) {
                     allowedMethods.add(r.method.toUpperCase());
                 }
             }
@@ -207,30 +207,6 @@ public final class ServerOps {
 
         Token dummyToken = new Token(dev.tlang.lexer.TokenType.IDENTIFIER, "handler", null, 1);
         interpreter.executeCallDirect(matchedRoute.handler, List.of(reqMap, resWrapper.asMap()), dummyToken);
-    }
-
-    private boolean matchesPath(List<String> patternSegs, List<String> reqSegs) {
-        if (patternSegs.size() != reqSegs.size()) return false;
-        for (int i = 0; i < patternSegs.size(); i++) {
-            String patSeg = patternSegs.get(i);
-            if (patSeg.startsWith(":")) {
-                continue; // Matches any segment value
-            }
-            if (!patSeg.equals(reqSegs.get(i))) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private int calculateSpecificityScore(List<String> patternSegs) {
-        int score = 0;
-        for (String seg : patternSegs) {
-            if (!seg.startsWith(":")) {
-                score++;
-            }
-        }
-        return score;
     }
 
     private void sendErrorResponse(HttpExchange exchange, int status, String message) throws IOException {

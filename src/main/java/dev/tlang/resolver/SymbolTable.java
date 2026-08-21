@@ -1,9 +1,15 @@
 package dev.tlang.resolver;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public final class SymbolTable {
+    private static final List<String> BUILT_IN_FUNCTIONS = List.of(
+        "delete_file", "file_exists", "now", "random", "read_file",
+        "to_integer", "to_string", "type_of", "write_file"
+    );
+
     private final List<Scope> scopes = new ArrayList<>();
 
     public SymbolTable() {
@@ -13,15 +19,14 @@ public final class SymbolTable {
     }
 
     private void declareGlobalFunctions() {
-        declare(new Symbol("read_file", SymbolKind.FUNCTION, 0, 0));
-        declare(new Symbol("write_file", SymbolKind.FUNCTION, 0, 0));
-        declare(new Symbol("file_exists", SymbolKind.FUNCTION, 0, 0));
-        declare(new Symbol("delete_file", SymbolKind.FUNCTION, 0, 0));
-        declare(new Symbol("now", SymbolKind.FUNCTION, 0, 0));
-        declare(new Symbol("random", SymbolKind.FUNCTION, 0, 0));
-        declare(new Symbol("to_string", SymbolKind.FUNCTION, 0, 0));
-        declare(new Symbol("to_integer", SymbolKind.FUNCTION, 0, 0));
-        declare(new Symbol("type_of", SymbolKind.FUNCTION, 0, 0));
+        for (String name : BUILT_IN_FUNCTIONS) {
+            declare(new Symbol(name, SymbolKind.FUNCTION, 0, 0));
+        }
+    }
+
+    /** Names shared by semantic resolution and editor tooling. */
+    public static List<String> getBuiltInFunctionNames() {
+        return Collections.unmodifiableList(BUILT_IN_FUNCTIONS);
     }
 
     public void beginScope() {

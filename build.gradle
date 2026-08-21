@@ -1,12 +1,26 @@
 plugins {
     id 'java'
     id 'application'
+    id 'me.champeau.jmh' version '0.7.3'
 }
 
 group = 'dev.tlang'
 
 repositories {
     mavenCentral()
+}
+
+sourceSets {
+    benchmarkSupport {
+        java.srcDir 'src/benchmark/java'
+        resources.srcDir 'src/benchmark/resources'
+        compileClasspath += sourceSets.main.output + configurations.runtimeClasspath
+        runtimeClasspath += output + compileClasspath
+    }
+    test {
+        compileClasspath += sourceSets.benchmarkSupport.output
+        runtimeClasspath += sourceSets.benchmarkSupport.output
+    }
 }
 
 dependencies {
@@ -17,6 +31,9 @@ dependencies {
 
     testImplementation platform('org.junit:junit-bom:5.10.2')
     testImplementation 'org.junit.jupiter:junit-jupiter'
+
+    jmhImplementation sourceSets.main.output
+    jmhImplementation sourceSets.benchmarkSupport.output
 }
 
 test {
@@ -27,6 +44,80 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
     }
+}
+
+jmh {
+    jmhVersion = '1.37'
+    warmupIterations = 3
+    iterations = 5
+    fork = 1
+    failOnError = true
+    includeTests = false
+    warmup = '1s'
+    timeOnIteration = '1s'
+    resultFormat = 'JSON'
+    resultsFile = project.file("${layout.buildDirectory.get().asFile}/reports/jmh/results.json")
+}
+
+def benchmarkSmokeResult = layout.buildDirectory.file('reports/jmh/smoke-results.json')
+
+tasks.register('benchmarkSmoke', JavaExec) {
+    dependsOn 'jmhJar'
+    group = 'verification'
+    description = 'Runs every JMH benchmark with a minimal correctness-oriented configuration.'
+    classpath = files(tasks.named('jmhJar').flatMap { it.archiveFile })
+    mainClass = 'dev.tlang.benchmark.BenchmarkSmokeRunner'
+    args benchmarkSmokeResult.get().asFile.absolutePath
+}
+
+tasks.register('benchmarkMetadata') {
+    group = 'benchmark'
+    description = 'Writes machine-readable environment metadata beside JMH results.'
+    def outputFile = layout.buildDirectory.file('reports/jmh/environment.json')
+    outputs.file(outputFile)
+    doLast {
+        def sha = System.getenv('GITHUB_SHA') ?: 'unknown'
+        try {
+            def process = new ProcessBuilder('git', 'rev-parse', 'HEAD')
+                .directory(rootDir).redirectErrorStream(true).start()
+            def candidate = process.inputStream.text.trim()
+            if (process.waitFor() == 0 && candidate) {
+                sha = candidate
+            }
+        } catch (Exception ignored) {
+            // A source archive may not contain Git metadata.
+        }
+        def metadata = [
+            tlangVersion: project.version.toString(),
+            gitCommit: sha,
+            javaVersion: System.getProperty('java.version'),
+            javaVm: System.getProperty('java.vm.name'),
+            operatingSystem: System.getProperty('os.name'),
+            architecture: System.getProperty('os.arch'),
+            jmhVersion: '1.37',
+            warmupIterations: 3,
+            measurementIterations: 5,
+            forks: 1,
+            timePerIteration: '1s',
+            fullResultFile: 'results.json',
+            smokeResultFile: 'smoke-results.json',
+            smokeConfiguration: 'no warmup, one 5ms measurement, no fork; validation only'
+        ]
+        def file = outputFile.get().asFile
+        file.parentFile.mkdirs()
+        file.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(metadata)) + System.lineSeparator()
+    }
+}
+
+tasks.named('jmh') {
+    doFirst {
+        layout.buildDirectory.dir('reports/jmh').get().asFile.mkdirs()
+    }
+    finalizedBy 'benchmarkMetadata'
+}
+
+tasks.named('benchmarkSmoke') {
+    finalizedBy 'benchmarkMetadata'
 }
 
 application {

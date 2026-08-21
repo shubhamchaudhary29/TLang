@@ -194,8 +194,13 @@ The following table lists operators from lowest precedence (parsed first) to hig
 TLang supports two forms of function definitions, which serve distinct purposes:
 
 ### Named Functions (Statement)
-Defined using the `define` statement. It binds a callable function object to a name in the current environment scope.
+Defined using the `define` statement. Named functions are bound at the start of
+their current lexical scope, before ordinary statements in that scope execute.
+This permits forward calls and mutual recursion without making block-local
+functions visible outside their block.
 ```tiny
+show greet("TLang")
+
 define greet taking name
     return "Hello, " + name
 ```

@@ -1,0 +1,3 @@
+let result be 0
+repeat 200 times as index
+  set result to result + index
