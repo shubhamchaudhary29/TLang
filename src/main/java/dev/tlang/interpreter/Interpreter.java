@@ -48,8 +48,28 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
 
     /** Interpret (execute) a complete program. */
     public void interpret(List<Stmt> statements) {
+        executeStatements(statements);
+    }
+
+    private void executeStatements(List<Stmt> statements) {
+        predeclareFunctions(statements);
         for (Stmt stmt : statements) {
             execute(stmt);
+        }
+    }
+
+    private void predeclareFunctions(List<Stmt> statements) {
+        for (Stmt stmt : statements) {
+            if (stmt instanceof FunctionStmt functionStmt) {
+                TinyFunction function = new TinyFunction(
+                    functionStmt.getName().getLexeme(),
+                    functionStmt.getParams(),
+                    functionStmt.getDefaults(),
+                    functionStmt.getBody(),
+                    environment
+                );
+                environment.define(functionStmt.getName().getLexeme(), function);
+            }
         }
     }
 
@@ -236,14 +256,8 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
 
     @Override
     public void visitFunctionStmt(FunctionStmt stmt) {
-        TinyFunction function = new TinyFunction(
-            stmt.getName().getLexeme(),
-            stmt.getParams(),
-            stmt.getDefaults(),
-            stmt.getBody(),
-            environment
-        );
-        environment.define(stmt.getName().getLexeme(), function);
+        // Function declarations are installed by executeStatements before any
+        // ordinary statement in this lexical scope is executed.
     }
 
     public Object evaluateInEnvironment(Expr expr, Environment env) {
@@ -277,9 +291,7 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
         Environment previous = this.environment;
         try {
             this.environment = env;
-            for (Stmt stmt : statements) {
-                execute(stmt);
-            }
+            executeStatements(statements);
         } finally {
             this.environment = previous;
         }

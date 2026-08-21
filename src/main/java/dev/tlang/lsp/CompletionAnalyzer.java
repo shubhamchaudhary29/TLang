@@ -43,7 +43,7 @@ final class CompletionAnalyzer {
         Cursor cursor = Cursor.clamp(source, requestedPosition);
         String beforeCursor = cursor.lineText().substring(0, cursor.character());
 
-        if (insideCommentOrString(beforeCursor)) {
+        if (insideCommentOrString(cursor.documentTextBeforeCursor())) {
             return List.of();
         }
 
@@ -118,7 +118,7 @@ final class CompletionAnalyzer {
                     if (Files.isRegularFile(modulePath)) {
                         String moduleSource = Files.readString(modulePath);
                         DocumentModel module = DocumentModel.build(
-                            moduleSource, Cursor.atEnd(moduleSource));
+                            moduleSource, Cursor.atEnd(moduleSource), true);
                         for (Candidate declaration : module.root.declarations.values()) {
                             if (declaration.kind() != CompletionItemKind.Module) {
                                 add(candidates, declaration.withDetail(receiver + " module export"));
@@ -182,10 +182,15 @@ final class CompletionAnalyzer {
 
     private static boolean insideCommentOrString(String text) {
         boolean inString = false;
+        boolean inComment = false;
         boolean escaped = false;
         for (int i = 0; i < text.length(); i++) {
             char current = text.charAt(i);
-            if (inString) {
+            if (inComment) {
+                if (current == '\n') {
+                    inComment = false;
+                }
+            } else if (inString) {
                 if (escaped) {
                     escaped = false;
                 } else if (current == '\\') {
@@ -196,10 +201,11 @@ final class CompletionAnalyzer {
             } else if (current == '"') {
                 inString = true;
             } else if (current == '/' && i + 1 < text.length() && text.charAt(i + 1) == '/') {
-                return true;
+                inComment = true;
+                i++;
             }
         }
-        return inString;
+        return inString || inComment;
     }
 
     private record Candidate(String name, CompletionItemKind kind, String detail) {
@@ -227,6 +233,14 @@ final class CompletionAnalyzer {
         String lineText() {
             return lines.get(line);
         }
+
+        String documentTextBeforeCursor() {
+            StringBuilder text = new StringBuilder();
+            for (int index = 0; index < line; index++) {
+                text.append(lines.get(index)).append('\n');
+            }
+            return text.append(lineText(), 0, character).toString();
+        }
     }
 
     private static final class DocumentModel {
@@ -239,6 +253,11 @@ final class CompletionAnalyzer {
         }
 
         static DocumentModel build(String source, Cursor cursor) {
+            return build(source, cursor, false);
+        }
+
+        static DocumentModel build(
+                String source, Cursor cursor, boolean includeCursorLineDeclarations) {
             List<String> lines = List.of(source.split("\\r?\\n", -1));
             ScopeNode root = new ScopeNode(null, 0, -1);
             Deque<ScopeNode> stack = new ArrayDeque<>();
@@ -275,7 +294,8 @@ final class CompletionAnalyzer {
                     continue;
                 }
                 ScopeNode scope = scopes[lineIndex] == null ? root : scopes[lineIndex];
-                boolean completedBeforeCursor = lineIndex < cursor.line();
+                boolean completedBeforeCursor = lineIndex < cursor.line()
+                    || (includeCursorLineDeclarations && lineIndex == cursor.line());
                 collectDeclaration(tokens, scope, bodyScopes.get(lineIndex), completedBeforeCursor);
             }
             return new DocumentModel(root, cursorScope);

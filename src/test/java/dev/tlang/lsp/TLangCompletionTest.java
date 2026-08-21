@@ -230,6 +230,101 @@ final class TLangCompletionTest {
         assertTrue(labels(open("file:///string.tiny", "show \"sh|\"")).isEmpty());
     }
 
+    @Test
+    void returnsNoSuggestionsInsideMultilineString() throws Exception {
+        assertTrue(labels(open("file:///multiline-string.tiny", """
+            let text be "hello
+            sh|
+            world"
+            """)).isEmpty());
+    }
+
+    @Test
+    void resumesCompletionAfterMultilineStringCloses() throws Exception {
+        List<String> labels = labels(open("file:///after-multiline-string.tiny", """
+            let text be "hello
+            world"
+            sh|
+            """));
+        assertEquals(List.of("show"), labels);
+    }
+
+    @Test
+    void escapedQuoteDoesNotEndMultilineString() throws Exception {
+        assertTrue(labels(open("file:///escaped-multiline-string.tiny", """
+            let text be "hello \\\"
+            sh|
+            world"
+            """)).isEmpty());
+    }
+
+    @Test
+    void slashesInsideMultilineStringAreNotAComment() throws Exception {
+        assertTrue(labels(open("file:///slashes-in-string.tiny", """
+            let text be "hello
+            // still a string
+            sh|
+            world"
+            """)).isEmpty());
+    }
+
+    @Test
+    void realCommentFollowingCodeHasNoCompletion() throws Exception {
+        assertTrue(labels(open("file:///inline-comment.tiny", "let value be 1 // sh|")).isEmpty());
+    }
+
+    @Test
+    void unterminatedMultilineStringDoesNotCrashOrComplete() throws Exception {
+        assertTrue(labels(open("file:///unterminated-string.tiny", """
+            let text be "unfinished
+            another line
+            sh|
+            """)).isEmpty());
+    }
+
+    @Test
+    void completesFinalLetExportWithoutTrailingNewline(@TempDir Path directory) throws Exception {
+        assertEquals(List.of("value"), userModuleMembers(directory, "let value be 10"));
+    }
+
+    @Test
+    void completesFinalFunctionExportWithoutTrailingNewline(@TempDir Path directory) throws Exception {
+        assertEquals(List.of("greet"), userModuleMembers(directory, """
+            define greet
+              return "hello"""));
+    }
+
+    @Test
+    void completesMultipleExportsWhenLastHasNoTrailingNewline(@TempDir Path directory) throws Exception {
+        assertEquals(List.of("first", "last"), userModuleMembers(directory,
+            "let first be 1\nlet last be 2"));
+    }
+
+    @Test
+    void completesModuleWithTrailingNewline(@TempDir Path directory) throws Exception {
+        assertEquals(List.of("value"), userModuleMembers(directory, "let value be 10\n"));
+    }
+
+    @Test
+    void emptyUserModuleHasNoMembers(@TempDir Path directory) throws Exception {
+        assertTrue(userModuleMembers(directory, "").isEmpty());
+    }
+
+    @Test
+    void malformedUserModuleDoesNotCrashCompletion(@TempDir Path directory) throws Exception {
+        assertEquals(List.of("valid"), userModuleMembers(directory,
+            "let valid be 1\nlet broken be @"));
+    }
+
+    private List<String> userModuleMembers(Path directory, String moduleSource) throws Exception {
+        Files.writeString(directory.resolve("helper.tiny"), moduleSource);
+        String uri = directory.resolve("main.tiny").toUri().toString();
+        return labels(open(uri, """
+            import helper
+            helper.|
+            """));
+    }
+
     private Request open(String uri, String markedSource) {
         int marker = markedSource.indexOf('|');
         assertTrue(marker >= 0, "test source must contain a cursor marker");

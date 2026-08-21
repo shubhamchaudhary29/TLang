@@ -109,11 +109,17 @@ TLang supports two loops:
 ### Function Declarations
 Functions are declared globally or inside other scopes using `define`. Parameters are defined after the `taking` keyword, separated by `and`. Parameters can also specify default values using the `be` keyword.
 
+Named function declarations are hoisted within their lexical scope. A function
+may therefore be called before its `define` statement in the same top-level,
+function-body, or block scope. A function declared inside a block remains local
+to that block.
+
 ```tiny
+show multiply(5, 2)  # Output: 10
+
 define multiply taking a and b be 1
     return a * b
 
-show multiply(5, 2)  # Output: 10
 show multiply(5)     # Output: 5
 ```
 
