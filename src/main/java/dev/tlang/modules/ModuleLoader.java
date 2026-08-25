@@ -7,6 +7,7 @@ import dev.tlang.errors.RuntimeError;
 import dev.tlang.errors.LexerError;
 
 import dev.tlang.errors.ParseError;
+import dev.tlang.errors.ModuleLoadError;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -18,7 +19,6 @@ import java.util.Map;
 import java.util.Set;
 
 import dev.tlang.ast.Stmt;
-import dev.tlang.errors.ErrorFormatter;
 import dev.tlang.lexer.Lexer;
 import dev.tlang.lexer.Token;
 import dev.tlang.parser.Parser;
@@ -44,7 +44,7 @@ public final class ModuleLoader {
      * @param importToken the token of the import statement, for error location reporting
      * @return the module's exported bindings as a Map
      */
-    public Map<String, Object> load(String moduleName, Token importToken) {
+    public synchronized Map<String, Object> load(String moduleName, Token importToken) {
         // 1. Check Native modules registry
         Map<String, Object> nativeModule = dev.tlang.modules.ModuleRegistry.getModule(moduleName);
         if (nativeModule != null) {
@@ -85,9 +85,8 @@ public final class ModuleLoader {
             try {
                 tokens = lexer.tokenize();
             } catch (LexerError e) {
-                System.err.println(ErrorFormatter.format(source, modulePath.toString(), e.getLine(), e.getColumn(), "Lexer error", e.getRawMessage()));
-                System.exit(65);
-                return null;
+                throw moduleError(importToken, moduleName, source, modulePath, e.getLine(), e.getColumn(),
+                    "Lexer error", e.getRawMessage(), 65);
             }
 
             // Parse
@@ -97,35 +96,31 @@ public final class ModuleLoader {
                 program = parser.parse();
             } catch (ParseError e) {
                 Token t = e.getToken();
-                System.err.println(ErrorFormatter.format(source, modulePath.toString(), t.getLine(), t.getColumn(), "Parse error", e.getRawMessage()));
-                System.exit(65);
-                return null;
+                throw moduleError(importToken, moduleName, source, modulePath, t.getLine(), t.getColumn(),
+                    "Parse error", e.getRawMessage(), 65);
             }
 
             // Resolve (Semantic analysis)
             Resolver resolver = new Resolver();
             List<SemanticError> errors = resolver.resolve(program);
             if (!errors.isEmpty()) {
-                for (SemanticError err : errors) {
-                    System.err.println(ErrorFormatter.format(source, modulePath.toString(), err.getLine(), err.getColumn(), "Semantic error", err.getMessage()));
-                }
-                System.exit(65);
-                return null;
+                SemanticError first = errors.get(0);
+                throw moduleError(importToken, moduleName, source, modulePath,
+                    first.getLine(), first.getColumn(), "Semantic error", first.getMessage(), 65);
             }
 
             // Interpret inside a fresh global Environment sharing the same ModuleLoader
             Interpreter moduleInterpreter = new Interpreter(this);
             try {
                 moduleInterpreter.interpret(program);
+            } catch (ModuleLoadError e) {
+                throw e;
             } catch (RuntimeError e) {
                 Token t = e.getToken();
-                if (t != null) {
-                    System.err.println(ErrorFormatter.format(source, modulePath.toString(), t.getLine(), t.getColumn(), "Runtime error", e.getMessage()));
-                } else {
-                    System.err.println(ErrorFormatter.format(source, modulePath.toString(), 0, 0, "Runtime error", e.getMessage()));
-                }
-                System.exit(70);
-                return null;
+                int line = t == null ? 0 : t.getLine();
+                int column = t == null ? 0 : t.getColumn();
+                throw moduleError(importToken, moduleName, source, modulePath,
+                    line, column, "Runtime error", e.getMessage(), 70);
             }
 
             // Collect all top-level bindings
@@ -136,5 +131,29 @@ public final class ModuleLoader {
         } finally {
             loading.remove(cacheKey);
         }
+    }
+
+    private static ModuleLoadError moduleError(
+            Token importToken,
+            String moduleName,
+            String source,
+            Path modulePath,
+            int line,
+            int column,
+            String kind,
+            String rawMessage,
+            int exitCode) {
+        return new ModuleLoadError(
+            importToken,
+            "Failed to load module '" + moduleName + "': " + kind.toLowerCase()
+                + " at " + line + ":" + column + ": " + rawMessage,
+            source,
+            modulePath.toString(),
+            line,
+            column,
+            kind,
+            rawMessage,
+            exitCode
+        );
     }
 }

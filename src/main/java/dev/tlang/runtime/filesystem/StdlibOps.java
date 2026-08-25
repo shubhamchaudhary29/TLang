@@ -1,6 +1,7 @@
 package dev.tlang.runtime.filesystem;
 
 import dev.tlang.errors.RuntimeError;
+import dev.tlang.interpreter.RuntimeCollections;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -153,16 +154,17 @@ public final class StdlibOps {
     }
 
     public static Object randomChoice(List<Object> list, Token token) {
-        if (list == null || list.isEmpty()) {
+        List<Object> snapshot = RuntimeCollections.snapshot(list);
+        if (snapshot.isEmpty()) {
             throw new RuntimeError(token, "Cannot choose from an empty list.");
         }
-        return list.get(RANDOM.nextInt(list.size()));
+        return snapshot.get(RANDOM.nextInt(snapshot.size()));
     }
 
     public static List<Object> randomShuffle(List<Object> list) {
-        List<Object> copy = new ArrayList<>(list);
+        List<Object> copy = RuntimeCollections.snapshot(list);
         Collections.shuffle(copy, RANDOM);
-        return copy;
+        return RuntimeCollections.newList(copy);
     }
 
     // ── Conversion & Utility Operations ─────────────────────────

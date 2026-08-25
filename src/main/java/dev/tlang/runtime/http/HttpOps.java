@@ -1,6 +1,7 @@
 package dev.tlang.runtime.http;
 
 import dev.tlang.errors.RuntimeError;
+import dev.tlang.interpreter.RuntimeCollections;
 
 import java.io.IOException;
 import java.net.URI;
@@ -10,7 +11,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
 import java.time.Duration;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -111,7 +111,7 @@ public final class HttpOps {
     }
 
     private static Map<String, Object> buildResponseMap(HttpResponse<String> response) {
-        Map<String, Object> result = new LinkedHashMap<>();
+        Map<String, Object> result = RuntimeCollections.newMap();
 
         int statusCode = response.statusCode();
         result.put("status", statusCode);
@@ -119,7 +119,7 @@ public final class HttpOps {
         result.put("body", response.body() != null ? response.body() : "");
 
         // Build headers map: lower-case keys, join multiple values with ", "
-        Map<String, Object> headersMap = new LinkedHashMap<>();
+        Map<String, Object> headersMap = RuntimeCollections.newMap();
         for (Map.Entry<String, List<String>> entry : response.headers().map().entrySet()) {
             String key = entry.getKey();
             if (key == null) continue; // skip the status-line pseudo-header

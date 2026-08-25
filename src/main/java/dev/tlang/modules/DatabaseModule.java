@@ -7,7 +7,6 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +15,7 @@ import dev.tlang.lexer.Token;
 import dev.tlang.types.Type;
 import dev.tlang.errors.RuntimeError;
 import dev.tlang.interpreter.NativeFunction;
+import dev.tlang.interpreter.RuntimeCollections;
 
 public final class DatabaseModule implements NativeModule {
     private final Map<String, Object> exports = new LinkedHashMap<>();
@@ -35,12 +35,14 @@ public final class DatabaseModule implements NativeModule {
                     Class.forName("org.sqlite.JDBC");
                     Connection conn = DriverManager.getConnection(url);
                     final Connection[] connRef = new Connection[]{conn};
+                    final Object connectionLock = new Object();
 
-                    Map<String, Object> connMap = new LinkedHashMap<>();
+                    Map<String, Object> connMap = RuntimeCollections.newMap();
 
                     connMap.put("query", new NativeFunction("query", 3) {
                         @Override
                         public Object call(List<Object> subArgs, Token subToken) {
+                            synchronized (connectionLock) {
                             Connection connVal = connRef[0];
                             if (connVal == null) {
                                 throw new RuntimeError(subToken, "Connection is closed.");
@@ -62,7 +64,7 @@ public final class DatabaseModule implements NativeModule {
                                 throw new RuntimeError(subToken, "Parameters must be a list.");
                             }
                             String sql = (String) sqlObj;
-                            List<?> params = (List<?>) paramsObj;
+                            List<?> params = RuntimeCollections.snapshot((List<?>) paramsObj);
 
                             // Validate parameter counts
                             int expectedParams = 0;
@@ -103,10 +105,10 @@ public final class DatabaseModule implements NativeModule {
                                 try (ResultSet rs = stmt.executeQuery()) {
                                     ResultSetMetaData md = rs.getMetaData();
                                     int columns = md.getColumnCount();
-                                    List<Object> rows = new ArrayList<>();
+                                    List<Object> rows = RuntimeCollections.newList();
 
                                     while (rs.next()) {
-                                        Map<String, Object> row = new LinkedHashMap<>();
+                                        Map<String, Object> row = RuntimeCollections.newMap();
                                         for (int i = 1; i <= columns; i++) {
                                             Object val = rs.getObject(i);
                                             Object tlangVal;
@@ -149,12 +151,14 @@ public final class DatabaseModule implements NativeModule {
                             } catch (SQLException e) {
                                 throw new RuntimeError(subToken, "Database error: " + e.getMessage());
                             }
+                            }
                         }
                     }.setExpectsReceiver(true));
 
                     NativeFunction executeFn = new NativeFunction("execute", 3) {
                         @Override
                         public Object call(List<Object> subArgs, Token subToken) {
+                            synchronized (connectionLock) {
                             Connection connVal = connRef[0];
                             if (connVal == null) {
                                 throw new RuntimeError(subToken, "Connection is closed.");
@@ -176,7 +180,7 @@ public final class DatabaseModule implements NativeModule {
                                 throw new RuntimeError(subToken, "Parameters must be a list.");
                             }
                             String sql = (String) sqlObj;
-                            List<?> params = (List<?>) paramsObj;
+                            List<?> params = RuntimeCollections.snapshot((List<?>) paramsObj);
 
                             // Validate parameter counts
                             int expectedParams = 0;
@@ -219,6 +223,7 @@ public final class DatabaseModule implements NativeModule {
                             } catch (SQLException e) {
                                 throw new RuntimeError(subToken, "Database error: " + e.getMessage());
                             }
+                            }
                         }
                     }.setExpectsReceiver(true);
 
@@ -230,6 +235,7 @@ public final class DatabaseModule implements NativeModule {
                     connMap.put("lastInsertId", new NativeFunction("lastInsertId", 1) {
                         @Override
                         public Object call(List<Object> subArgs, Token subToken) {
+                            synchronized (connectionLock) {
                             Connection connVal = connRef[0];
                             if (connVal == null) {
                                 throw new RuntimeError(subToken, "Database connection is closed.");
@@ -243,12 +249,14 @@ public final class DatabaseModule implements NativeModule {
                             } catch (SQLException e) {
                                 throw new RuntimeError(subToken, "Database error: " + e.getMessage());
                             }
+                            }
                         }
                     }.setExpectsReceiver(true));
 
                     connMap.put("close", new NativeFunction("close", 1) {
                         @Override
                         public Object call(List<Object> subArgs, Token subToken) {
+                            synchronized (connectionLock) {
                             Connection connVal = connRef[0];
                             if (connVal != null) {
                                 try {
@@ -260,6 +268,7 @@ public final class DatabaseModule implements NativeModule {
                                 }
                             }
                             return null;
+                            }
                         }
                     }.setExpectsReceiver(true));
 

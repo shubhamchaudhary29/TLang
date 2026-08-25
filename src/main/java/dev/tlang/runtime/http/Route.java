@@ -53,7 +53,7 @@ public final class Route {
             return Collections.emptyList();
         }
         String[] parts = normalizedPath.substring(1).split("/");
-        return Arrays.asList(parts);
+        return List.of(parts);
     }
 
     /** Match an already-tokenized request path without network or server state. */

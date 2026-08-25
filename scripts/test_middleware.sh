@@ -8,7 +8,7 @@ echo "── Building TLang ──"
 
 echo "── Starting HTTP server with middleware ──"
 rm -f server.log
-java -cp "$PROJECT_DIR/out:$PROJECT_DIR/lib/sqlite-jdbc-3.34.0.jar:$PROJECT_DIR/lib/javax.mail-1.6.2.jar:$PROJECT_DIR/lib/activation-1.1.1.jar" dev.tlang.Main "$PROJECT_DIR/src/test/resources/runtime/test_middleware.tiny" > server.log 2>&1 &
+java -cp "$PROJECT_DIR/build/classes/java/main:$PROJECT_DIR/build/resources/main:$PROJECT_DIR/build/dependencies/*" dev.tlang.Main "$PROJECT_DIR/src/test/resources/runtime/test_middleware.tiny" > server.log 2>&1 &
 SERVER_PID=$!
 
 cleanup() {
@@ -20,7 +20,18 @@ cleanup() {
 trap cleanup EXIT
 
 # Wait for server to bind
-sleep 1.5
+ready=false
+for attempt in $(seq 1 50); do
+    if curl -s -o /dev/null http://localhost:8086/; then
+        ready=true
+        break
+    fi
+    sleep 0.1
+done
+if [ "$ready" != "true" ]; then
+    echo "MIDDLEWARE SERVER FAILED TO START"
+    exit 1
+fi
 
 errors=0
 
@@ -93,7 +104,6 @@ body_500=$(curl -s http://localhost:8086/no-response)
 check_contains "GET /no-response body fallback message" "$body_500" "No response was sent by the handler or middleware"
 
 # 7. Check Logger output on stdout
-sleep 0.5
 logs=$(cat server.log)
 check_contains "Logger output GET /" "$logs" "GET /"
 check_contains "Logger output GET /authed" "$logs" "GET /authed"

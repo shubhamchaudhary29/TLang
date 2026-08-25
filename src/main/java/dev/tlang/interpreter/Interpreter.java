@@ -29,19 +29,39 @@ import dev.tlang.types.Type;
 public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
 
     private final ModuleLoader moduleLoader;
+    private final Environment globalEnvironment;
     private Environment environment;
     private int callDepth = 0;
 
     public Interpreter() {
         this.moduleLoader = null;
-        this.environment = new Environment();
+        this.globalEnvironment = new Environment();
+        this.environment = globalEnvironment;
         defineGlobals();
     }
 
     public Interpreter(ModuleLoader moduleLoader) {
         this.moduleLoader = moduleLoader;
-        this.environment = new Environment();
+        this.globalEnvironment = new Environment();
+        this.environment = globalEnvironment;
         defineGlobals();
+    }
+
+    private Interpreter(ModuleLoader moduleLoader, Environment sharedGlobalEnvironment) {
+        this.moduleLoader = moduleLoader;
+        this.globalEnvironment = sharedGlobalEnvironment;
+        this.environment = sharedGlobalEnvironment;
+    }
+
+    /**
+     * Create an isolated execution cursor for one concurrent request.
+     *
+     * <p>Program globals and function closures stay shared and visible, while
+     * the mutable current-environment pointer and recursion counter belong to
+     * this new interpreter instance.</p>
+     */
+    public Interpreter forkForRequest() {
+        return new Interpreter(moduleLoader, globalEnvironment);
     }
 
     // ── Public API ──────────────────────────────────────────────
@@ -95,7 +115,7 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
     }
 
     public Environment getGlobalEnvironment() {
-        return environment;
+        return globalEnvironment;
     }
 
     private void defineGlobals() {
@@ -521,7 +541,7 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
 
     @Override
     public Object visitListExpr(ListExpr expr) {
-        List<Object> list = new ArrayList<>();
+        List<Object> list = RuntimeCollections.newList();
         for (Expr element : expr.getElements()) {
             list.add(evaluate(element));
         }
@@ -530,7 +550,7 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
 
     @Override
     public Object visitMapExpr(MapExpr expr) {
-        Map<String, Object> map = new LinkedHashMap<>();
+        Map<String, Object> map = RuntimeCollections.newMap();
         for (int i = 0; i < expr.getKeys().size(); i++) {
             String key = expr.getKeys().get(i);
             Object value = evaluate(expr.getValues().get(i));
@@ -552,11 +572,13 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
             }
             List<?> list = (List<?>) collection;
             int idx = (Integer) index;
-            if (idx < 0 || idx >= list.size()) {
-                throw new RuntimeError(expr.getBracket(),
-                    "Index " + idx + " out of bounds for list of length " + list.size() + ".");
+            synchronized (list) {
+                if (idx < 0 || idx >= list.size()) {
+                    throw new RuntimeError(expr.getBracket(),
+                        "Index " + idx + " out of bounds for list of length " + list.size() + ".");
+                }
+                return list.get(idx);
             }
-            return list.get(idx);
         }
 
         if (collType == Type.MAP) {
@@ -565,10 +587,12 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
             }
             Map<?, ?> map = (Map<?, ?>) collection;
             String key = (String) index;
-            if (!map.containsKey(key)) {
-                throw new RuntimeError(expr.getBracket(), "Key '" + key + "' not found in map.");
+            synchronized (map) {
+                if (!map.containsKey(key)) {
+                    throw new RuntimeError(expr.getBracket(), "Key '" + key + "' not found in map.");
+                }
+                return map.get(key);
             }
-            return map.get(key);
         }
 
         throw new RuntimeError(expr.getBracket(), "Cannot index type '" + typeName(collection) + "'.");
@@ -581,10 +605,12 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
         if (Type.of(object) == Type.MAP) {
             Map<?, ?> map = (Map<?, ?>) object;
             String key = expr.getName().getLexeme();
-            if (!map.containsKey(key)) {
-                throw new RuntimeError(expr.getName(), "Key '" + key + "' not found in map.");
+            synchronized (map) {
+                if (!map.containsKey(key)) {
+                    throw new RuntimeError(expr.getName(), "Key '" + key + "' not found in map.");
+                }
+                return map.get(key);
             }
-            return map.get(key);
         }
 
         throw new RuntimeError(expr.getName(),
@@ -605,11 +631,13 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
             }
             List<Object> list = (List<Object>) collection;
             int idx = (Integer) index;
-            if (idx < 0 || idx >= list.size()) {
-                throw new RuntimeError(expr.getBracket(),
-                    "Index " + idx + " out of bounds for list of length " + list.size() + ".");
+            synchronized (list) {
+                if (idx < 0 || idx >= list.size()) {
+                    throw new RuntimeError(expr.getBracket(),
+                        "Index " + idx + " out of bounds for list of length " + list.size() + ".");
+                }
+                list.set(idx, value);
             }
-            list.set(idx, value);
             return value;
         }
 
@@ -646,11 +674,21 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
     // TODO: Fold into a proper native-function system in Stage 4.
 
     private Object callListMethod(List<Object> list, String method, List<Object> args, Token token) {
-        switch (method) {
+        if (method.equals("contains")) {
+            checkMethodArity(method, args, 1, token);
+            for (Object item : RuntimeCollections.snapshot(list)) {
+                if (isEqual(item, args.get(0))) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        synchronized (list) {
+            return switch (method) {
             case "add":
                 checkMethodArity(method, args, 1, token);
                 list.add(args.get(0));
-                return null;
+                yield null;
             case "get":
                 checkMethodArity(method, args, 1, token);
                 checkMethodArgInteger(args.get(0), method, token);
@@ -659,7 +697,7 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
                     throw new RuntimeError(token,
                         "Index " + getIdx + " out of bounds for list of length " + list.size() + ".");
                 }
-                return list.get(getIdx);
+                yield list.get(getIdx);
             case "set":
                 checkMethodArity(method, args, 2, token);
                 checkMethodArgInteger(args.get(0), method, token);
@@ -669,7 +707,7 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
                         "Index " + setIdx + " out of bounds for list of length " + list.size() + ".");
                 }
                 list.set(setIdx, args.get(1));
-                return args.get(1);
+                yield args.get(1);
             case "remove":
                 checkMethodArity(method, args, 1, token);
                 checkMethodArgInteger(args.get(0), method, token);
@@ -678,18 +716,13 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
                     throw new RuntimeError(token,
                         "Index " + rmIdx + " out of bounds for list of length " + list.size() + ".");
                 }
-                return list.remove(rmIdx);
+                yield list.remove(rmIdx);
             case "length":
                 checkMethodArity(method, args, 0, token);
-                return list.size();
-            case "contains":
-                checkMethodArity(method, args, 1, token);
-                for (Object item : list) {
-                    if (isEqual(item, args.get(0))) return true;
-                }
-                return false;
+                yield list.size();
             default:
                 throw new RuntimeError(token, "List has no method '" + method + "'.");
+            };
         }
     }
 
@@ -703,8 +736,14 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
         // This order ensures user-defined methods always win over builtins.
 
         // Step 1: Check for user-defined callable method in the map
-        if (map.containsKey(method)) {
-            Object val = map.get(method);
+        Object methodValue;
+        boolean containsMethod;
+        synchronized (map) {
+            containsMethod = map.containsKey(method);
+            methodValue = map.get(method);
+        }
+        if (containsMethod && methodValue != null) {
+            Object val = methodValue;
             if (val instanceof TinyFunction) {
                 TinyFunction fn = (TinyFunction) val;
                 int boundArgCount = args.size() + 1;
@@ -745,20 +784,26 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
                 checkMethodArity(method, args, 1, token);
                 checkMethodArgString(args.get(0), method, token);
                 String getKey = (String) args.get(0);
-                if (!map.containsKey(getKey)) {
-                    throw new RuntimeError(token, "Key '" + getKey + "' not found in map.");
+                synchronized (map) {
+                    if (!map.containsKey(getKey)) {
+                        throw new RuntimeError(token, "Key '" + getKey + "' not found in map.");
+                    }
+                    return map.get(getKey);
                 }
-                return map.get(getKey);
             case "remove":
                 checkMethodArity(method, args, 1, token);
                 checkMethodArgString(args.get(0), method, token);
                 return map.remove((String) args.get(0));  // returns null if key absent
             case "keys":
                 checkMethodArity(method, args, 0, token);
-                return new ArrayList<>(map.keySet());
+                synchronized (map) {
+                    return RuntimeCollections.newList(new ArrayList<>(map.keySet()));
+                }
             case "values":
                 checkMethodArity(method, args, 0, token);
-                return new ArrayList<>(map.values());
+                synchronized (map) {
+                    return RuntimeCollections.newList(new ArrayList<>(map.values()));
+                }
             case "contains":
                 checkMethodArity(method, args, 1, token);
                 checkMethodArgString(args.get(0), method, token);
@@ -768,10 +813,8 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
                 return map.size();
             default:
                 // Step 3: non-callable value or missing key
-                if (map.containsKey(method)) {
-                    // Key exists but value is not callable
-                    Object val = map.get(method);
-                    return executeCall(val, args, token);
+                if (containsMethod) {
+                    return executeCall(methodValue, args, token);
                 }
                 throw new RuntimeError(token, "Map has no method '" + method + "'.");
         }
@@ -834,7 +877,7 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
                 } else {
                     parts = str.split(java.util.regex.Pattern.quote(sep), -1);
                 }
-                List<Object> list = new ArrayList<>();
+                List<Object> list = RuntimeCollections.newList();
                 for (String part : parts) {
                     list.add(part);
                 }
@@ -881,6 +924,12 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
     private boolean isEqual(Object a, Object b) {
         if (a == null && b == null) return true;
         if (a == null) return false;
+        if (a instanceof List<?> left && b instanceof List<?> right) {
+            return RuntimeCollections.snapshot(left).equals(RuntimeCollections.snapshot(right));
+        }
+        if (a instanceof Map<?, ?> left && b instanceof Map<?, ?> right) {
+            return RuntimeCollections.snapshot(left).equals(RuntimeCollections.snapshot(right));
+        }
         return a.equals(b);
     }
 
@@ -895,7 +944,7 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
             case STRING:
                 return (String) value;
             case LIST: {
-                List<?> list = (List<?>) value;
+                List<?> list = RuntimeCollections.snapshot((List<?>) value);
                 StringBuilder sb = new StringBuilder();
                 sb.append("[");
                 for (int i = 0; i < list.size(); i++) {
@@ -906,7 +955,7 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
                 return sb.toString();
             }
             case MAP: {
-                Map<?, ?> map = (Map<?, ?>) value;
+                Map<?, ?> map = RuntimeCollections.snapshot((Map<?, ?>) value);
                 StringBuilder sb = new StringBuilder();
                 sb.append("{");
                 int i = 0;

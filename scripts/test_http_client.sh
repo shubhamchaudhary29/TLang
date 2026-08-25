@@ -10,7 +10,7 @@ set -uo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SUPPORT_DIR="$PROJECT_DIR/src/test/java"
-OUT_DIR="$PROJECT_DIR/out"
+TEST_SERVER_DIR="$PROJECT_DIR/build/test-http-client"
 SERVER_PID=""
 
 cleanup() {
@@ -31,7 +31,8 @@ fi
 
 # 2. Compile the test server
 echo "── Compiling test server ──"
-javac "$SUPPORT_DIR/LocalHttpTestServer.java" -d "$SUPPORT_DIR" 2>&1
+mkdir -p "$TEST_SERVER_DIR"
+javac "$SUPPORT_DIR/LocalHttpTestServer.java" -d "$TEST_SERVER_DIR" 2>&1
 if [ $? -ne 0 ]; then
     echo "TEST SERVER COMPILATION FAILED"
     exit 1
@@ -39,7 +40,7 @@ fi
 
 # 3. Start the test server in the background
 echo "── Starting local test server ──"
-java -cp "$SUPPORT_DIR" LocalHttpTestServer &
+java -cp "$TEST_SERVER_DIR" LocalHttpTestServer &
 SERVER_PID=$!
 
 # 4. Wait for the server to be ready (look for READY message, with timeout)
@@ -60,7 +61,7 @@ echo "── Test server ready ──"
 
 # 5. Run the TLang HTTP client test
 echo "── Running test_http_client.tiny ──"
-java -cp "$OUT_DIR:$PROJECT_DIR/lib/sqlite-jdbc-3.34.0.jar:$PROJECT_DIR/lib/javax.mail-1.6.2.jar:$PROJECT_DIR/lib/activation-1.1.1.jar" dev.tlang.Main "$PROJECT_DIR/src/test/resources/runtime/test_http_client.tiny"
+java -cp "$PROJECT_DIR/build/classes/java/main:$PROJECT_DIR/build/resources/main:$PROJECT_DIR/build/dependencies/*" dev.tlang.Main "$PROJECT_DIR/src/test/resources/runtime/test_http_client.tiny"
 TEST_EXIT=$?
 
 # 6. Cleanup happens via trap

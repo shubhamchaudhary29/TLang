@@ -10,6 +10,7 @@ import java.util.*;
 import dev.tlang.lexer.Token;
 import dev.tlang.lexer.TokenType;
 import dev.tlang.runtime.json.JsonParser;
+import dev.tlang.interpreter.RuntimeCollections;
 
 /**
  * Helper to wrap an HttpExchange into a TLang request Map.
@@ -17,7 +18,7 @@ import dev.tlang.runtime.json.JsonParser;
 public final class RequestWrapper {
 
     public static Map<String, Object> wrap(HttpExchange exchange, Map<String, String> params) throws IOException {
-        Map<String, Object> req = new LinkedHashMap<>();
+        Map<String, Object> req = RuntimeCollections.newMap();
 
         req.put("method", exchange.getRequestMethod());
         req.put("path", exchange.getRequestURI().getPath());
@@ -38,7 +39,7 @@ public final class RequestWrapper {
         req.put("query", parseQuery(rawQuery));
 
         // Lower-cased headers
-        Map<String, Object> headersMap = new LinkedHashMap<>();
+        Map<String, Object> headersMap = RuntimeCollections.newMap();
         for (Map.Entry<String, List<String>> entry : exchange.getRequestHeaders().entrySet()) {
             String key = entry.getKey();
             if (key == null) continue;
@@ -66,7 +67,7 @@ public final class RequestWrapper {
     }
 
     private static Map<String, Object> parseQuery(String query) {
-        Map<String, Object> queryMap = new LinkedHashMap<>();
+        Map<String, Object> queryMap = RuntimeCollections.newMap();
         if (query == null || query.isEmpty()) {
             return queryMap;
         }

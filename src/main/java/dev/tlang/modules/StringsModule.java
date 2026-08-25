@@ -9,6 +9,7 @@ import dev.tlang.types.Type;
 import dev.tlang.errors.RuntimeError;
 import dev.tlang.interpreter.NativeFunction;
 import dev.tlang.interpreter.Interpreter;
+import dev.tlang.interpreter.RuntimeCollections;
 
 public final class StringsModule implements NativeModule {
     private final Map<String, Object> exports = new LinkedHashMap<>();
@@ -26,7 +27,7 @@ public final class StringsModule implements NativeModule {
                 if (Type.of(sepVal) != Type.STRING) {
                     throw new RuntimeError(token, "Second argument to 'join' must be a string separator.");
                 }
-                List<Object> list = (List<Object>) listVal;
+                List<Object> list = RuntimeCollections.snapshot((List<Object>) listVal);
                 String separator = (String) sepVal;
                 StringBuilder sb = new StringBuilder();
                 for (int i = 0; i < list.size(); i++) {

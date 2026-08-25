@@ -11,6 +11,7 @@ import dev.tlang.interpreter.NativeFunction;
 import dev.tlang.interpreter.Interpreter;
 import dev.tlang.runtime.http.HttpOps;
 import dev.tlang.runtime.http.ServerOps;
+import dev.tlang.interpreter.RuntimeCollections;
 
 public final class HttpModule implements NativeModule {
     private final Map<String, Object> exports = new LinkedHashMap<>();
@@ -85,7 +86,7 @@ public final class HttpModule implements NativeModule {
                 }
 
                 final ServerOps serverOps = new ServerOps(port);
-                final Map<String, Object> serverMap = new LinkedHashMap<>();
+                final Map<String, Object> serverMap = RuntimeCollections.newMap();
 
                 serverMap.put("get", new NativeFunction("get", 3) {
                     @Override
@@ -143,7 +144,7 @@ public final class HttpModule implements NativeModule {
                     @Override
                     public Object call(List<Object> subArgs, Token subToken) {
                         Object middlewareFn = subArgs.get(1);
-                        serverOps.addMiddleware(middlewareFn);
+                        serverOps.addMiddleware(middlewareFn, subToken);
                         return serverMap;
                     }
                 }.setExpectsReceiver(true));
@@ -183,7 +184,7 @@ public final class HttpModule implements NativeModule {
             throw new RuntimeError(token,
                     "Headers argument to '" + fnName + "' must be a map (got " + Type.of(headersArg).displayName() + ").");
         }
-        Map<String, Object> raw = (Map<String, Object>) headersArg;
+        Map<String, Object> raw = RuntimeCollections.snapshot((Map<String, Object>) headersArg);
         Map<String, String> result = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry : raw.entrySet()) {
             if (Type.of(entry.getValue()) != Type.STRING) {

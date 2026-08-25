@@ -3,6 +3,7 @@ package dev.tlang.modules;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import dev.tlang.lexer.Token;
 import dev.tlang.types.Type;
@@ -12,7 +13,7 @@ import dev.tlang.runtime.filesystem.StdlibOps;
 
 public final class CacheModule implements NativeModule {
     private final Map<String, Object> exports = new LinkedHashMap<>();
-    private final Map<String, CacheEntry> store = new LinkedHashMap<>();
+    private final Map<String, CacheEntry> store = new ConcurrentHashMap<>();
 
     private static final class CacheEntry {
         final Object value;
@@ -63,7 +64,7 @@ public final class CacheModule implements NativeModule {
                     return null;
                 }
                 if (now >= entry.expiryTimeSeconds) {
-                    store.remove(key);
+                    store.remove(key, entry);
                     return null;
                 }
                 return entry.value;
@@ -84,7 +85,7 @@ public final class CacheModule implements NativeModule {
                 if (entry == null) {
                     return false;
                 }
-                store.remove(key);
+                store.remove(key, entry);
                 if (now >= entry.expiryTimeSeconds) {
                     return false;
                 }

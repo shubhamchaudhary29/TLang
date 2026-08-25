@@ -1,6 +1,5 @@
 package dev.tlang.modules;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,6 +8,7 @@ import dev.tlang.lexer.Token;
 import dev.tlang.types.Type;
 import dev.tlang.errors.RuntimeError;
 import dev.tlang.interpreter.NativeFunction;
+import dev.tlang.interpreter.RuntimeCollections;
 import dev.tlang.runtime.filesystem.StdlibOps;
 
 public final class FilesystemModule implements NativeModule {
@@ -81,7 +81,7 @@ public final class FilesystemModule implements NativeModule {
                 if (Type.of(path) != Type.STRING) {
                     throw new RuntimeError(token, "Argument to 'list' must be a string.");
                 }
-                return new ArrayList<Object>(StdlibOps.listDirectory((String) path, token));
+                return RuntimeCollections.newList(StdlibOps.listDirectory((String) path, token));
             }
         });
 

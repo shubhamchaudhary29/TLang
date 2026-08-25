@@ -8,6 +8,7 @@ import dev.tlang.lexer.Token;
 import dev.tlang.types.Type;
 import dev.tlang.errors.RuntimeError;
 import dev.tlang.interpreter.NativeFunction;
+import dev.tlang.interpreter.RuntimeCollections;
 import dev.tlang.runtime.json.JsonParser;
 
 public final class JsonModule implements NativeModule {
@@ -57,7 +58,7 @@ public final class JsonModule implements NativeModule {
             return escapeJsonString((String) value);
         }
         if (value instanceof List) {
-            List<?> list = (List<?>) value;
+            List<?> list = RuntimeCollections.snapshot((List<?>) value);
             StringBuilder sb = new StringBuilder();
             sb.append("[");
             for (int i = 0; i < list.size(); i++) {
@@ -70,7 +71,7 @@ public final class JsonModule implements NativeModule {
             return sb.toString();
         }
         if (value instanceof Map) {
-            Map<?, ?> map = (Map<?, ?>) value;
+            Map<?, ?> map = RuntimeCollections.snapshot((Map<?, ?>) value);
             StringBuilder sb = new StringBuilder();
             sb.append("{");
             int i = 0;

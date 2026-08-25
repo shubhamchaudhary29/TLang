@@ -12,7 +12,7 @@ import dev.tlang.runtime.filesystem.StdlibOps;
 
 public final class ConfigModule implements NativeModule {
     private final Map<String, Object> exports = new LinkedHashMap<>();
-    private final Map<String, String> envCache = new LinkedHashMap<>();
+    private volatile Map<String, String> envCache = Map.of();
 
     public ConfigModule() {
         exports.put("load", new NativeFunction("load", 0) {
@@ -83,6 +83,7 @@ public final class ConfigModule implements NativeModule {
     }
 
     private void parseEnv(String content, Token token) {
+        Map<String, String> parsed = new LinkedHashMap<>();
         String[] lines = content.split("\\r?\\n");
         for (String line : lines) {
             String trimmed = line.trim();
@@ -100,8 +101,9 @@ public final class ConfigModule implements NativeModule {
             } else if (val.startsWith("'") && val.endsWith("'") && val.length() >= 2) {
                 val = val.substring(1, val.length() - 1);
             }
-            envCache.put(key, val);
+            parsed.put(key, val);
         }
+        envCache = Map.copyOf(parsed);
     }
 
     @Override

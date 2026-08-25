@@ -11,7 +11,7 @@ PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 # Delegate to Gradle compile task
 cd "$PROJECT_DIR"
-./gradlew compileJava
+./gradlew classes copyDependencies
 
 if [[ "${1:-}" == "run" && -n "${2:-}" ]]; then
     # Delegate to Gradle run task with arguments
