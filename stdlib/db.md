@@ -107,6 +107,8 @@ conn.close()
 
 ## Notes
 - **JDBC Driver dependency**: The wrapper relies on the presence of the `org.sqlite.JDBC` driver in the classpath.
+- **Concurrent use**: Calls on the same connection, including `close()`, are serialized by a per-connection lock because JDBC connections are not assumed to be thread-safe. Separate connections can run concurrently and are subject to SQLite's normal transaction, file-locking, and busy-error behavior. SQLite errors are surfaced as `RuntimeError`; the runtime does not silently retry or discard them.
+- **Lifecycle**: Connections are application resources and must be closed explicitly. Stopping an HTTP server does not close unrelated global database connections.
 - **Type Mapping**:
   - SQLite `INTEGER` corresponds to TLang `NUMBER`.
   - SQLite `TEXT` corresponds to TLang `STRING`.

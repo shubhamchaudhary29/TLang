@@ -185,6 +185,7 @@ The following table lists operators from lowest precedence (parsed first) to hig
   1. **Native Modules**: Check `ModuleRegistry` first. Native modules include: `math`, `filesystem`, `time`, `random`, `strings`, `json`, `http`, and `db`.
   2. **User Modules**: If not in the registry, look for a `<name>.tiny` file relative to the importing script's directory.
 - **Isolation**: Each module is executed once inside its own clean global environment. The top-level bindings are captured and returned as a map.
+- **Concurrent loading**: Module initialization and cache publication are atomic per loader. Concurrent first imports observe the same completed export map. A load failure raises `RuntimeError` without terminating the process.
 - **Circular Imports**: A runtime stack tracks currently loading module files. Importing a module that is currently in the loading chain throws a `RuntimeError` due to a circular import.
 
 ---
@@ -219,18 +220,40 @@ let multiply be function taking a and b
 
 ---
 
-## 5. Explicitly Out of Scope for v1
+## 5. Concurrent HTTP Execution Semantics
+
+- Each HTTP exchange executes with its own interpreter current-environment
+  cursor and recursion counter. Function-call environments, parameters, locals,
+  request values, and response state are request-local.
+- Parsed statements, function declarations, native functions, global lexical
+  environments, and module exports are shared. Closures retain normal lexical
+  lookup and therefore continue to see program globals.
+- Reads and writes of a global binding are synchronized. Each primitive mutable
+  list/map operation is synchronized. A multi-step expression such as
+  `set counter to counter + 1` is not an atomic transaction and may interleave
+  with another handler.
+- Route and middleware registration closes when the server starts. A server
+  cannot be restarted after it stops.
+- Calls on one SQLite connection are serialized; different connections follow
+  SQLite's normal concurrency and locking rules.
+
+The HTTP host runtime provides concurrency; the language itself does not add
+async syntax or a general thread-spawning primitive.
+
+---
+
+## 6. Explicitly Out of Scope for v1
 
 The following features are **explicitly out of scope** for TLang v1.0. Future tooling should be designed under the assumption that these are not supported, and any additions will require a revised specification:
 - **No try/catch exception handling**: Errors propagate up and terminate execution.
 - **No floating-point numbers**: All numeric operations are integer-only.
 - **No formal class syntax**: Objects are dynamic maps; there is no inheritance or prototype chain.
-- **No concurrent/async request handling**: Execution is single-threaded and synchronous.
+- **No language-level async syntax**: TLang has no futures, promises, or async/await syntax. The HTTP host runtime may execute independent handlers concurrently using isolated interpreter execution cursors.
 - **No bytecode VM**: The interpreter is a tree-walking interpreter running directly on the Java AST, and the host JVM handles memory management.
 
 ---
 
-## 6. Conformance Baseline
+## 7. Conformance Baseline
 
 - **Executable Suite**: The `.tiny` files located under `src/test/resources` (across the `lexer`, `parser`, `semantic`, `runtime`, and `integration` directories) define the formal conformance suite for TLang.
 - **Validation**: All changes to the language runtime must verify against this baseline using the `scripts/run_all_tests.sh` runner, which must remain 100% green.
@@ -238,7 +261,7 @@ The following features are **explicitly out of scope** for TLang v1.0. Future to
 
 ---
 
-## 7. See Also
+## 8. See Also
 
 For practical guides and reference material, see:
 - **[Getting Started Guide](docs/getting-started.md)**: A step-by-step introduction to installing and running TLang.

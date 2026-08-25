@@ -7,7 +7,7 @@ TLang comes with a robust set of built-in native modules tailored for backend we
 *   **[crypto](../../stdlib/crypto.md)**: Cryptographic hashing functions (SHA-256), HMAC signing, and secure password hashing/verification (PBKDF2WithHmacSHA256).
 *   **[db](../../stdlib/db.md)**: Embedded SQLite database client supporting parametrized queries and transactions.
 *   **[filesystem](../../stdlib/filesystem.md)**: File and directory manipulation utilities.
-*   **[http](../../stdlib/http.md)**: HTTP server with routing and middleware plus a synchronous HTTP client. Handler execution is serialized through the interpreter lock.
+*   **[http](../../stdlib/http.md)**: Concurrent HTTP server with isolated request execution contexts, routing, and middleware, plus a synchronous HTTP client.
 *   **[json](../../stdlib/json.md)**: JSON parsing and serialization utilities.
 *   **[jwt](../../stdlib/jwt.md)**: JSON Web Token creation, signature, and verification for stateless authentication.
 *   **[log](../../stdlib/log.md)**: Structured, timestamped logging utilities for backend visibility.

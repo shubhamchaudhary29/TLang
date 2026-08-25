@@ -1,0 +1,29 @@
+import http
+
+let server be http.server(8088)
+let completedRequestIds be []
+
+define fibonacci taking n
+    if n < 2
+        return n
+    return fibonacci(n - 1) + fibonacci(n - 2)
+
+define health taking req and res
+    res.json({status: "ok"})
+
+define work taking req and res
+    let result be fibonacci(20)
+    completedRequestIds.add(req.params.id)
+    res.json({requestId: req.params.id, result: result})
+
+define echo taking req and res
+    res.header("x-request-id", req.params.id).json({requestId: req.params.id, body: req.body})
+
+define completed taking req and res
+    res.json({count: completedRequestIds.length(), ids: completedRequestIds})
+server.get("/health", health)
+server.get("/work/:id", work)
+server.post("/echo/:id", echo)
+server.get("/completed", completed)
+show "Concurrent API listening on http://127.0.0.1:8088"
+server.start()

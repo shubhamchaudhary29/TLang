@@ -1,6 +1,6 @@
 # TLang
 
-TLang is a small, dynamically typed scripting language for straightforward backend APIs. It includes native modules for HTTP servers, SQLite, cryptography, configuration, JSON, and validation. It is currently best suited to small services and scripts: HTTP handlers share an interpreter lock, so request execution is serialized rather than concurrent.
+TLang is a small, dynamically typed scripting language for straightforward backend APIs. It includes native modules for concurrent HTTP servers, SQLite, cryptography, configuration, JSON, and validation. HTTP handlers execute concurrently using isolated request execution contexts: global definitions and closures remain visible, while parameters, locals, request values, response buffers, and interpreter call state stay request-local.
 
 ---
 
@@ -66,7 +66,9 @@ Explore the TLang guides and references:
 - **[Language Reference](docs/language-reference.md)**: Human-readable guide to variables, control flow, functions/lambdas, list/map literals, modules, and `nil`.
 - **[Standard Library Reference](docs/stdlib/index.md)**: Detailed reference pages for the available native modules.
 - **[Auth Service Example Walkthrough](docs/examples/auth-service.md)**: An in-depth architectural look at the complete backend user registration and authentication service example.
+- **[Concurrent API Example](examples/concurrent-api/README.md)**: A runnable multi-route service with parallel CPU work and shared collection state.
 - **[Performance and Benchmarking](docs/performance.md)**: JMH commands, benchmark coverage, methodology, and result interpretation.
+- **[Concurrent Runtime Architecture](docs/concurrent-runtime.md)**: HTTP execution isolation, shared-state semantics, SQLite behavior, and lifecycle guarantees.
 
 ---
 
