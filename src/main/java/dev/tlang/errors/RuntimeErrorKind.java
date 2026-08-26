@@ -10,7 +10,8 @@ public enum RuntimeErrorKind {
     HTTP_ERROR("HttpError"),
     VALIDATION_ERROR("ValidationError"),
     INDEX_ERROR("IndexError"),
-    ARITY_ERROR("ArityError");
+    ARITY_ERROR("ArityError"),
+    TASK_ERROR("TaskError");
 
     private final String displayName;
 

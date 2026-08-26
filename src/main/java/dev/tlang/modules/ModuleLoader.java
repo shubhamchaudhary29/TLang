@@ -1,6 +1,7 @@
 package dev.tlang.modules;
 
 import dev.tlang.interpreter.Interpreter;
+import dev.tlang.runtime.task.TaskRuntime;
 
 import dev.tlang.errors.RuntimeError;
 import dev.tlang.errors.RuntimeErrorKind;
@@ -46,6 +47,12 @@ public final class ModuleLoader {
      * @return the module's exported bindings as a Map
      */
     public synchronized Map<String, Object> load(String moduleName, Token importToken) {
+        return load(moduleName, importToken, new TaskRuntime());
+    }
+
+    /** Load a module as part of the given root interpreter task runtime. */
+    public synchronized Map<String, Object> load(
+            String moduleName, Token importToken, TaskRuntime taskRuntime) {
         // 1. Check Native modules registry
         Map<String, Object> nativeModule = dev.tlang.modules.ModuleRegistry.getModule(moduleName);
         if (nativeModule != null) {
@@ -113,7 +120,7 @@ public final class ModuleLoader {
             }
 
             // Interpret inside a fresh global Environment sharing the same ModuleLoader
-            Interpreter moduleInterpreter = new Interpreter(this);
+            Interpreter moduleInterpreter = new Interpreter(this, taskRuntime);
             try {
                 moduleInterpreter.interpret(program);
             } catch (ModuleLoadError e) {

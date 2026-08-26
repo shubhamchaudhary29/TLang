@@ -1,7 +1,7 @@
 package dev.tlang.types;
 
 public enum Type {
-    NUMBER, STRING, BOOLEAN, FUNCTION, LIST, MAP, NULL;
+    NUMBER, STRING, BOOLEAN, FUNCTION, LIST, MAP, TASK, NULL;
 
     /** Classify a runtime value. This is the ONLY place that should do
      *  broad instanceof-based type classification going forward. */
@@ -11,6 +11,7 @@ public enum Type {
         if (value instanceof String) return STRING;
         if (value instanceof Boolean) return BOOLEAN;
         if (value instanceof dev.tlang.interpreter.TinyFunction || value instanceof dev.tlang.interpreter.NativeFunction) return FUNCTION;
+        if (value instanceof dev.tlang.runtime.task.TaskValue) return TASK;
         if (value instanceof java.util.List) return LIST;
         if (value instanceof java.util.Map) return MAP;
         throw new IllegalStateException("Unclassifiable runtime value: " + value.getClass());
@@ -27,6 +28,7 @@ public enum Type {
             case FUNCTION: return "function";
             case LIST:     return "list";
             case MAP:      return "map";
+            case TASK:     return "task";
             case NULL:     return "nil";
         }
         throw new IllegalStateException("Unreachable");

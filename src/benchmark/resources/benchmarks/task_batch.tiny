@@ -1,0 +1,11 @@
+define value taking input
+    return input
+let a be spawn value(1)
+let b be spawn value(2)
+let c be spawn value(3)
+let d be spawn value(4)
+let e be spawn value(5)
+let f be spawn value(6)
+let g be spawn value(7)
+let h be spawn value(8)
+let result be await a + await b + await c + await d + await e + await f + await g + await h

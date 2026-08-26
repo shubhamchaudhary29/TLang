@@ -1,6 +1,6 @@
 # TLang
 
-TLang is a small, dynamically typed scripting language for straightforward backend APIs. It includes native modules for concurrent HTTP servers, SQLite, cryptography, configuration, JSON, and validation. HTTP handlers execute concurrently using isolated request execution contexts: global definitions and closures remain visible, while parameters, locals, request values, response buffers, and interpreter call state stay request-local.
+TLang is a small, dynamically typed scripting language for straightforward backend APIs. It includes native modules for concurrent HTTP servers, SQLite, cryptography, configuration, JSON, and validation. Explicit `spawn` and `await` expressions run ordinary calls on bounded Java 21 virtual-thread tasks without introducing async functions, promises, or an event loop.
 
 ---
 
@@ -57,13 +57,31 @@ show "Server listening on port 8080..."
 server.start()
 ```
 
+### Structured background tasks
+
+```tiny
+define calculate taking value
+    return value + 1
+
+let first be spawn calculate(10)
+let second be spawn calculate(20)
+
+show await first
+show await second
+```
+
+The callee and arguments are evaluated by the caller before scheduling. `await`
+blocks only its current TLang execution cursor and returns the task result or
+rethrows its structured TLang failure.
+
 ---
 
 ## Documentation Index
 
 Explore the TLang guides and references:
 - **[Getting Started Guide](docs/getting-started.md)**: A step-by-step introduction to installing and writing your first TLang script.
-- **[Language Reference](docs/language-reference.md)**: Human-readable guide to variables, control flow, functions/lambdas, list/map literals, modules, and `nil`.
+- **[Language Reference](docs/language-reference.md)**: Human-readable guide to variables, control flow, functions/lambdas, tasks, collections, modules, and `nil`.
+- **[Structured Tasks](docs/tasks.md)**: `spawn`/`await` syntax, execution isolation, errors, limits, HTTP ownership, and limitations.
 - **[Standard Library Reference](docs/stdlib/index.md)**: Detailed reference pages for the available native modules.
 - **[Auth Service Example Walkthrough](docs/examples/auth-service.md)**: An in-depth architectural look at the complete backend user registration and authentication service example.
 - **[Concurrent API Example](examples/concurrent-api/README.md)**: A runnable multi-route service with parallel CPU work and shared collection state.

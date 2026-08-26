@@ -26,4 +26,12 @@ public record RuntimeStackFrame(String name, SourceLocation location, StackFrame
     public static RuntimeStackFrame httpHandler(String method, String path) {
         return new RuntimeStackFrame(method + " " + path, SourceLocation.unknown(), StackFrameType.HTTP_HANDLER);
     }
+
+    public static RuntimeStackFrame taskSpawn(SourceLocation location) {
+        return new RuntimeStackFrame("<spawn>", location, StackFrameType.TASK_SPAWN);
+    }
+
+    public static RuntimeStackFrame taskAwait(SourceLocation location) {
+        return new RuntimeStackFrame("<await>", location, StackFrameType.TASK_AWAIT);
+    }
 }

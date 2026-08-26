@@ -10,7 +10,7 @@ cd "$PROJECT_DIR"
 
 if [ "${GRADLE_RUNNING:-}" != "true" ]; then
     echo "── Compiling ──"
-    ./build.sh 2>&1
+    "$PROJECT_DIR/scripts/build.sh" 2>&1
     if [ $? -ne 0 ]; then
         echo "COMPILATION FAILED"
         exit 1

@@ -17,6 +17,8 @@ final class BenchmarkSupportTest {
         BenchmarkProgram program = BenchmarkProgram.load("arithmetic");
         program.validateResult(17);
         assertEquals(17, program.execute());
+        BenchmarkProgram.load("task_spawn_await").validateResult(1);
+        BenchmarkProgram.load("task_batch").validateResult(36);
     }
 
     @Test

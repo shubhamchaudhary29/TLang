@@ -1,0 +1,3 @@
+define trivial
+    return 1
+let result be await spawn trivial()

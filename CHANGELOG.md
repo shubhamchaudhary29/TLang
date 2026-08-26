@@ -2,6 +2,16 @@
 
 ## Unreleased (0.3.0)
 
+- Added explicit `spawn call(...)` and blocking `await task` expressions backed
+  by root-owned Java 21 virtual-thread task runtimes.
+- Added opaque task values, isolated task interpreter cursors, configurable
+  outstanding-task admission, dependency-cycle detection, and reusable results.
+- Preserved structured error categories and source locations across task
+  boundaries with explicit spawn/await stack frames.
+- Prevented background tasks from mutating HTTP response wrappers outside their
+  owning request cursor, while allowing copied request data to be read safely.
+- Added deterministic task, closure, module, HTTP, SQLite, cycle, limit,
+  repeated-await, 500-task stress, benchmark, and CI repetition coverage.
 - Added immutable, structured runtime diagnostics with source locations,
   user-facing categories, and innermost-first TLang call frames.
 - Preserved source identity and stack traces across closures, recursion, user

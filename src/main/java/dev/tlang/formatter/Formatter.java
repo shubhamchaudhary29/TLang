@@ -241,6 +241,16 @@ public final class Formatter implements Stmt.Visitor, Expr.Visitor<String> {
     }
 
     @Override
+    public String visitSpawnExpr(SpawnExpr expr) {
+        return "spawn " + expr.getCall().accept(this);
+    }
+
+    @Override
+    public String visitAwaitExpr(AwaitExpr expr) {
+        return "await " + expr.getTask().accept(this);
+    }
+
+    @Override
     public String visitLambdaExpr(LambdaExpr expr) {
         StringBuilder sb = new StringBuilder();
         sb.append("function").append(formatParams(expr.getParams(), expr.getDefaults())).append("\n");

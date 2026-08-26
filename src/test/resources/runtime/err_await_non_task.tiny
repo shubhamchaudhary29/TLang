@@ -1,0 +1,3 @@
+// Expected exit code: 70
+// Expected error: TypeError: Cannot await a value of type 'integer'. Expected task.
+let result be await 123

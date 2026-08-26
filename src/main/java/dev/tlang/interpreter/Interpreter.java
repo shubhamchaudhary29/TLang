@@ -5,6 +5,8 @@ import dev.tlang.errors.BreakException;
 import dev.tlang.errors.ContinueException;
 import dev.tlang.errors.ReturnException;
 import dev.tlang.runtime.filesystem.StdlibOps;
+import dev.tlang.runtime.task.TaskRuntime;
+import dev.tlang.runtime.task.TaskValue;
 
 
 import dev.tlang.errors.RuntimeError;
@@ -33,27 +35,34 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
 
     private final ModuleLoader moduleLoader;
     private final Environment globalEnvironment;
+    private final TaskRuntime taskRuntime;
     private Environment environment;
     private int callDepth = 0;
 
     public Interpreter() {
-        this.moduleLoader = null;
-        this.globalEnvironment = new Environment();
-        this.environment = globalEnvironment;
-        defineGlobals();
+        this(null, new TaskRuntime());
     }
 
     public Interpreter(ModuleLoader moduleLoader) {
+        this(moduleLoader, new TaskRuntime());
+    }
+
+    public Interpreter(ModuleLoader moduleLoader, TaskRuntime taskRuntime) {
         this.moduleLoader = moduleLoader;
         this.globalEnvironment = new Environment();
         this.environment = globalEnvironment;
+        this.taskRuntime = taskRuntime;
         defineGlobals();
     }
 
-    private Interpreter(ModuleLoader moduleLoader, Environment sharedGlobalEnvironment) {
+    private Interpreter(
+            ModuleLoader moduleLoader,
+            Environment sharedGlobalEnvironment,
+            TaskRuntime taskRuntime) {
         this.moduleLoader = moduleLoader;
         this.globalEnvironment = sharedGlobalEnvironment;
         this.environment = sharedGlobalEnvironment;
+        this.taskRuntime = taskRuntime;
     }
 
     /**
@@ -64,7 +73,20 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
      * this new interpreter instance.</p>
      */
     public Interpreter forkForRequest() {
-        return new Interpreter(moduleLoader, globalEnvironment);
+        return forkExecutionCursor();
+    }
+
+    /** Create an isolated cursor for one background task. */
+    public Interpreter forkForTask() {
+        return forkExecutionCursor();
+    }
+
+    public TaskRuntime getTaskRuntime() {
+        return taskRuntime;
+    }
+
+    private Interpreter forkExecutionCursor() {
+        return new Interpreter(moduleLoader, globalEnvironment, taskRuntime);
     }
 
     // ── Public API ──────────────────────────────────────────────
@@ -114,7 +136,8 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
             throw new RuntimeError(RuntimeErrorKind.IMPORT_ERROR, stmt.getName(),
                 "Module loader not initialized.");
         }
-        Map<String, Object> exports = moduleLoader.load(stmt.getName().getLexeme(), stmt.getName());
+        Map<String, Object> exports = moduleLoader.load(
+            stmt.getName().getLexeme(), stmt.getName(), taskRuntime);
         environment.define(stmt.getName().getLexeme(), exports);
     }
 
@@ -488,6 +511,90 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
 
         return executeCall(callee, arguments, expr.getParen());
     }
+
+    @Override
+    public Object visitSpawnExpr(SpawnExpr expr) {
+        PreparedCall prepared = prepareSpawnCall(expr.getCall());
+        return taskRuntime.spawn(
+            forkForTask(),
+            prepared.callee(),
+            prepared.arguments(),
+            prepared.callToken(),
+            expr.getKeyword());
+    }
+
+    @Override
+    public Object visitAwaitExpr(AwaitExpr expr) {
+        Object value = evaluate(expr.getTask());
+        if (!(value instanceof TaskValue task)) {
+            throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, expr.getKeyword(),
+                "Cannot await a value of type '" + Type.of(value).displayName() + "'. Expected task.");
+        }
+        return taskRuntime.await(task, expr.getKeyword());
+    }
+
+    /** Evaluate a spawned call's callee and arguments on the caller cursor. */
+    private PreparedCall prepareSpawnCall(CallExpr call) {
+        if (call.getCallee() instanceof FieldAccessExpr fieldAccess) {
+            Object target = evaluate(fieldAccess.getObject());
+            List<Object> arguments = evaluateArguments(call.getArguments());
+            if (target instanceof Map<?, ?> rawMap) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> map = (Map<String, Object>) rawMap;
+                Object method;
+                synchronized (map) {
+                    method = map.get(fieldAccess.getName().getLexeme());
+                }
+                if (method instanceof TinyFunction function) {
+                    int boundCount = arguments.size() + 1;
+                    if (boundCount >= function.getRequiredCount()
+                            && boundCount <= function.getTotalCount()) {
+                        return new PreparedCall(
+                            method, withReceiver(map, arguments), fieldAccess.getName());
+                    }
+                    return new PreparedCall(method, arguments, fieldAccess.getName());
+                }
+                if (method instanceof NativeFunction function) {
+                    if (function.expectsReceiver()) {
+                        int boundCount = arguments.size() + 1;
+                        if (boundCount >= function.getMinArity()
+                                && boundCount <= function.getMaxArity()) {
+                            return new PreparedCall(
+                                method, withReceiver(map, arguments), fieldAccess.getName());
+                        }
+                    }
+                    return new PreparedCall(method, arguments, fieldAccess.getName());
+                }
+                if (method != null) {
+                    return new PreparedCall(method, arguments, fieldAccess.getName());
+                }
+                throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, fieldAccess.getName(),
+                    "Map has no spawnable method '" + fieldAccess.getName().getLexeme() + "'.");
+            }
+            throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, fieldAccess.getName(),
+                "Built-in methods on " + Type.of(target).displayName() + " values cannot be spawned.");
+        }
+
+        Object callee = evaluate(call.getCallee());
+        return new PreparedCall(callee, evaluateArguments(call.getArguments()), call.getParen());
+    }
+
+    private List<Object> evaluateArguments(List<Expr> expressions) {
+        List<Object> arguments = new ArrayList<>();
+        for (Expr argument : expressions) {
+            arguments.add(evaluate(argument));
+        }
+        return arguments;
+    }
+
+    private static List<Object> withReceiver(Object receiver, List<Object> arguments) {
+        List<Object> bound = new ArrayList<>();
+        bound.add(receiver);
+        bound.addAll(arguments);
+        return bound;
+    }
+
+    private record PreparedCall(Object callee, List<Object> arguments, Token callToken) {}
 
     private Object executeCall(Object callee, List<Object> arguments, Token paren) {
         if (callee instanceof TinyFunction) {
@@ -990,6 +1097,7 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
                 return sb.toString();
             }
             case FUNCTION:
+            case TASK:
             default:
                 return value.toString();
         }

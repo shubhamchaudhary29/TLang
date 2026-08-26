@@ -47,7 +47,7 @@ final class TLangCompletionTest {
         List<String> first = labels(request);
         List<String> second = labels(request);
 
-        assertTrue(first.containsAll(List.of("let", "define", "show", "now", "read_file")));
+        assertTrue(first.containsAll(List.of("let", "define", "show", "spawn", "await", "now", "read_file")));
         assertEquals(first, second);
         assertEquals(first.stream().sorted().toList(), first);
         assertEquals(first.size(), new HashSet<>(first).size());

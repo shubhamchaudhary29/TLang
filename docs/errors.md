@@ -23,6 +23,7 @@ use exit code `65`.
 | `ValidationError` | Invalid use of the validation API or an invalid validation schema |
 | `IndexError` | Missing map keys and out-of-range list/string indexes |
 | `ArityError` | A function or method receives the wrong number of arguments |
+| `TaskError` | Task admission, cycle, interruption, or infrastructure failure |
 
 `validate.check()` still returns `{valid, errors}` for ordinary application-data
 validation failures. `ValidationError` is reserved for misuse of that API; it
@@ -53,6 +54,8 @@ Named functions use their declared names. Lambdas use `<anonymous>`. Runtime
 module-initialization failures add `<module name>` boundaries, and HTTP request
 failures add a final method/path frame such as `POST /report`. Native-call
 boundaries are represented without exposing Java implementation methods.
+Task failures add `<spawn>` where they were created, and each wait adds a fresh
+`<await>` frame without mutating the failure stored in the task.
 
 For example, the checked-in three-file fixture produces a diagnostic shaped
 like:

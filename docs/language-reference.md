@@ -6,7 +6,7 @@ This document provides a readable, developer-friendly guide to writing code in T
 
 ## 1. Types and Literals
 
-TLang has a dynamic but simple type system supporting six core data types:
+TLang has a dynamic but simple type system supporting eight core data types:
 
 ### String
 Strings are double-quoted and support character escaping (e.g. `\n`, `\t`, `\\`, `\"`). They also support **string interpolation** using `${expression}` syntax.
@@ -43,6 +43,12 @@ let user be {
 show user.name        # Output: "Bob"
 show user["role-type"] # Output: "admin"
 ```
+
+### Task
+
+`spawn` returns an opaque task. `type_of(task)` returns `"task"`; printing a
+task shows only a stable lifecycle description such as `<task running>` or
+`<task completed>`.
 
 ---
 
@@ -138,7 +144,34 @@ show addOne(10)  # Output: 11
 
 ---
 
-## 5. Multi-line Literals
+## 5. Structured Tasks
+
+`spawn` starts an ordinary function or suitable native call in a background
+task. It must be followed by an invoked call:
+
+```tiny
+let first be spawn fetchUser(1)
+let second be spawn fetchPosts(1)
+
+let user be await first
+let posts be await second
+```
+
+The callee and arguments run synchronously in the caller before the task is
+created. `await spawn calculate(10)` is valid. `spawn 10` and `spawn worker`
+are syntax errors because neither invokes a call.
+
+`await` blocks the current execution cursor and returns the task result. A task
+may be awaited repeatedly without rerunning it. If it failed, its original
+structured error is rethrown with spawn and await frames. Ordinary calls remain
+synchronous; TLang does not have async function declarations or promises.
+
+See [Structured Tasks](tasks.md) for isolation, resource limits, HTTP response
+ownership, shared state, cycles, and limitations.
+
+---
+
+## 6. Multi-line Literals
 
 For lists and maps containing complex elements (like nested maps or lambdas), you can declare them across multiple lines. The parser supports comma separators. The formatter collapses them into a single line if they fit under 80 characters, or lists each entry on a separate line otherwise.
 
@@ -154,7 +187,7 @@ let handlers be [
 
 ---
 
-## 6. Modules and Imports
+## 7. Modules and Imports
 
 TLang is modular. You can import built-in standard library modules or local `.tiny` source files as modules using the `import` statement.
 
