@@ -4,6 +4,7 @@ import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLDecoder;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
@@ -11,6 +12,7 @@ import dev.tlang.lexer.Token;
 import dev.tlang.lexer.TokenType;
 import dev.tlang.runtime.json.JsonParser;
 import dev.tlang.interpreter.RuntimeCollections;
+import dev.tlang.errors.RuntimeError;
 
 /**
  * Helper to wrap an HttpExchange into a TLang request Map.
@@ -56,7 +58,7 @@ public final class RequestWrapper {
                     Token dummyToken = new Token(TokenType.IDENTIFIER, "json", null, 1);
                     JsonParser parser = new JsonParser(body, dummyToken);
                     parsedJson = parser.parse();
-                } catch (Exception e) {
+                } catch (RuntimeError e) {
                     // Leave as null on parsing errors
                 }
             }
@@ -88,7 +90,7 @@ public final class RequestWrapper {
             try {
                 key = URLDecoder.decode(key, StandardCharsets.UTF_8.name());
                 value = URLDecoder.decode(value, StandardCharsets.UTF_8.name());
-            } catch (Exception e) {
+            } catch (IllegalArgumentException | UnsupportedEncodingException e) {
                 // Keep raw if URLDecoder fails
             }
 

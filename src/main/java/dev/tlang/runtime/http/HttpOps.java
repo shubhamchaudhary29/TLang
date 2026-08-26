@@ -1,6 +1,7 @@
 package dev.tlang.runtime.http;
 
 import dev.tlang.errors.RuntimeError;
+import dev.tlang.errors.RuntimeErrorKind;
 import dev.tlang.interpreter.RuntimeCollections;
 
 import java.io.IOException;
@@ -68,7 +69,8 @@ public final class HttpOps {
                 throw new URISyntaxException(url, "Missing scheme (e.g. http:// or https://)");
             }
         } catch (URISyntaxException e) {
-            throw new RuntimeError(token, "Malformed URL '" + url + "': " + e.getMessage());
+            throw new RuntimeError(RuntimeErrorKind.HTTP_ERROR, token,
+                "Malformed URL '" + url + "': " + e.getMessage(), e);
         }
 
         HttpRequest.Builder builder = HttpRequest.newBuilder()
@@ -97,14 +99,18 @@ public final class HttpOps {
         try {
             response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
         } catch (HttpTimeoutException e) {
-            throw new RuntimeError(token, "HTTP request to '" + url + "' timed out.");
+            throw new RuntimeError(RuntimeErrorKind.HTTP_ERROR, token,
+                "HTTP request to '" + url + "' timed out.", e);
         } catch (IOException e) {
-            throw new RuntimeError(token, "HTTP request to '" + url + "' failed: " + e.getMessage());
+            throw new RuntimeError(RuntimeErrorKind.HTTP_ERROR, token,
+                "HTTP request to '" + url + "' failed: " + e.getMessage(), e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeError(token, "HTTP request to '" + url + "' was interrupted.");
+            throw new RuntimeError(RuntimeErrorKind.HTTP_ERROR, token,
+                "HTTP request to '" + url + "' was interrupted.", e);
         } catch (IllegalArgumentException e) {
-            throw new RuntimeError(token, "Invalid HTTP request to '" + url + "': " + e.getMessage());
+            throw new RuntimeError(RuntimeErrorKind.HTTP_ERROR, token,
+                "Invalid HTTP request to '" + url + "': " + e.getMessage(), e);
         }
 
         return buildResponseMap(response);

@@ -2,6 +2,9 @@ package dev.tlang.errors;
 
 import dev.tlang.lexer.Token;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /** A request-safe module failure that retains CLI diagnostic and exit-code metadata. */
 public final class ModuleLoadError extends RuntimeError {
     private final String source;
@@ -22,7 +25,23 @@ public final class ModuleLoadError extends RuntimeError {
             String diagnosticKind,
             String rawMessage,
             int exitCode) {
-        super(importToken, message);
+        this(importToken, message, source, sourceName, line, column,
+            diagnosticKind, rawMessage, exitCode, List.of());
+    }
+
+    private ModuleLoadError(
+            Token importToken,
+            String message,
+            String source,
+            String sourceName,
+            int line,
+            int column,
+            String diagnosticKind,
+            String rawMessage,
+            int exitCode,
+            List<RuntimeStackFrame> frames) {
+        super(RuntimeErrorKind.IMPORT_ERROR, importToken, message, null,
+            SourceLocation.from(importToken), frames);
         this.source = source;
         this.sourceName = sourceName;
         this.line = line;
@@ -39,4 +58,13 @@ public final class ModuleLoadError extends RuntimeError {
     public String getDiagnosticKind() { return diagnosticKind; }
     public String getRawMessage() { return rawMessage; }
     public int getExitCode() { return exitCode; }
+
+    @Override
+    public ModuleLoadError withFrame(RuntimeStackFrame frame) {
+        List<RuntimeStackFrame> updated = new ArrayList<>(getFrames());
+        updated.add(frame);
+        return new ModuleLoadError(
+            getToken(), getMessage(), source, sourceName, line, column,
+            diagnosticKind, rawMessage, exitCode, updated);
+    }
 }

@@ -8,6 +8,9 @@ import dev.tlang.runtime.filesystem.StdlibOps;
 
 
 import dev.tlang.errors.RuntimeError;
+import dev.tlang.errors.RuntimeErrorKind;
+import dev.tlang.errors.RuntimeStackFrame;
+import dev.tlang.errors.SourceLocation;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -108,7 +111,8 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
     @Override
     public void visitImportStmt(ImportStmt stmt) {
         if (moduleLoader == null) {
-            throw new RuntimeError(stmt.getName(), "Module loader not initialized.");
+            throw new RuntimeError(RuntimeErrorKind.IMPORT_ERROR, stmt.getName(),
+                "Module loader not initialized.");
         }
         Map<String, Object> exports = moduleLoader.load(stmt.getName().getLexeme(), stmt.getName());
         environment.define(stmt.getName().getLexeme(), exports);
@@ -494,7 +498,7 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
             if (got < required || got > total) {
                 String nameStr = function.getName().equals("<anonymous>") ? "Anonymous function" : "Function '" + function.getName() + "'";
                 String expectStr = (required == total) ? String.valueOf(required) : required + " to " + total;
-                throw new RuntimeError(paren,
+                throw new RuntimeError(RuntimeErrorKind.ARITY_ERROR, paren,
                         nameStr + " expects " + expectStr + " argument(s) but got " + got + ".");
             }
 
@@ -506,6 +510,9 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
 
             try {
                 return function.call(this, arguments);
+            } catch (RuntimeError error) {
+                throw error.withFrame(RuntimeStackFrame.userFunction(
+                    function.getName(), SourceLocation.from(paren)));
             } finally {
                 callDepth--;
             }
@@ -516,12 +523,18 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
             int maxA = function.getMaxArity();
             if (got < minA || got > maxA) {
                 String expectStr = (minA == maxA) ? String.valueOf(minA) : minA + " to " + maxA;
-                throw new RuntimeError(paren,
+                throw new RuntimeError(RuntimeErrorKind.ARITY_ERROR, paren,
                         "Function '" + function.getName() + "' expects " + expectStr + " argument(s) but got " + got + ".");
             }
-            return function.call(this, arguments, paren);
+            try {
+                return function.call(this, arguments, paren);
+            } catch (RuntimeError error) {
+                throw error.withFrame(RuntimeStackFrame.nativeFunction(
+                    function.getName(), SourceLocation.from(paren)));
+            }
         } else {
-            throw new RuntimeError(paren, "Cannot call a value of type '" + Type.of(callee).displayName() + "'.");
+            throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, paren,
+                "Cannot call a value of type '" + Type.of(callee).displayName() + "'.");
         }
     }
 
@@ -568,13 +581,14 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
         Type collType = Type.of(collection);
         if (collType == Type.LIST) {
             if (Type.of(index) != Type.NUMBER) {
-                throw new RuntimeError(expr.getBracket(), "List index must be an integer.");
+                throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, expr.getBracket(),
+                    "List index must be an integer.");
             }
             List<?> list = (List<?>) collection;
             int idx = (Integer) index;
             synchronized (list) {
                 if (idx < 0 || idx >= list.size()) {
-                    throw new RuntimeError(expr.getBracket(),
+                    throw new RuntimeError(RuntimeErrorKind.INDEX_ERROR, expr.getBracket(),
                         "Index " + idx + " out of bounds for list of length " + list.size() + ".");
                 }
                 return list.get(idx);
@@ -583,19 +597,22 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
 
         if (collType == Type.MAP) {
             if (Type.of(index) != Type.STRING) {
-                throw new RuntimeError(expr.getBracket(), "Map index must be a string.");
+                throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, expr.getBracket(),
+                    "Map index must be a string.");
             }
             Map<?, ?> map = (Map<?, ?>) collection;
             String key = (String) index;
             synchronized (map) {
                 if (!map.containsKey(key)) {
-                    throw new RuntimeError(expr.getBracket(), "Key '" + key + "' not found in map.");
+                    throw new RuntimeError(RuntimeErrorKind.INDEX_ERROR, expr.getBracket(),
+                        "Key '" + key + "' not found in map.");
                 }
                 return map.get(key);
             }
         }
 
-        throw new RuntimeError(expr.getBracket(), "Cannot index type '" + typeName(collection) + "'.");
+        throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, expr.getBracket(),
+            "Cannot index type '" + typeName(collection) + "'.");
     }
 
     @Override
@@ -607,13 +624,14 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
             String key = expr.getName().getLexeme();
             synchronized (map) {
                 if (!map.containsKey(key)) {
-                    throw new RuntimeError(expr.getName(), "Key '" + key + "' not found in map.");
+                    throw new RuntimeError(RuntimeErrorKind.INDEX_ERROR, expr.getName(),
+                        "Key '" + key + "' not found in map.");
                 }
                 return map.get(key);
             }
         }
 
-        throw new RuntimeError(expr.getName(),
+        throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, expr.getName(),
                 "Cannot access field '" + expr.getName().getLexeme() + "' on " + typeName(object) + ".");
     }
 
@@ -627,13 +645,14 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
         Type collType = Type.of(collection);
         if (collType == Type.LIST) {
             if (Type.of(index) != Type.NUMBER) {
-                throw new RuntimeError(expr.getBracket(), "List index must be an integer.");
+                throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, expr.getBracket(),
+                    "List index must be an integer.");
             }
             List<Object> list = (List<Object>) collection;
             int idx = (Integer) index;
             synchronized (list) {
                 if (idx < 0 || idx >= list.size()) {
-                    throw new RuntimeError(expr.getBracket(),
+                    throw new RuntimeError(RuntimeErrorKind.INDEX_ERROR, expr.getBracket(),
                         "Index " + idx + " out of bounds for list of length " + list.size() + ".");
                 }
                 list.set(idx, value);
@@ -643,14 +662,16 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
 
         if (collType == Type.MAP) {
             if (Type.of(index) != Type.STRING) {
-                throw new RuntimeError(expr.getBracket(), "Map index must be a string.");
+                throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, expr.getBracket(),
+                    "Map index must be a string.");
             }
             Map<String, Object> map = (Map<String, Object>) collection;
             map.put((String) index, value);
             return value;
         }
 
-        throw new RuntimeError(expr.getBracket(), "Cannot index assign type '" + typeName(collection) + "'.");
+        throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, expr.getBracket(),
+            "Cannot index assign type '" + typeName(collection) + "'.");
     }
 
     @Override
@@ -665,7 +686,7 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
             return value;
         }
 
-        throw new RuntimeError(expr.getName(),
+        throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, expr.getName(),
                 "Cannot set field '" + expr.getName().getLexeme() + "' on " + typeName(object) + ".");
     }
 
@@ -694,7 +715,7 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
                 checkMethodArgInteger(args.get(0), method, token);
                 int getIdx = (Integer) args.get(0);
                 if (getIdx < 0 || getIdx >= list.size()) {
-                    throw new RuntimeError(token,
+                    throw new RuntimeError(RuntimeErrorKind.INDEX_ERROR, token,
                         "Index " + getIdx + " out of bounds for list of length " + list.size() + ".");
                 }
                 yield list.get(getIdx);
@@ -703,7 +724,7 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
                 checkMethodArgInteger(args.get(0), method, token);
                 int setIdx = (Integer) args.get(0);
                 if (setIdx < 0 || setIdx >= list.size()) {
-                    throw new RuntimeError(token,
+                    throw new RuntimeError(RuntimeErrorKind.INDEX_ERROR, token,
                         "Index " + setIdx + " out of bounds for list of length " + list.size() + ".");
                 }
                 list.set(setIdx, args.get(1));
@@ -713,7 +734,7 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
                 checkMethodArgInteger(args.get(0), method, token);
                 int rmIdx = (Integer) args.get(0);
                 if (rmIdx < 0 || rmIdx >= list.size()) {
-                    throw new RuntimeError(token,
+                    throw new RuntimeError(RuntimeErrorKind.INDEX_ERROR, token,
                         "Index " + rmIdx + " out of bounds for list of length " + list.size() + ".");
                 }
                 yield list.remove(rmIdx);
@@ -786,7 +807,8 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
                 String getKey = (String) args.get(0);
                 synchronized (map) {
                     if (!map.containsKey(getKey)) {
-                        throw new RuntimeError(token, "Key '" + getKey + "' not found in map.");
+                        throw new RuntimeError(RuntimeErrorKind.INDEX_ERROR, token,
+                            "Key '" + getKey + "' not found in map.");
                     }
                     return map.get(getKey);
                 }
@@ -849,7 +871,7 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
                 int start = (Integer) args.get(0);
                 int end = (Integer) args.get(1);
                 if (start < 0 || end > str.length() || start > end) {
-                    throw new RuntimeError(token,
+                    throw new RuntimeError(RuntimeErrorKind.INDEX_ERROR, token,
                         "Invalid substring range " + start + " to " + end + " for string of length " + str.length() + ".");
                 }
                 return str.substring(start, end);
@@ -896,20 +918,20 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
 
     private void checkMethodArity(String method, List<Object> args, int expected, Token token) {
         if (args.size() != expected) {
-            throw new RuntimeError(token,
+            throw new RuntimeError(RuntimeErrorKind.ARITY_ERROR, token,
                     "Method '" + method + "' expects " + expected + " argument(s) but got " + args.size() + ".");
         }
     }
     private void checkMethodArgInteger(Object arg, String method, Token token) {
         if (Type.of(arg) != Type.NUMBER) {
-            throw new RuntimeError(token,
+            throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, token,
                     "Method '" + method + "' expects an integer argument (got " + typeName(arg) + ").");
         }
     }
 
     private void checkMethodArgString(Object arg, String method, Token token) {
         if (Type.of(arg) != Type.STRING) {
-            throw new RuntimeError(token,
+            throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, token,
                     "Method '" + method + "' expects a string argument (got " + typeName(arg) + ").");
         }
     }
@@ -977,26 +999,26 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
 
     private void checkInteger(Object value, Token operator) {
         if (Type.of(value) == Type.NUMBER) return;
-        throw new RuntimeError(operator,
+        throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, operator,
                 "Operand must be an integer (got " + typeName(value) + ").");
     }
 
     private void checkIntegers(Object left, Object right, Token operator) {
         if (Type.of(left) == Type.NUMBER && Type.of(right) == Type.NUMBER) return;
-        throw new RuntimeError(operator,
+        throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, operator,
                 "Operands must be integers (got " + typeName(left)
                 + " and " + typeName(right) + ").");
     }
 
     private void checkBoolean(Object value, Token operator) {
         if (Type.of(value) == Type.BOOLEAN) return;
-        throw new RuntimeError(operator,
+        throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, operator,
                 "Operand must be a boolean (got " + typeName(value) + ").");
     }
 
     private void checkBoolean(Object value, String context) {
         if (Type.of(value) == Type.BOOLEAN) return;
-        throw new RuntimeError(null,
+        throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, null,
                 context + " must be a boolean (got " + typeName(value) + ").");
     }
 

@@ -8,6 +8,7 @@ import java.util.regex.Pattern;
 import dev.tlang.lexer.Token;
 import dev.tlang.types.Type;
 import dev.tlang.errors.RuntimeError;
+import dev.tlang.errors.RuntimeErrorKind;
 import dev.tlang.interpreter.NativeFunction;
 import dev.tlang.interpreter.RuntimeCollections;
 
@@ -22,10 +23,10 @@ public final class ValidateModule implements NativeModule {
                 Object schemaObj = args.get(1);
 
                 if (Type.of(dataObj) != Type.MAP) {
-                    throw new RuntimeError(token, "First argument to 'check' must be a map.");
+                    throw new RuntimeError(RuntimeErrorKind.VALIDATION_ERROR, token, "First argument to 'check' must be a map.");
                 }
                 if (Type.of(schemaObj) != Type.MAP) {
-                    throw new RuntimeError(token, "Second argument to 'check' must be a map.");
+                    throw new RuntimeError(RuntimeErrorKind.VALIDATION_ERROR, token, "Second argument to 'check' must be a map.");
                 }
 
                 Map<?, ?> data = RuntimeCollections.snapshot((Map<?, ?>) dataObj);
@@ -36,24 +37,24 @@ public final class ValidateModule implements NativeModule {
                 for (Map.Entry<?, ?> entry : schema.entrySet()) {
                     Object fieldNameObj = entry.getKey();
                     if (!(fieldNameObj instanceof String)) {
-                        throw new RuntimeError(token, "Schema fields must be strings.");
+                        throw new RuntimeError(RuntimeErrorKind.VALIDATION_ERROR, token, "Schema fields must be strings.");
                     }
                     String fieldName = (String) fieldNameObj;
                     Object rulesObj = entry.getValue();
                     if (Type.of(rulesObj) != Type.MAP) {
-                        throw new RuntimeError(token, "Schema rules for field '" + fieldName + "' must be a map.");
+                        throw new RuntimeError(RuntimeErrorKind.VALIDATION_ERROR, token, "Schema rules for field '" + fieldName + "' must be a map.");
                     }
                     Map<?, ?> rules = RuntimeCollections.snapshot((Map<?, ?>) rulesObj);
 
                     // Validate rule keys
                     for (Object ruleKeyObj : rules.keySet()) {
                         if (!(ruleKeyObj instanceof String)) {
-                            throw new RuntimeError(token, "Rule keys in schema must be strings.");
+                            throw new RuntimeError(RuntimeErrorKind.VALIDATION_ERROR, token, "Rule keys in schema must be strings.");
                         }
                         String ruleKey = (String) ruleKeyObj;
                         if (!ruleKey.equals("required") && !ruleKey.equals("type") && !ruleKey.equals("min") &&
                             !ruleKey.equals("max") && !ruleKey.equals("pattern") && !ruleKey.equals("in")) {
-                            throw new RuntimeError(token, "Unknown validation rule '" + ruleKey + "' for field '" + fieldName + "'.");
+                            throw new RuntimeError(RuntimeErrorKind.VALIDATION_ERROR, token, "Unknown validation rule '" + ruleKey + "' for field '" + fieldName + "'.");
                         }
                     }
 
@@ -61,43 +62,43 @@ public final class ValidateModule implements NativeModule {
                     Object typeRule = rules.get("type");
                     if (typeRule != null) {
                         if (!(typeRule instanceof String)) {
-                            throw new RuntimeError(token, "Rule 'type' for field '" + fieldName + "' must be a string.");
+                            throw new RuntimeError(RuntimeErrorKind.VALIDATION_ERROR, token, "Rule 'type' for field '" + fieldName + "' must be a string.");
                         }
                         String t = (String) typeRule;
                         if (!t.equals("string") && !t.equals("number") && !t.equals("integer") &&
                             !t.equals("boolean") && !t.equals("list") && !t.equals("map")) {
-                            throw new RuntimeError(token, "Invalid validation type '" + t + "' in schema.");
+                            throw new RuntimeError(RuntimeErrorKind.VALIDATION_ERROR, token, "Invalid validation type '" + t + "' in schema.");
                         }
                     }
 
                     // Check required rule type validation
                     Object requiredRule = rules.get("required");
                     if (requiredRule != null && !(requiredRule instanceof Boolean)) {
-                        throw new RuntimeError(token, "Rule 'required' for field '" + fieldName + "' must be a boolean.");
+                        throw new RuntimeError(RuntimeErrorKind.VALIDATION_ERROR, token, "Rule 'required' for field '" + fieldName + "' must be a boolean.");
                     }
 
                     // Check min rule type validation
                     Object minRule = rules.get("min");
                     if (minRule != null && !(minRule instanceof Integer)) {
-                        throw new RuntimeError(token, "Rule 'min' for field '" + fieldName + "' must be an integer.");
+                        throw new RuntimeError(RuntimeErrorKind.VALIDATION_ERROR, token, "Rule 'min' for field '" + fieldName + "' must be an integer.");
                     }
 
                     // Check max rule type validation
                     Object maxRule = rules.get("max");
                     if (maxRule != null && !(maxRule instanceof Integer)) {
-                        throw new RuntimeError(token, "Rule 'max' for field '" + fieldName + "' must be an integer.");
+                        throw new RuntimeError(RuntimeErrorKind.VALIDATION_ERROR, token, "Rule 'max' for field '" + fieldName + "' must be an integer.");
                     }
 
                     // Check pattern rule type validation
                     Object patternRule = rules.get("pattern");
                     if (patternRule != null && !(patternRule instanceof String)) {
-                        throw new RuntimeError(token, "Rule 'pattern' for field '" + fieldName + "' must be a string.");
+                        throw new RuntimeError(RuntimeErrorKind.VALIDATION_ERROR, token, "Rule 'pattern' for field '" + fieldName + "' must be a string.");
                     }
 
                     // Check in rule type validation
                     Object inRule = rules.get("in");
                     if (inRule != null && !(inRule instanceof List)) {
-                        throw new RuntimeError(token, "Rule 'in' for field '" + fieldName + "' must be a list.");
+                        throw new RuntimeError(RuntimeErrorKind.VALIDATION_ERROR, token, "Rule 'in' for field '" + fieldName + "' must be a list.");
                     }
 
                     // Perform actual validations

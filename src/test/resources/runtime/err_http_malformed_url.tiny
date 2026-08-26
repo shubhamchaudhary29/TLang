@@ -1,5 +1,5 @@
 // Expected exit code: 70
-// Expected error: Runtime error: Malformed URL 'not a url'
+// Expected error: HttpError: Malformed URL 'not a url'
 import http
 
 // Malformed URL without scheme

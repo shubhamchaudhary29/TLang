@@ -1,5 +1,5 @@
 // Expected exit code: 70
-// Expected error: Runtime error: First argument to 'check' must be a map.
+// Expected error: ValidationError: First argument to 'check' must be a map.
 import validate
 
 // Passing non-map as first argument

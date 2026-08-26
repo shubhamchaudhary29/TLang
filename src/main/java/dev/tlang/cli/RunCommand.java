@@ -42,7 +42,7 @@ public final class RunCommand implements Command {
     private void run(String source, String fileName) {
         try {
             // Stage 1: Lexing
-            Lexer lexer = new Lexer(source);
+            Lexer lexer = new Lexer(source, fileName);
             List<Token> tokens = lexer.tokenize();
 
             // Stage 2: Parsing
@@ -83,15 +83,11 @@ public final class RunCommand implements Command {
             ));
             System.exit(e.getExitCode());
         } catch (RuntimeError e) {
-            Token t = e.getToken();
-            if (t != null) {
-                System.err.println(ErrorFormatter.format(source, fileName, t.getLine(), t.getColumn(), "Runtime error", e.getMessage()));
-            } else {
-                System.err.println(ErrorFormatter.format(source, fileName, 0, 0, "Runtime error", e.getMessage()));
-            }
+            System.err.println(ErrorFormatter.format(e));
             System.exit(70);
         } catch (StackOverflowError e) {
-            System.err.println(ErrorFormatter.format(source, fileName, 0, 0, "Runtime error", "Maximum recursion depth exceeded (limit: 1000)."));
+            System.err.println(ErrorFormatter.format(new RuntimeError(
+                null, "Maximum recursion depth exceeded (limit: 1000).")));
             System.exit(70);
         }
     }
