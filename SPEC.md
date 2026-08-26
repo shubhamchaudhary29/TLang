@@ -32,6 +32,7 @@ All tokens in TLang belong to one of the following categories defined in `TokenT
   - Output: `SHOW` (`show`)
   - Control Flow: `IF` (`if`), `OTHERWISE` (`otherwise`), `WHILE` (`while`), `BREAK` (`break`), `CONTINUE` (`continue`), `REPEAT` (`repeat`), `TIMES` (`times`), `AS` (`as`)
   - Functions & Lambdas: `DEFINE` (`define`), `TAKING` (`taking`), `RETURN` (`return`), `FUNCTION` (`function`)
+  - Structured tasks: `SPAWN` (`spawn`), `AWAIT` (`await`)
   - Boolean values: `TRUE` (`true`), `FALSE` (`false`)
   - Null/nil values: `NIL` (`nil`)
 
@@ -121,7 +122,8 @@ term           ::= factor ( ( "+" | "-" ) factor )* ;
 
 factor         ::= unary ( ( "*" | "/" | "%" ) unary )* ;
 
-unary          ::= ( "not" | "-" ) unary
+unary          ::= ( "not" | "-" | "await" ) unary
+                 | "spawn" call
                  | call ;
 
 call           ::= primary ( "(" arguments? ")" | "[" expression "]" | "." IDENTIFIER )* ;
@@ -153,7 +155,7 @@ The following table lists operators from lowest precedence (parsed first) to hig
 | 4 | `<`, `<=`, `>`, `>=` | Relational Comparisons | `comparison` |
 | 5 | `+`, `-` | Addition, Subtraction (String Concatenation) | `term` |
 | 6 | `*`, `/`, `%` | Multiplication, Division, Modulo | `factor` |
-| 7 | `not`, `-` (unary) | Boolean Negation, Unary Minus | `unary` |
+| 7 | `not`, `-`, `await`, `spawn` | Unary operations and task boundaries | `unary` |
 | 8 | `( )`, `[ ]`, `.` | Calls, Indexing, Field Access | `call` |
 | 9 | Literals, Grouping | Numbers, Strings, Lambdas, Lists, Maps | `primary` |
 
@@ -227,7 +229,7 @@ let multiply be function taking a and b
   location, and an immutable list of TLang stack frames.
 - Defined categories are `RuntimeError`, `TypeError`, `NameError`,
   `ImportError`, `DatabaseError`, `HttpError`, `ValidationError`, `IndexError`,
-  and `ArityError`.
+  `ArityError`, and `TaskError`.
 - The primary location identifies the expression that failed. Tokens retain
   their immutable source-unit identity, including across user modules,
   closures, and string interpolation.
@@ -269,23 +271,61 @@ let multiply be function taking a and b
   responses. Detailed TLang frames, source paths, request data, native details,
   and Java causes are not exposed to the client.
 
-The HTTP host runtime provides concurrency; the language itself does not add
-async syntax or a general thread-spawning primitive.
+HTTP workers remain a bounded fixed pool. TLang background tasks are a separate
+runtime facility and do not replace or resize that pool.
 
 ---
 
-## 7. Explicitly Out of Scope for v1
+## 7. Structured Task Semantics
+
+- `spawn` accepts a function-call expression, evaluates its callee and every
+  argument synchronously and left-to-right on the caller cursor, then schedules
+  the resolved callable and values. `spawn 10` and `spawn functionValue` are
+  parse errors because no call is invoked.
+- A successful `spawn` returns an opaque value of runtime type `task`. Stable
+  string forms describe only its pending, running, completed, or failed state.
+- Each task uses a fresh interpreter execution cursor with an independent
+  current-environment pointer and recursion depth. It shares the root task
+  runtime, program globals, closure environments, module loader, immutable AST,
+  native functions, and existing synchronized list/map state.
+- Tasks execute on Java 21 virtual threads. Each root interpreter owns its task
+  runtime; no process-global mutable executor exists. Admission rejects work
+  above `tlang.tasks.maxOutstanding` (default 1024) with `TaskError` rather than
+  waiting for capacity.
+- `await expression` evaluates its operand and requires type `task`. It blocks
+  the current TLang execution cursor; it is not coroutine suspension. Success
+  returns the exact task result. Repeated awaits reuse one completion and never
+  execute the call again.
+- Task failures retain their original category, primary source location, and
+  function/native frames. A spawn frame is stored with the immutable task
+  failure; every await adds a fresh outward await frame. Host implementation
+  exceptions become sanitized `TaskError` values with an internal cause.
+- A runtime-local wait graph rejects self, two-task, and longer dependency
+  cycles with `TaskError`. Cancellation and timeouts are not task semantics.
+- Mutable globals, lists, and maps retain the concurrent HTTP semantics above:
+  primitive operations are synchronized, but compound read-modify-write
+  expressions are not atomic.
+- Request maps contain copied TLang data and may be read by tasks. Response
+  mutation is owned by the request handler cursor; calling a response method
+  from a background task fails with `HttpError`.
+- Calling `await` inside an HTTP handler occupies that handler's fixed-pool
+  worker until completion. It does not convert the HTTP runtime to virtual
+  threads.
+
+---
+
+## 8. Explicitly Out of Scope for v1
 
 The following features are **explicitly out of scope** for TLang v1.0. Future tooling should be designed under the assumption that these are not supported, and any additions will require a revised specification:
 - **No try/catch exception handling**: Errors propagate to the containing host boundary. A CLI run terminates; an HTTP runtime error terminates only the affected request.
 - **No floating-point numbers**: All numeric operations are integer-only.
 - **No formal class syntax**: Objects are dynamic maps; there is no inheritance or prototype chain.
-- **No language-level async syntax**: TLang has no futures, promises, or async/await syntax. The HTTP host runtime may execute independent handlers concurrently using isolated interpreter execution cursors.
+- **No general async function model**: TLang has explicit blocking `spawn` and `await` task concurrency, but no `async define`, promises, chaining, callbacks, coroutine state machines, cancellation, or event loop.
 - **No bytecode VM**: The interpreter is a tree-walking interpreter running directly on the Java AST, and the host JVM handles memory management.
 
 ---
 
-## 8. Conformance Baseline
+## 9. Conformance Baseline
 
 - **Executable Suite**: The `.tiny` files located under `src/test/resources` (across the `lexer`, `parser`, `semantic`, `runtime`, and `integration` directories) define the formal conformance suite for TLang.
 - **Validation**: All changes to the language runtime must verify against this baseline using the `scripts/run_all_tests.sh` runner, which must remain 100% green.
@@ -293,11 +333,12 @@ The following features are **explicitly out of scope** for TLang v1.0. Future to
 
 ---
 
-## 9. See Also
+## 10. See Also
 
 For practical guides and reference material, see:
 - **[Getting Started Guide](docs/getting-started.md)**: A step-by-step introduction to installing and running TLang.
 - **[Language Reference Guide](docs/language-reference.md)**: A developer-friendly walkthrough of the language constructs.
 - **[Standard Library Reference](docs/stdlib/index.md)**: Comprehensive documentation on all built-in native modules.
 - **[Runtime Diagnostics](docs/errors.md)**: Runtime categories, source identity, TLang stack frames, and HTTP error security.
+- **[Structured Tasks](docs/tasks.md)**: Task syntax, scheduling, state, isolation, and operational limits.
 - **[Language Philosophy (LANGUAGE_PHILOSOPHY.md)](LANGUAGE_PHILOSOPHY.md)**: The developer-experience-first principles guiding TLang's design.

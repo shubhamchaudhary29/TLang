@@ -8,6 +8,7 @@ import java.util.*;
 
 import dev.tlang.interpreter.NativeFunction;
 import dev.tlang.errors.RuntimeError;
+import dev.tlang.errors.RuntimeErrorKind;
 import dev.tlang.types.Type;
 import dev.tlang.lexer.Token;
 import dev.tlang.interpreter.RuntimeCollections;
@@ -18,6 +19,7 @@ import dev.tlang.interpreter.RuntimeCollections;
  */
 public final class ResponseWrapper {
     private final HttpExchange exchange;
+    private final Thread ownerThread;
     private int statusCode = 200;
     private final Map<String, String> responseHeaders = new LinkedHashMap<>();
     private boolean sent = false;
@@ -27,6 +29,7 @@ public final class ResponseWrapper {
 
     public ResponseWrapper(HttpExchange exchange) {
         this.exchange = exchange;
+        this.ownerThread = Thread.currentThread();
         setupResMap();
     }
 
@@ -112,6 +115,10 @@ public final class ResponseWrapper {
     }
 
     private void checkSent(Token token) {
+        if (Thread.currentThread() != ownerThread) {
+            throw new RuntimeError(RuntimeErrorKind.HTTP_ERROR, token,
+                "HTTP responses may only be mutated by their request handler execution cursor.");
+        }
         if (sent) {
             throw new RuntimeError(token, "Response already sent. Exactly one response should ever be sent.");
         }

@@ -37,7 +37,7 @@ public enum TokenType {
     REPEAT, TIMES, AS,
 
     // Functions
-    DEFINE, TAKING, RETURN, FUNCTION,
+    DEFINE, TAKING, RETURN, FUNCTION, SPAWN, AWAIT,
 
     // Boolean keywords & values
     AND, OR, NOT,

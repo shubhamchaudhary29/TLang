@@ -40,6 +40,7 @@ another request's execution state.
 | Request, query, header, JSON-body, and path-parameter maps | Request-local | A new object graph is created for every exchange. |
 | Response status, headers, and body buffer | Request-local | Exactly one wrapper is created and flushed per exchange. Handler failures replace an unflushed partial response with a generic 500 response; detailed TLang diagnostics remain server-side. |
 | Runtime diagnostics | Immutable request-local values | Categories, source locations, and TLang frames are copied outward per failure. Simultaneous failures never share a mutable frame list. |
+| Background task cursor | Isolated cursor, shared runtime roots | Every task owns its environment pointer and recursion depth while sharing closures, globals, modules, synchronized collections, and its root-owned task scheduler. |
 | Module export cache | Thread-safe shared | First load is atomic; a user module executes once per `ModuleLoader`. Module failures preserve their source/category and never terminate the JVM. |
 | Native JSON/crypto/validation/filesystem/random utilities | Immutable or stateless shared | Temporary parsers, buffers, digests, and results are created per call. Shared inputs are read through stable snapshots. |
 | Config and cache module stores | Thread-safe shared | Backed by concurrent maps. Cache expiry removal is conditional on the entry observed. |
@@ -93,3 +94,8 @@ Detailed handler diagnostics are formatted to the server's standard error with
 an HTTP method/path frame. Remote clients receive only `500 Internal Server
 Error`; source paths, TLang/Java frames, native causes, and request secrets are
 not included. See [Runtime diagnostics](errors.md).
+
+Background tasks are separate from this executor. `spawn` uses virtual threads;
+`await` inside a handler blocks that handler's fixed-pool worker. Response
+wrappers enforce request-thread ownership, so tasks return data rather than
+writing responses. See [Structured tasks](tasks.md).

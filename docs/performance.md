@@ -45,6 +45,9 @@ specific commit and environment, not a universal performance guarantee.
   large deterministic programs.
 - Interpreter: arithmetic, loops, function calls, recursion, closures, lists,
   maps, and string operations using `.tiny` fixtures.
+- Structured tasks: a synchronous call baseline, trivial spawn/await, a small
+  task batch, and repeated awaits of one completion. These include fresh
+  interpreter creation and are overhead measurements, not speedup claims.
 - Standard library: JSON parsing/stringification and string joining.
 - Database: a controlled SQLite round trip in a fresh temporary directory whose
   path contains spaces; state is removed after every invocation.
@@ -104,8 +107,8 @@ tool and a representative application/database for production sizing.
 
 TLang currently uses a tree-walking interpreter. HTTP handler execution is
 concurrent, but CPU-bound handlers still consume one fixed-pool worker for their
-duration and synchronous filesystem, HTTP-client, and database calls block that
-request's worker. Bytecode/JIT work and language-level async syntax remain
+duration. Explicit tasks use virtual threads, while `await` blocks its current
+execution cursor. Bytecode/JIT work and coroutine/event-loop semantics remain
 separate future phases.
 
 Future optimization work should first capture a full JSON result and matching

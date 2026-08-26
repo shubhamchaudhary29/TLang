@@ -1,0 +1,6 @@
+define trivial
+    return 1
+let task be spawn trivial()
+let result be await task
+repeat 9 times as index
+    set result to await task

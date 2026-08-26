@@ -6,5 +6,7 @@ public enum StackFrameType {
     ANONYMOUS_FUNCTION,
     MODULE,
     NATIVE_FUNCTION,
-    HTTP_HANDLER
+    HTTP_HANDLER,
+    TASK_SPAWN,
+    TASK_AWAIT
 }

@@ -49,7 +49,7 @@ import dev.tlang.lexer.TokenType;
  *   comparison     → term ( ("<" | "<=" | ">" | ">=") term )*
  *   term           → factor ( ("+" | "-") factor )*
  *   factor         → unary ( ("*" | "/" | "%") unary )*
- *   unary          → ("not" | "-") unary | call
+ *   unary          → ("not" | "-" | "await") unary | "spawn" call | call
  *   call           → primary ( "(" arguments? ")" | "[" expression "]" | "." IDENTIFIER )*
  *   primary        → NUMBER | STRING | "true" | "false"
  *                  | IDENTIFIER | "(" expression ")"
@@ -362,6 +362,18 @@ public final class Parser {
             Expr operand = unary();
             return new UnaryExpr(operator, operand);
         }
+        if (match(TokenType.AWAIT)) {
+            Token keyword = previous();
+            return new AwaitExpr(keyword, unary());
+        }
+        if (match(TokenType.SPAWN)) {
+            Token keyword = previous();
+            Expr operand = call();
+            if (!(operand instanceof CallExpr callExpr)) {
+                throw error(keyword, "'spawn' must be followed by a function call.");
+            }
+            return new SpawnExpr(keyword, callExpr);
+        }
         return call();
     }
 
@@ -557,6 +569,7 @@ public final class Parser {
             case SHOW: case IF: case OTHERWISE: case WHILE:
             case REPEAT: case TIMES: case AS:
             case DEFINE: case TAKING: case RETURN: case FUNCTION:
+            case SPAWN: case AWAIT:
             case AND: case OR: case NOT:
             case TRUE: case FALSE:
                 return true;

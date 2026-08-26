@@ -194,6 +194,8 @@ public final class Resolver implements Expr.Visitor<Void>, Stmt.Visitor {
         if (e instanceof UnaryExpr) return ((UnaryExpr) e).getOperator().getLine();
         if (e instanceof LogicalExpr) return ((LogicalExpr) e).getOperator().getLine();
         if (e instanceof CallExpr) return ((CallExpr) e).getParen().getLine();
+        if (e instanceof SpawnExpr) return ((SpawnExpr) e).getKeyword().getLine();
+        if (e instanceof AwaitExpr) return ((AwaitExpr) e).getKeyword().getLine();
         if (e instanceof IndexExpr) return getExprLine(((IndexExpr) e).getCollection());
         if (e instanceof IndexSetExpr) return getExprLine(((IndexSetExpr) e).getCollection());
         if (e instanceof FieldAccessExpr) return getExprLine(((FieldAccessExpr) e).getObject());
@@ -377,6 +379,18 @@ public final class Resolver implements Expr.Visitor<Void>, Stmt.Visitor {
         for (Expr arg : expr.getArguments()) {
             resolve(arg);
         }
+        return null;
+    }
+
+    @Override
+    public Void visitSpawnExpr(SpawnExpr expr) {
+        resolve(expr.getCall());
+        return null;
+    }
+
+    @Override
+    public Void visitAwaitExpr(AwaitExpr expr) {
+        resolve(expr.getTask());
         return null;
     }
 

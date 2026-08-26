@@ -88,6 +88,13 @@ public class FormatterTest {
     }
 
     @Test
+    public void testSpawnAwaitFormatting() {
+        String source = "define work taking value\n    return value\nlet task be spawn work(41)\nlet result be (await task) + 1\n";
+        assertEquals(source, formatSource(source));
+        assertIdempotent(source);
+    }
+
+    @Test
     public void testFunctionSpacingAndBlankLines() {
         String source = "import std\nlet x be 1\ndefine foo\n    show x\ndefine bar taking a and b be 2\n    return a + b\n";
         assertIdempotent(source);

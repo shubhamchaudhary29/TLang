@@ -1,0 +1,10 @@
+// Expected exit code: 70
+// Expected error: at <await>
+define deepest
+    return 1 / 0
+
+define service
+    return deepest()
+
+let task be spawn service()
+let result be await task

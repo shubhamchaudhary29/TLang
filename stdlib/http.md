@@ -3,7 +3,7 @@
 ## Purpose
 Enables building HTTP servers and making client-side HTTP requests (GET, POST, PUT, DELETE) to integrate with external APIs and services.
 
-Client requests are synchronous. Server handlers execute concurrently on a bounded fixed worker pool. Every exchange receives an isolated interpreter execution cursor, request map, and response buffer while retaining access to program globals and closures.
+Client requests are synchronous when called normally and may be run in an explicit `spawn` task. Server handlers execute concurrently on a bounded fixed worker pool. Every exchange receives an isolated interpreter execution cursor, request map, and response buffer while retaining access to program globals and closures.
 
 ## API
 
@@ -148,7 +148,7 @@ server.start()
 ---
 
 ## Errors
-- **Type mismatch**: Passing non-string URLs or bodies, or a non-integer port, throws a `RuntimeError`:
+- **Type mismatch**: Passing non-string URLs or bodies, or a non-integer port, throws a `TypeError`:
   - `First argument to 'get' must be a string URL.`
   - `Headers argument to 'get' must be a map (got ...).`
   - `Port must be an integer.`
@@ -177,6 +177,8 @@ server.start()
 - **Route publication**: Routes and middleware are immutable while serving, so register all of them before `start()`.
 - **Header Case**: Incoming request header keys are lower-cased automatically (e.g. `req.headers.get("authorization")`).
 - **Synchronous Execution**: All client requests block the interpreter thread until completion or timeout (default timeout is 10 seconds).
+- **Task execution**: `spawn http.get(...)` runs that same blocking client operation on a task virtual thread. Awaiting it blocks only the awaiting cursor.
+- **Response ownership**: Request data may be read by a task, but `res` methods may only be called by the owning handler thread. A task attempting response mutation receives `HttpError`.
 - **Architecture details**: See [Concurrent HTTP runtime](../docs/concurrent-runtime.md).
 - **Diagnostic details**: See [Runtime diagnostics](../docs/errors.md).
 - **Lambda inside Map/List Literals**: Inline lambdas (`function taking req and res ...`) can be defined directly inside map/list literals (the lexer handles restoring newline tracking for the lambda block). For cleaner code organization, you can also declare the lambda first, store it in a variable, and reference it inside the map/list literal.

@@ -70,6 +70,10 @@ public final class Lexer {
         KEYWORDS.put("return",    TokenType.RETURN);
         KEYWORDS.put("function",  TokenType.FUNCTION);
 
+        // Structured background tasks
+        KEYWORDS.put("spawn",     TokenType.SPAWN);
+        KEYWORDS.put("await",     TokenType.AWAIT);
+
         // Boolean keywords
         KEYWORDS.put("and",       TokenType.AND);
         KEYWORDS.put("or",        TokenType.OR);

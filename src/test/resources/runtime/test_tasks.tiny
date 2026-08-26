@@ -1,0 +1,11 @@
+// Expected output:
+// task
+// 42
+// 42
+define calculate taking value
+    return value + 1
+
+let task be spawn calculate(41)
+show type_of(task)
+show await task
+show await task

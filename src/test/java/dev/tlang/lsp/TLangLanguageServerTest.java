@@ -71,6 +71,17 @@ public final class TLangLanguageServerTest {
     }
 
     @Test
+    public void testSpawnAwaitFileHasNoDiagnostics() {
+        String uri = "file:///tasks.tiny";
+        String source = "define work\n  return 42\nlet task be spawn work()\nshow await task\n";
+        server.getTextDocumentService().didOpen(new DidOpenTextDocumentParams(
+            new TextDocumentItem(uri, "tiny", 1, source)));
+
+        assertEquals(1, publishedDiagnostics.size());
+        assertTrue(publishedDiagnostics.get(0).getDiagnostics().isEmpty());
+    }
+
+    @Test
     public void testLexerError() {
         String uri = "file:///test_lexer.tiny";
         String source = "let x be 42\nshow @\n"; // '@' is an invalid token character
@@ -595,4 +606,3 @@ public final class TLangLanguageServerTest {
         return String.join("\n", lines);
     }
 }
-
