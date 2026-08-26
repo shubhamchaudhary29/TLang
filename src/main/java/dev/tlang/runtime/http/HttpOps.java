@@ -73,25 +73,41 @@ public final class HttpOps {
                 "Malformed URL '" + url + "': " + e.getMessage(), e);
         }
 
-        HttpRequest.Builder builder = HttpRequest.newBuilder()
-                .uri(uri)
-                .timeout(REQUEST_TIMEOUT);
+        HttpRequest.Builder builder;
+        try {
+            builder = HttpRequest.newBuilder()
+                    .uri(uri)
+                    .timeout(REQUEST_TIMEOUT);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeError(RuntimeErrorKind.HTTP_ERROR, token,
+                "Unsupported or invalid HTTP URL '" + url + "'.", e);
+        }
 
         // Apply custom headers
-        if (headers != null) {
-            for (Map.Entry<String, String> entry : headers.entrySet()) {
-                builder.header(entry.getKey(), entry.getValue());
+        try {
+            if (headers != null) {
+                for (Map.Entry<String, String> entry : headers.entrySet()) {
+                    builder.header(entry.getKey(), entry.getValue());
+                }
             }
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeError(RuntimeErrorKind.HTTP_ERROR, token,
+                "Invalid HTTP headers for request to '" + url + "'.", e);
         }
 
         // Set method and body
-        if (body != null) {
-            builder.method(method, HttpRequest.BodyPublishers.ofString(body));
-        } else {
-            builder.method(method, HttpRequest.BodyPublishers.noBody());
-        }
+        try {
+            if (body != null) {
+                builder.method(method, HttpRequest.BodyPublishers.ofString(body));
+            } else {
+                builder.method(method, HttpRequest.BodyPublishers.noBody());
+            }
 
-        return builder.build();
+            return builder.build();
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeError(RuntimeErrorKind.HTTP_ERROR, token,
+                "Invalid HTTP request to '" + url + "'.", e);
+        }
     }
 
     private static Map<String, Object> execute(HttpRequest request, String url, Token token) {
