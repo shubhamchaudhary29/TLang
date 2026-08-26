@@ -11,9 +11,12 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 import dev.tlang.interpreter.Interpreter;
+import dev.tlang.errors.ErrorFormatter;
 import dev.tlang.errors.RuntimeError;
+import dev.tlang.errors.RuntimeStackFrame;
 import dev.tlang.interpreter.NativeFunction;
 import dev.tlang.interpreter.RuntimeCollections;
 import dev.tlang.lexer.Token;
@@ -30,6 +33,7 @@ public final class ServerOps {
     private final int queueCapacity;
     private final Object lifecycleLock = new Object();
     private final String workerThreadPrefix;
+    private final Consumer<RuntimeError> diagnosticSink;
     private HttpServer server;
     private final List<Route> routes = new ArrayList<>();
     private final List<Object> middlewares = new ArrayList<>();
@@ -40,10 +44,14 @@ public final class ServerOps {
     private boolean stoppedPermanently = false;
 
     public ServerOps(int port) {
-        this(port, defaultWorkerCount(), DEFAULT_QUEUE_CAPACITY);
+        this(port, defaultWorkerCount(), DEFAULT_QUEUE_CAPACITY, ServerOps::reportDiagnostic);
     }
 
     public ServerOps(int port, int workerCount, int queueCapacity) {
+        this(port, workerCount, queueCapacity, ServerOps::reportDiagnostic);
+    }
+
+    ServerOps(int port, int workerCount, int queueCapacity, Consumer<RuntimeError> diagnosticSink) {
         if (workerCount < 1) {
             throw new IllegalArgumentException("HTTP worker count must be positive.");
         }
@@ -53,6 +61,7 @@ public final class ServerOps {
         this.port = port;
         this.workerCount = workerCount;
         this.queueCapacity = queueCapacity;
+        this.diagnosticSink = Objects.requireNonNull(diagnosticSink, "diagnosticSink");
         this.workerThreadPrefix = "tlang-http-" + SERVER_SEQUENCE.incrementAndGet() + "-worker-";
     }
 
@@ -181,15 +190,26 @@ public final class ServerOps {
                 throw new RuntimeError(dummyToken, "No response was sent by the handler or middleware.");
             }
         } catch (RuntimeError e) {
-            resWrapper.replaceWithError(500, "Runtime Error: " + e.getMessage());
+            RuntimeError diagnostic = e.withFrame(RuntimeStackFrame.httpHandler(
+                exchange.getRequestMethod(), Route.normalizePath(exchange.getRequestURI().getPath())));
+            diagnosticSink.accept(diagnostic);
+            resWrapper.replaceWithError(500, "Internal Server Error");
         } catch (Exception e) {
-            // Java implementation details and stack traces are intentionally not exposed to clients.
+            RuntimeError diagnostic = new RuntimeError(
+                dev.tlang.errors.RuntimeErrorKind.HTTP_ERROR,
+                null,
+                "Unexpected HTTP server failure.",
+                e
+            ).withFrame(RuntimeStackFrame.httpHandler(
+                exchange.getRequestMethod(), Route.normalizePath(exchange.getRequestURI().getPath())));
+            diagnosticSink.accept(diagnostic);
+            // Host implementation details are retained as the cause, never sent remotely.
             resWrapper.replaceWithError(500, "Internal Server Error");
         }
         resWrapper.flush();
     }
 
-    private void runChain(int index, Map<String, Object> reqMap, ResponseWrapper resWrapper, Interpreter interpreter, HttpExchange exchange) throws Exception {
+    private void runChain(int index, Map<String, Object> reqMap, ResponseWrapper resWrapper, Interpreter interpreter, HttpExchange exchange) throws IOException {
         if (index < activeMiddlewares.size()) {
             Object middlewareFn = activeMiddlewares.get(index);
             boolean[] nextCalled = new boolean[]{false};
@@ -206,8 +226,12 @@ public final class ServerOps {
                         runChain(index + 1, reqMap, resWrapper, interpreter, exchange);
                     } catch (RuntimeError e) {
                         throw e;
-                    } catch (Exception e) {
-                        throw new RuntimeError(token, e.getMessage());
+                    } catch (IOException e) {
+                        throw new RuntimeError(
+                            dev.tlang.errors.RuntimeErrorKind.HTTP_ERROR,
+                            token,
+                            "HTTP middleware chain failed.",
+                            e);
                     }
                     return null;
                 }
@@ -272,15 +296,17 @@ public final class ServerOps {
                 String decodedVal = rawVal;
                 try {
                     decodedVal = java.net.URLDecoder.decode(rawVal, java.nio.charset.StandardCharsets.UTF_8.name());
-                } catch (Exception e) {
+                } catch (IllegalArgumentException | java.io.UnsupportedEncodingException e) {
                     // Keep raw value on failure
                 }
                 params.put(paramName, decodedVal);
             }
         }
 
-        Token dummyToken = new Token(dev.tlang.lexer.TokenType.IDENTIFIER, "handler", null, 1);
-        interpreter.executeCallDirect(matchedRoute.handler, List.of(reqMap, resWrapper.asMap()), dummyToken);
+        interpreter.executeCallDirect(
+            matchedRoute.handler,
+            List.of(reqMap, resWrapper.asMap()),
+            matchedRoute.registrationToken);
     }
 
     private ThreadPoolExecutor createExecutor() {
@@ -313,5 +339,9 @@ public final class ServerOps {
             return configured;
         }
         return Math.min(32, Math.max(4, Runtime.getRuntime().availableProcessors()));
+    }
+
+    private static void reportDiagnostic(RuntimeError error) {
+        System.err.println(ErrorFormatter.format(error));
     }
 }

@@ -2,6 +2,9 @@ package dev.tlang.runtime.http;
 
 import dev.tlang.ast.Stmt;
 import dev.tlang.errors.RuntimeError;
+import dev.tlang.errors.RuntimeErrorKind;
+import dev.tlang.errors.RuntimeStackFrame;
+import dev.tlang.errors.StackFrameType;
 import dev.tlang.errors.SemanticError;
 import dev.tlang.interpreter.Environment;
 import dev.tlang.interpreter.Interpreter;
@@ -34,6 +37,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -166,9 +170,74 @@ class ConcurrentHttpServerTest {
         ));
 
         assertEquals(500, responses.get(0).statusCode());
-        assertTrue(responses.get(0).body().contains("Division by zero"));
+        assertEquals("Internal Server Error", responses.get(0).body());
         assertEquals("A", responses.get(1).body());
         assertEquals("B", responses.get(2).body());
+        assertTrue(server.isRunning());
+    }
+
+    @Test
+    void concurrentFailureDiagnosticsStayIsolatedAndRemoteResponsesStaySafe() throws Exception {
+        Interpreter interpreter = compile("""
+            define runtimeInner
+                return 1 / 0
+
+            define runtimeHandler taking req and res
+                return runtimeInner()
+
+            define typeInner
+                let value be 1
+                return value()
+
+            define typeHandler taking req and res
+                return typeInner()
+
+            define successHandler taking req and res
+                res.text(req.body)
+            """, Path.of("."));
+        List<RuntimeError> diagnostics = new CopyOnWriteArrayList<>();
+        ServerOps server = new ServerOps(0, 8, 256, diagnostics::add);
+        servers.add(server);
+        server.addRoute("POST", "/runtime/:id", global(interpreter, "runtimeHandler"), TOKEN);
+        server.addRoute("POST", "/type/:id", global(interpreter, "typeHandler"), TOKEN);
+        server.addRoute("POST", "/ok/:id", global(interpreter, "successHandler"), TOKEN);
+        server.start(interpreter, TOKEN);
+
+        List<CompletableFuture<HttpResponse<String>>> requests = new ArrayList<>();
+        for (int i = 0; i < 40; i++) {
+            requests.add(send(server, "POST", "/runtime/" + i, "runtime-secret-" + i,
+                Map.of("Authorization", "runtime-token-" + i, "Cookie", "session=runtime-" + i)));
+            requests.add(send(server, "POST", "/type/" + i, "type-secret-" + i,
+                Map.of("Authorization", "type-token-" + i, "Cookie", "session=type-" + i)));
+            requests.add(send(server, "POST", "/ok/" + i, "ok-" + i, Map.of()));
+        }
+        List<HttpResponse<String>> responses = await(requests);
+
+        for (int i = 0; i < responses.size(); i += 3) {
+            assertSafeInternalError(responses.get(i));
+            assertSafeInternalError(responses.get(i + 1));
+            assertEquals(200, responses.get(i + 2).statusCode());
+            assertEquals("ok-" + (i / 3), responses.get(i + 2).body());
+        }
+        assertEquals(80, diagnostics.size());
+        for (RuntimeError diagnostic : diagnostics) {
+            List<RuntimeStackFrame> frames = diagnostic.getFrames();
+            assertEquals(3, frames.size());
+            assertEquals(StackFrameType.HTTP_HANDLER, frames.get(2).type());
+            assertEquals(1, frames.stream().filter(frame -> frame.type() == StackFrameType.HTTP_HANDLER).count());
+            if (diagnostic.getKind() == RuntimeErrorKind.RUNTIME_ERROR) {
+                assertEquals(List.of("runtimeInner", "runtimeHandler"),
+                    frames.subList(0, 2).stream().map(RuntimeStackFrame::name).toList());
+                assertTrue(frames.get(2).name().startsWith("POST /runtime/"));
+                assertFalse(frames.stream().anyMatch(frame -> frame.name().contains("type")));
+            } else {
+                assertEquals(RuntimeErrorKind.TYPE_ERROR, diagnostic.getKind());
+                assertEquals(List.of("typeInner", "typeHandler"),
+                    frames.subList(0, 2).stream().map(RuntimeStackFrame::name).toList());
+                assertTrue(frames.get(2).name().startsWith("POST /type/"));
+                assertFalse(frames.stream().anyMatch(frame -> frame.name().contains("runtime")));
+            }
+        }
         assertTrue(server.isRunning());
     }
 
@@ -402,13 +471,25 @@ class ConcurrentHttpServerTest {
     }
 
     private static Interpreter compile(String source, Path scriptDir) {
-        List<Token> tokens = new Lexer(source).tokenize();
+        List<Token> tokens = new Lexer(
+            source, scriptDir.resolve("concurrent-http-test.tiny").toString()).tokenize();
         List<Stmt> statements = new Parser(tokens).parse();
         List<SemanticError> errors = new Resolver().resolve(statements);
         assertTrue(errors.isEmpty(), () -> "semantic errors: " + errors);
         Interpreter interpreter = new Interpreter(new ModuleLoader(scriptDir));
         interpreter.interpret(statements);
         return interpreter;
+    }
+
+    private static void assertSafeInternalError(HttpResponse<String> response) {
+        assertEquals(500, response.statusCode());
+        assertEquals("Internal Server Error", response.body());
+        assertFalse(response.body().contains("secret"));
+        assertFalse(response.body().contains("token"));
+        assertFalse(response.body().contains("Cookie"));
+        assertFalse(response.body().contains("dev.tlang"));
+        assertFalse(response.body().contains("java."));
+        assertFalse(response.body().contains(".tiny"));
     }
 
     private static Object global(Interpreter interpreter, String name) {

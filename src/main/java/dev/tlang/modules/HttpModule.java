@@ -7,6 +7,7 @@ import java.util.Map;
 import dev.tlang.lexer.Token;
 import dev.tlang.types.Type;
 import dev.tlang.errors.RuntimeError;
+import dev.tlang.errors.RuntimeErrorKind;
 import dev.tlang.interpreter.NativeFunction;
 import dev.tlang.interpreter.Interpreter;
 import dev.tlang.runtime.http.HttpOps;
@@ -22,7 +23,8 @@ public final class HttpModule implements NativeModule {
             public Object call(List<Object> args, Token token) {
                 Object urlVal = args.get(0);
                 if (Type.of(urlVal) != Type.STRING) {
-                    throw new RuntimeError(token, "First argument to 'get' must be a string URL.");
+                    throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, token,
+                        "First argument to 'get' must be a string URL.");
                 }
                 Map<String, String> headers = extractHeaders(args, 1, "get", token);
                 return HttpOps.get((String) urlVal, headers, token);
@@ -35,10 +37,12 @@ public final class HttpModule implements NativeModule {
                 Object urlVal = args.get(0);
                 Object bodyVal = args.get(1);
                 if (Type.of(urlVal) != Type.STRING) {
-                    throw new RuntimeError(token, "First argument to 'post' must be a string URL.");
+                    throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, token,
+                        "First argument to 'post' must be a string URL.");
                 }
                 if (Type.of(bodyVal) != Type.STRING) {
-                    throw new RuntimeError(token, "Second argument to 'post' must be a string body.");
+                    throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, token,
+                        "Second argument to 'post' must be a string body.");
                 }
                 Map<String, String> headers = extractHeaders(args, 2, "post", token);
                 return HttpOps.post((String) urlVal, (String) bodyVal, headers, token);
@@ -51,10 +55,12 @@ public final class HttpModule implements NativeModule {
                 Object urlVal = args.get(0);
                 Object bodyVal = args.get(1);
                 if (Type.of(urlVal) != Type.STRING) {
-                    throw new RuntimeError(token, "First argument to 'put' must be a string URL.");
+                    throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, token,
+                        "First argument to 'put' must be a string URL.");
                 }
                 if (Type.of(bodyVal) != Type.STRING) {
-                    throw new RuntimeError(token, "Second argument to 'put' must be a string body.");
+                    throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, token,
+                        "Second argument to 'put' must be a string body.");
                 }
                 Map<String, String> headers = extractHeaders(args, 2, "put", token);
                 return HttpOps.put((String) urlVal, (String) bodyVal, headers, token);
@@ -66,7 +72,8 @@ public final class HttpModule implements NativeModule {
             public Object call(List<Object> args, Token token) {
                 Object urlVal = args.get(0);
                 if (Type.of(urlVal) != Type.STRING) {
-                    throw new RuntimeError(token, "First argument to 'delete' must be a string URL.");
+                    throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, token,
+                        "First argument to 'delete' must be a string URL.");
                 }
                 Map<String, String> headers = extractHeaders(args, 1, "delete", token);
                 return HttpOps.delete((String) urlVal, headers, token);
@@ -78,7 +85,8 @@ public final class HttpModule implements NativeModule {
             public Object call(List<Object> args, Token token) {
                 Object portVal = args.get(0);
                 if (Type.of(portVal) != Type.NUMBER) {
-                    throw new RuntimeError(token, "Port must be an integer.");
+                    throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, token,
+                        "Port must be an integer.");
                 }
                 int port = (Integer) portVal;
                 if (port < 1 || port > 65535) {
@@ -94,7 +102,12 @@ public final class HttpModule implements NativeModule {
                         Object pathVal = subArgs.get(1);
                         Object handlerVal = subArgs.get(2);
                         if (Type.of(pathVal) != Type.STRING) {
-                            throw new RuntimeError(subToken, "Route path must be a string.");
+                            throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, subToken,
+                                "Route path must be a string.");
+                        }
+                        if (Type.of(handlerVal) != Type.FUNCTION) {
+                            throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, subToken,
+                                "Route handler must be a function.");
                         }
                         serverOps.addRoute("GET", (String) pathVal, handlerVal, subToken);
                         return serverMap;
@@ -107,7 +120,12 @@ public final class HttpModule implements NativeModule {
                         Object pathVal = subArgs.get(1);
                         Object handlerVal = subArgs.get(2);
                         if (Type.of(pathVal) != Type.STRING) {
-                            throw new RuntimeError(subToken, "Route path must be a string.");
+                            throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, subToken,
+                                "Route path must be a string.");
+                        }
+                        if (Type.of(handlerVal) != Type.FUNCTION) {
+                            throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, subToken,
+                                "Route handler must be a function.");
                         }
                         serverOps.addRoute("POST", (String) pathVal, handlerVal, subToken);
                         return serverMap;
@@ -120,7 +138,12 @@ public final class HttpModule implements NativeModule {
                         Object pathVal = subArgs.get(1);
                         Object handlerVal = subArgs.get(2);
                         if (Type.of(pathVal) != Type.STRING) {
-                            throw new RuntimeError(subToken, "Route path must be a string.");
+                            throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, subToken,
+                                "Route path must be a string.");
+                        }
+                        if (Type.of(handlerVal) != Type.FUNCTION) {
+                            throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, subToken,
+                                "Route handler must be a function.");
                         }
                         serverOps.addRoute("PUT", (String) pathVal, handlerVal, subToken);
                         return serverMap;
@@ -133,7 +156,12 @@ public final class HttpModule implements NativeModule {
                         Object pathVal = subArgs.get(1);
                         Object handlerVal = subArgs.get(2);
                         if (Type.of(pathVal) != Type.STRING) {
-                            throw new RuntimeError(subToken, "Route path must be a string.");
+                            throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, subToken,
+                                "Route path must be a string.");
+                        }
+                        if (Type.of(handlerVal) != Type.FUNCTION) {
+                            throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, subToken,
+                                "Route handler must be a function.");
                         }
                         serverOps.addRoute("DELETE", (String) pathVal, handlerVal, subToken);
                         return serverMap;
@@ -144,6 +172,10 @@ public final class HttpModule implements NativeModule {
                     @Override
                     public Object call(List<Object> subArgs, Token subToken) {
                         Object middlewareFn = subArgs.get(1);
+                        if (Type.of(middlewareFn) != Type.FUNCTION) {
+                            throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, subToken,
+                                "Middleware must be a function.");
+                        }
                         serverOps.addMiddleware(middlewareFn, subToken);
                         return serverMap;
                     }
@@ -181,14 +213,14 @@ public final class HttpModule implements NativeModule {
         }
         Object headersArg = args.get(index);
         if (Type.of(headersArg) != Type.MAP) {
-            throw new RuntimeError(token,
+            throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, token,
                     "Headers argument to '" + fnName + "' must be a map (got " + Type.of(headersArg).displayName() + ").");
         }
         Map<String, Object> raw = RuntimeCollections.snapshot((Map<String, Object>) headersArg);
         Map<String, String> result = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry : raw.entrySet()) {
             if (Type.of(entry.getValue()) != Type.STRING) {
-                throw new RuntimeError(token,
+                throw new RuntimeError(RuntimeErrorKind.TYPE_ERROR, token,
                         "Header values must be strings (key '" + entry.getKey() + "' has type " + Type.of(entry.getValue()).displayName() + ").");
             }
             result.put(entry.getKey(), (String) entry.getValue());

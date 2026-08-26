@@ -13,11 +13,13 @@ public final class Route {
     public final String normalizedPath;
     public final List<String> segments;
     public final Object handler;
+    public final Token registrationToken;
 
     public Route(String method, String originalPath, Object handler, Token token) {
         this.method = method;
         this.originalPath = originalPath;
         this.handler = handler;
+        this.registrationToken = token;
         this.normalizedPath = normalizePath(originalPath);
         this.segments = getSegments(normalizedPath);
 

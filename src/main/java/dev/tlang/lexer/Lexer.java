@@ -27,6 +27,7 @@ import java.util.Collections;
 public final class Lexer {
 
     private final String source;
+    private final SourceUnit sourceUnit;
     private final List<Token> tokens = new ArrayList<>();
     private final Deque<Integer> indentStack = new ArrayDeque<>();
     private int braceBracketDepth = 0;
@@ -34,8 +35,8 @@ public final class Lexer {
 
     private int start   = 0;
     private int current = 0;
-    private int line    = 1;
-    private int lineStart = 0;
+    private int line;
+    private int lineStart;
     private boolean atLineStart = true;
 
     private static final Map<String, TokenType> KEYWORDS = new HashMap<>();
@@ -81,7 +82,18 @@ public final class Lexer {
     }
 
     public Lexer(String source) {
+        this(source, "");
+    }
+
+    public Lexer(String source, String sourceName) {
+        this(source, new SourceUnit(sourceName, source), 1, 1);
+    }
+
+    public Lexer(String source, SourceUnit sourceUnit, int initialLine, int initialColumn) {
         this.source = source;
+        this.sourceUnit = sourceUnit == null ? SourceUnit.unknown() : sourceUnit;
+        this.line = Math.max(1, initialLine);
+        this.lineStart = 1 - Math.max(1, initialColumn);
         this.indentStack.push(0);
     }
 
@@ -416,13 +428,13 @@ public final class Lexer {
 
     private void addToken(TokenType type, Object literal, int tokenLine, int tokenColumn) {
         String text = source.substring(start, current);
-        tokens.add(new Token(type, text, literal, tokenLine, tokenColumn));
+        tokens.add(new Token(type, text, literal, tokenLine, tokenColumn, sourceUnit));
     }
 
     /** Add a synthetic token with no source text (NEWLINE, INDENT, DEDENT, EOF). */
     private void addSimple(TokenType type) {
         int col = current - lineStart + 1;
-        tokens.add(new Token(type, "", null, line, col));
+        tokens.add(new Token(type, "", null, line, col, sourceUnit));
     }
 
     private TokenType lastTokenType() {

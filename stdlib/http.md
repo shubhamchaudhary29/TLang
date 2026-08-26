@@ -153,7 +153,7 @@ server.start()
   - `Headers argument to 'get' must be a map (got ...).`
   - `Port must be an integer.`
   - `Port must be in the range 1-65535 (got ...).`
-- **Connection Failure**: If a client-side HTTP request fails, it throws a `RuntimeError`:
+- **Connection Failure**: If a client-side HTTP request fails, it throws an `HttpError`:
   - `HTTP request to '...' failed: <reason>`
 - **Port already in use / Startup failure**:
   - `Failed to start HTTP server on port 8080: Address already in use`
@@ -164,6 +164,10 @@ server.start()
 - **Lifecycle mistakes**:
   - Registering a route or middleware after start: `Routes and middleware cannot be registered after the HTTP server starts.`
   - Restarting a stopped server: `HTTP server instances cannot be restarted after stop().`
+- **Handler failures**: A detailed source-aware TLang diagnostic is written
+  server-side, while the remote client receives only status `500` with body
+  `Internal Server Error`. Source paths, stack frames, request secrets, native
+  causes, and Java implementation details are never returned to the client.
 
 ---
 
@@ -174,4 +178,5 @@ server.start()
 - **Header Case**: Incoming request header keys are lower-cased automatically (e.g. `req.headers.get("authorization")`).
 - **Synchronous Execution**: All client requests block the interpreter thread until completion or timeout (default timeout is 10 seconds).
 - **Architecture details**: See [Concurrent HTTP runtime](../docs/concurrent-runtime.md).
+- **Diagnostic details**: See [Runtime diagnostics](../docs/errors.md).
 - **Lambda inside Map/List Literals**: Inline lambdas (`function taking req and res ...`) can be defined directly inside map/list literals (the lexer handles restoring newline tracking for the lambda block). For cleaner code organization, you can also declare the lambda first, store it in a variable, and reference it inside the map/list literal.

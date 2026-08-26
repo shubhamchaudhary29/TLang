@@ -593,7 +593,8 @@ public final class Parser {
 
     /** Create a synthetic token for desugared AST construction. */
     private Token syntheticToken(TokenType type, String lexeme) {
-        return new Token(type, lexeme, null, peek().getLine());
+        Token anchor = peek();
+        return new Token(type, lexeme, null, anchor.getLine(), anchor.getColumn(), anchor.getSourceUnit());
     }
 
     /** Expose a method to parse a single expression only, ensuring all tokens are consumed. */
@@ -607,9 +608,9 @@ public final class Parser {
         return expr;
     }
 
-    private Expr parseSubExpression(String source, Token outerToken) {
+    private Expr parseSubExpression(String source, Token outerToken, int line, int column) {
         try {
-            Lexer lexer = new Lexer(source);
+            Lexer lexer = new Lexer(source, outerToken.getSourceUnit(), line, column);
             List<Token> subTokens = lexer.tokenize();
             Parser parser = new Parser(subTokens);
             return parser.parseExpressionOnly();
@@ -651,7 +652,18 @@ public final class Parser {
             String exprSource = value.substring(exprStart, j - 1);
             i = j;
 
-            Expr parsedExpr = parseSubExpression(exprSource, outerToken);
+            int expressionLine = outerToken.getLine();
+            int expressionColumn = outerToken.getColumn() + 1;
+            for (int offset = 0; offset < exprStart; offset++) {
+                if (value.charAt(offset) == '\n') {
+                    expressionLine++;
+                    expressionColumn = 1;
+                } else {
+                    expressionColumn++;
+                }
+            }
+            Expr parsedExpr = parseSubExpression(
+                exprSource, outerToken, expressionLine, expressionColumn);
             parts.add(parsedExpr);
         }
 
@@ -667,7 +679,13 @@ public final class Parser {
             if (result == null) {
                 result = part;
             } else {
-                Token plus = new Token(TokenType.PLUS, "+", null, outerToken.getLine());
+                Token plus = new Token(
+                    TokenType.PLUS,
+                    "+",
+                    null,
+                    outerToken.getLine(),
+                    outerToken.getColumn(),
+                    outerToken.getSourceUnit());
                 result = new BinaryExpr(result, plus, part);
             }
         }

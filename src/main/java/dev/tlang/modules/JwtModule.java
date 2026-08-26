@@ -62,8 +62,10 @@ public final class JwtModule implements NativeModule {
                     String sigB64 = base64UrlEncode(sigBytes);
 
                     return signingInput + "." + sigB64;
-                } catch (Exception e) {
-                    throw new RuntimeError(token, "JWT signing failed: " + e.getMessage());
+                } catch (RuntimeError e) {
+                    throw e;
+                } catch (IllegalArgumentException e) {
+                    throw new RuntimeError(token, "JWT signing failed.", e);
                 }
             }
         });

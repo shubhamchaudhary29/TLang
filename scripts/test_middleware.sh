@@ -101,7 +101,7 @@ status_500=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8086/no-res
 check_equals "GET /no-response status" "$status_500" "500"
 
 body_500=$(curl -s http://localhost:8086/no-response)
-check_contains "GET /no-response body fallback message" "$body_500" "No response was sent by the handler or middleware"
+check_equals "GET /no-response safe body" "$body_500" "Internal Server Error"
 
 # 7. Check Logger output on stdout
 logs=$(cat server.log)

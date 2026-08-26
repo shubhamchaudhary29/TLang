@@ -107,11 +107,11 @@ check_equals "GET /status body" "$body" "Created"
 res=$(curl -s http://localhost:8085/json)
 check_equals "GET /json" "$res" '{"message":"success","code":100}'
 
-# 7. GET /double-send (Check that it throws and returns 500)
+# 7. GET /double-send (internal diagnostic stays server-side)
 status_code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8085/double-send)
 body=$(curl -s http://localhost:8085/double-send)
 check_equals "GET /double-send code" "$status_code" "500"
-check_contains "GET /double-send body" "$body" "Response already sent"
+check_equals "GET /double-send safe body" "$body" "Internal Server Error"
 
 # 8. GET /non-existent (Check 404)
 status_code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8085/non-existent)

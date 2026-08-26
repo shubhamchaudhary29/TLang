@@ -107,17 +107,15 @@ public final class MailModule implements NativeModule {
 
                     Transport.send(message);
                 } catch (javax.mail.AuthenticationFailedException e) {
-                    throw new RuntimeError(token, "SMTP authentication failed: " + e.getMessage());
+                    throw new RuntimeError(token, "SMTP authentication failed: " + e.getMessage(), e);
                 } catch (javax.mail.MessagingException e) {
                     Throwable cause = e.getCause();
-                    String msg = e.getMessage() != null ? e.getMessage() : e.toString();
+                    String msg = e.getMessage() != null ? e.getMessage() : "mail provider error";
                     if (cause instanceof java.net.ConnectException || cause instanceof java.net.UnknownHostException || msg.contains("Could not connect to SMTP host")) {
-                        throw new RuntimeError(token, "SMTP connection failed: " + msg);
+                        throw new RuntimeError(token, "SMTP connection failed: " + msg, e);
                     } else {
-                        throw new RuntimeError(token, "SMTP message sending failed: " + msg);
+                        throw new RuntimeError(token, "SMTP message sending failed: " + msg, e);
                     }
-                } catch (Exception e) {
-                    throw new RuntimeError(token, "SMTP message sending failed: " + e.getMessage());
                 }
 
                 return null;

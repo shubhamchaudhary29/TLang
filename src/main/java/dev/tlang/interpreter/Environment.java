@@ -1,6 +1,7 @@
 package dev.tlang.interpreter;
 
 import dev.tlang.errors.RuntimeError;
+import dev.tlang.errors.RuntimeErrorKind;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -49,7 +50,7 @@ public final class Environment {
         if (enclosing != null) {
             return enclosing.get(name);
         }
-        throw new RuntimeError(name,
+        throw new RuntimeError(RuntimeErrorKind.NAME_ERROR, name,
                 "Undefined variable '" + name.getLexeme() + "'.");
     }
 
@@ -68,7 +69,7 @@ public final class Environment {
             enclosing.assign(name, value);
             return;
         }
-        throw new RuntimeError(name,
+        throw new RuntimeError(RuntimeErrorKind.NAME_ERROR, name,
                 "Undefined variable '" + name.getLexeme() + "'.");
     }
 

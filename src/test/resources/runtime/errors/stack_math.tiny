@@ -1,0 +1,2 @@
+define divide taking value and divisor
+    return value / divisor

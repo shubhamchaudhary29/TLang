@@ -1,0 +1,7 @@
+// Expected exit code: 70
+import stack_service
+
+define handleRequest
+    return stack_service.buildReport(42)
+
+handleRequest()

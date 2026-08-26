@@ -33,8 +33,9 @@ public final class LspCommand implements Command {
             // Block main thread until the communication channel is closed (e.g. IDE exits/closes connection)
             future.get();
         } catch (Exception e) {
-            System.err.println("LSP Server error: " + e.getMessage());
-            e.printStackTrace(System.err);
+            String message = e.getMessage();
+            System.err.println("LSP Server error"
+                + (message == null || message.isBlank() ? "." : ": " + message));
             System.exit(1);
         }
     }

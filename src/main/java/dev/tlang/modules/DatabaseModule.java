@@ -14,6 +14,7 @@ import java.util.Map;
 import dev.tlang.lexer.Token;
 import dev.tlang.types.Type;
 import dev.tlang.errors.RuntimeError;
+import dev.tlang.errors.RuntimeErrorKind;
 import dev.tlang.interpreter.NativeFunction;
 import dev.tlang.interpreter.RuntimeCollections;
 
@@ -26,7 +27,7 @@ public final class DatabaseModule implements NativeModule {
             public Object call(List<Object> args, Token token) {
                 Object pathObj = args.get(0);
                 if (Type.of(pathObj) != Type.STRING) {
-                    throw new RuntimeError(token, "Database path must be a string.");
+                    throw new RuntimeError(RuntimeErrorKind.DATABASE_ERROR, token, "Database path must be a string.");
                 }
                 String path = (String) pathObj;
                 String url = "jdbc:sqlite:" + path;
@@ -45,23 +46,23 @@ public final class DatabaseModule implements NativeModule {
                             synchronized (connectionLock) {
                             Connection connVal = connRef[0];
                             if (connVal == null) {
-                                throw new RuntimeError(subToken, "Connection is closed.");
+                                throw new RuntimeError(RuntimeErrorKind.DATABASE_ERROR, subToken, "Connection is closed.");
                             }
                             try {
                                 if (connVal.isClosed()) {
-                                    throw new RuntimeError(subToken, "Connection is closed.");
+                                    throw new RuntimeError(RuntimeErrorKind.DATABASE_ERROR, subToken, "Connection is closed.");
                                 }
                             } catch (SQLException e) {
-                                throw new RuntimeError(subToken, "Database error: " + e.getMessage());
+                                throw new RuntimeError(RuntimeErrorKind.DATABASE_ERROR, subToken, databaseMessage(e), e);
                             }
 
                             Object sqlObj = subArgs.get(1);
                             Object paramsObj = subArgs.get(2);
                             if (Type.of(sqlObj) != Type.STRING) {
-                                throw new RuntimeError(subToken, "SQL query must be a string.");
+                                throw new RuntimeError(RuntimeErrorKind.DATABASE_ERROR, subToken, "SQL query must be a string.");
                             }
                             if (!(paramsObj instanceof List)) {
-                                throw new RuntimeError(subToken, "Parameters must be a list.");
+                                throw new RuntimeError(RuntimeErrorKind.DATABASE_ERROR, subToken, "Parameters must be a list.");
                             }
                             String sql = (String) sqlObj;
                             List<?> params = RuntimeCollections.snapshot((List<?>) paramsObj);
@@ -82,7 +83,7 @@ public final class DatabaseModule implements NativeModule {
                             }
 
                             if (expectedParams != params.size()) {
-                                throw new RuntimeError(subToken, "Expected " + expectedParams + " parameters, but got " + params.size() + ".");
+                                throw new RuntimeError(RuntimeErrorKind.DATABASE_ERROR, subToken, "Expected " + expectedParams + " parameters, but got " + params.size() + ".");
                             }
 
                             try (PreparedStatement stmt = connVal.prepareStatement(sql)) {
@@ -98,7 +99,7 @@ public final class DatabaseModule implements NativeModule {
                                     } else if (param instanceof Boolean) {
                                         stmt.setInt(paramIdx, (Boolean) param ? 1 : 0);
                                     } else {
-                                        throw new RuntimeError(subToken, "Unsupported parameter type: " + Type.of(param));
+                                        throw new RuntimeError(RuntimeErrorKind.DATABASE_ERROR, subToken, "Unsupported parameter type: " + Type.of(param));
                                     }
                                 }
 
@@ -119,27 +120,28 @@ public final class DatabaseModule implements NativeModule {
                                             } else if (val instanceof Long) {
                                                 long longVal = (Long) val;
                                                 if (longVal < Integer.MIN_VALUE || longVal > Integer.MAX_VALUE) {
-                                                    throw new RuntimeError(subToken, "Integer overflow: SQLite value " + longVal + " does not fit in a 32-bit integer.");
+                                                    throw new RuntimeError(RuntimeErrorKind.DATABASE_ERROR, subToken, "Integer overflow: SQLite value " + longVal + " does not fit in a 32-bit integer.");
                                                 }
                                                 tlangVal = (int) longVal;
                                             } else if (val instanceof Double || val instanceof Float) {
                                                 double dVal = ((Number) val).doubleValue();
                                                 if (dVal % 1 != 0) {
-                                                    throw new RuntimeError(subToken, "Floating point values with nonzero fractional parts (like " + dVal + ") are not supported in TLang.");
+                                                    throw new RuntimeError(RuntimeErrorKind.DATABASE_ERROR, subToken, "Floating point values with nonzero fractional parts (like " + dVal + ") are not supported in TLang.");
                                                 }
                                                 if (dVal < Integer.MIN_VALUE || dVal > Integer.MAX_VALUE) {
-                                                    throw new RuntimeError(subToken, "Integer overflow: SQLite REAL value " + dVal + " does not fit in a 32-bit integer.");
+                                                    throw new RuntimeError(RuntimeErrorKind.DATABASE_ERROR, subToken, "Integer overflow: SQLite REAL value " + dVal + " does not fit in a 32-bit integer.");
                                                 }
                                                 tlangVal = (int) dVal;
                                             } else if (val instanceof String) {
                                                 tlangVal = val;
                                             } else if (val instanceof byte[]) {
-                                                throw new RuntimeError(subToken, "BLOB type is not supported in this version of TLang database wrapper (future work).");
+                                                throw new RuntimeError(RuntimeErrorKind.DATABASE_ERROR, subToken, "BLOB type is not supported in this version of TLang database wrapper (future work).");
                                             } else {
                                                 if (val instanceof Boolean) {
                                                     tlangVal = (Boolean) val ? 1 : 0;
                                                 } else {
-                                                    throw new RuntimeError(subToken, "Unsupported database value type: " + val.getClass().getName());
+                                                    throw new RuntimeError(RuntimeErrorKind.DATABASE_ERROR, subToken,
+                                                        "Unsupported database value type: " + val.getClass().getSimpleName());
                                                 }
                                             }
                                             row.put(md.getColumnLabel(i), tlangVal);
@@ -149,7 +151,7 @@ public final class DatabaseModule implements NativeModule {
                                     return rows;
                                 }
                             } catch (SQLException e) {
-                                throw new RuntimeError(subToken, "Database error: " + e.getMessage());
+                                throw new RuntimeError(RuntimeErrorKind.DATABASE_ERROR, subToken, databaseMessage(e), e);
                             }
                             }
                         }
@@ -161,23 +163,23 @@ public final class DatabaseModule implements NativeModule {
                             synchronized (connectionLock) {
                             Connection connVal = connRef[0];
                             if (connVal == null) {
-                                throw new RuntimeError(subToken, "Connection is closed.");
+                                throw new RuntimeError(RuntimeErrorKind.DATABASE_ERROR, subToken, "Connection is closed.");
                             }
                             try {
                                 if (connVal.isClosed()) {
-                                    throw new RuntimeError(subToken, "Connection is closed.");
+                                    throw new RuntimeError(RuntimeErrorKind.DATABASE_ERROR, subToken, "Connection is closed.");
                                 }
                             } catch (SQLException e) {
-                                throw new RuntimeError(subToken, "Database error: " + e.getMessage());
+                                throw new RuntimeError(RuntimeErrorKind.DATABASE_ERROR, subToken, databaseMessage(e), e);
                             }
 
                             Object sqlObj = subArgs.get(1);
                             Object paramsObj = subArgs.get(2);
                             if (Type.of(sqlObj) != Type.STRING) {
-                                throw new RuntimeError(subToken, "SQL query must be a string.");
+                                throw new RuntimeError(RuntimeErrorKind.DATABASE_ERROR, subToken, "SQL query must be a string.");
                             }
                             if (!(paramsObj instanceof List)) {
-                                throw new RuntimeError(subToken, "Parameters must be a list.");
+                                throw new RuntimeError(RuntimeErrorKind.DATABASE_ERROR, subToken, "Parameters must be a list.");
                             }
                             String sql = (String) sqlObj;
                             List<?> params = RuntimeCollections.snapshot((List<?>) paramsObj);
@@ -198,7 +200,7 @@ public final class DatabaseModule implements NativeModule {
                             }
 
                             if (expectedParams != params.size()) {
-                                throw new RuntimeError(subToken, "Expected " + expectedParams + " parameters, but got " + params.size() + ".");
+                                throw new RuntimeError(RuntimeErrorKind.DATABASE_ERROR, subToken, "Expected " + expectedParams + " parameters, but got " + params.size() + ".");
                             }
 
                             try (PreparedStatement stmt = connVal.prepareStatement(sql)) {
@@ -214,14 +216,14 @@ public final class DatabaseModule implements NativeModule {
                                     } else if (param instanceof Boolean) {
                                         stmt.setInt(paramIdx, (Boolean) param ? 1 : 0);
                                     } else {
-                                        throw new RuntimeError(subToken, "Unsupported parameter type: " + Type.of(param));
+                                        throw new RuntimeError(RuntimeErrorKind.DATABASE_ERROR, subToken, "Unsupported parameter type: " + Type.of(param));
                                     }
                                 }
 
                                 int affectedRows = stmt.executeUpdate();
                                 return affectedRows;
                             } catch (SQLException e) {
-                                throw new RuntimeError(subToken, "Database error: " + e.getMessage());
+                                throw new RuntimeError(RuntimeErrorKind.DATABASE_ERROR, subToken, databaseMessage(e), e);
                             }
                             }
                         }
@@ -238,16 +240,16 @@ public final class DatabaseModule implements NativeModule {
                             synchronized (connectionLock) {
                             Connection connVal = connRef[0];
                             if (connVal == null) {
-                                throw new RuntimeError(subToken, "Database connection is closed.");
+                                throw new RuntimeError(RuntimeErrorKind.DATABASE_ERROR, subToken, "Database connection is closed.");
                             }
                             try (PreparedStatement stmt = connVal.prepareStatement("SELECT last_insert_rowid()");
                                  ResultSet rs = stmt.executeQuery()) {
                                 if (rs.next()) {
                                     return rs.getInt(1);
                                 }
-                                throw new RuntimeError(subToken, "Failed to retrieve last insert ID.");
+                                throw new RuntimeError(RuntimeErrorKind.DATABASE_ERROR, subToken, "Failed to retrieve last insert ID.");
                             } catch (SQLException e) {
-                                throw new RuntimeError(subToken, "Database error: " + e.getMessage());
+                                throw new RuntimeError(RuntimeErrorKind.DATABASE_ERROR, subToken, databaseMessage(e), e);
                             }
                             }
                         }
@@ -262,7 +264,8 @@ public final class DatabaseModule implements NativeModule {
                                 try {
                                     connVal.close();
                                 } catch (SQLException e) {
-                                    throw new RuntimeError(subToken, "Database error during close: " + e.getMessage());
+                                    throw new RuntimeError(RuntimeErrorKind.DATABASE_ERROR, subToken,
+                                        "Failed to close database connection: " + databaseMessage(e), e);
                                 } finally {
                                     connRef[0] = null;
                                 }
@@ -274,9 +277,11 @@ public final class DatabaseModule implements NativeModule {
 
                     return connMap;
                 } catch (ClassNotFoundException e) {
-                    throw new RuntimeError(token, "SQLite JDBC driver not found on classpath: " + e.getMessage());
+                    throw new RuntimeError(RuntimeErrorKind.DATABASE_ERROR, token,
+                        "SQLite JDBC driver is unavailable.", e);
                 } catch (SQLException e) {
-                    throw new RuntimeError(token, "Database connection error: " + e.getMessage());
+                    throw new RuntimeError(RuntimeErrorKind.DATABASE_ERROR, token,
+                        "Failed to open database connection: " + databaseMessage(e), e);
                 }
             }
         });
@@ -285,5 +290,10 @@ public final class DatabaseModule implements NativeModule {
     @Override
     public Map<String, Object> getExports() {
         return exports;
+    }
+
+    private static String databaseMessage(SQLException error) {
+        String message = error.getMessage();
+        return message == null || message.isBlank() ? "Database operation failed." : message;
     }
 }

@@ -1,0 +1,11 @@
+// Expected exit code: 70
+define c
+    return 1 / 0
+
+define b
+    return c()
+
+define a
+    return b()
+
+a()

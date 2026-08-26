@@ -2,6 +2,14 @@
 
 ## Unreleased (0.3.0)
 
+- Added immutable, structured runtime diagnostics with source locations,
+  user-facing categories, and innermost-first TLang call frames.
+- Preserved source identity and stack traces across closures, recursion, user
+  modules, module initialization, native boundaries, and HTTP handlers.
+- Categorized import, database, HTTP-client, validation, type, name, index, and
+  arity failures while retaining native causes without printing Java stacks.
+- Hardened HTTP failures so detailed diagnostics remain server-side and remote
+  clients receive only a generic `500 Internal Server Error` response.
 - Replaced the global HTTP interpreter lock with isolated per-request execution
   cursors on a bounded, owned worker pool.
 - Defined thread-safe shared semantics for globals, mutable lists/maps, module

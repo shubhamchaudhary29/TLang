@@ -3,6 +3,7 @@ package dev.tlang.modules;
 import dev.tlang.interpreter.Interpreter;
 
 import dev.tlang.errors.RuntimeError;
+import dev.tlang.errors.RuntimeErrorKind;
 
 import dev.tlang.errors.LexerError;
 
@@ -65,7 +66,8 @@ public final class ModuleLoader {
 
         // 3. Circular dependency check
         if (loading.contains(cacheKey)) {
-            throw new RuntimeError(importToken, "Circular import detected involving module '" + moduleName + "'.");
+            throw new RuntimeError(RuntimeErrorKind.IMPORT_ERROR, importToken,
+                "Circular import detected involving module '" + moduleName + "'.");
         }
 
         loading.add(cacheKey);
@@ -76,11 +78,12 @@ public final class ModuleLoader {
             try {
                 source = new String(Files.readAllBytes(modulePath));
             } catch (IOException e) {
-                throw new RuntimeError(importToken, "Module '" + moduleName + "' not found.");
+                throw new RuntimeError(RuntimeErrorKind.IMPORT_ERROR, importToken,
+                    "Module '" + moduleName + "' not found.", e);
             }
 
             // Lex
-            Lexer lexer = new Lexer(source);
+            Lexer lexer = new Lexer(source, modulePath.toString());
             List<Token> tokens;
             try {
                 tokens = lexer.tokenize();
@@ -116,11 +119,8 @@ public final class ModuleLoader {
             } catch (ModuleLoadError e) {
                 throw e;
             } catch (RuntimeError e) {
-                Token t = e.getToken();
-                int line = t == null ? 0 : t.getLine();
-                int column = t == null ? 0 : t.getColumn();
-                throw moduleError(importToken, moduleName, source, modulePath,
-                    line, column, "Runtime error", e.getMessage(), 70);
+                throw e.withFrame(dev.tlang.errors.RuntimeStackFrame.module(
+                    moduleName, dev.tlang.errors.SourceLocation.from(importToken)));
             }
 
             // Collect all top-level bindings

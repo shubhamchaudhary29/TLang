@@ -2,6 +2,7 @@ package dev.tlang.modules;
 
 import java.security.MessageDigest;
 import java.security.SecureRandom;
+import java.security.GeneralSecurityException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,8 +35,8 @@ public final class CryptoModule implements NativeModule {
                     random.nextBytes(salt);
                     byte[] hash = pbkdf2(password.toCharArray(), salt, ITERATIONS, 256);
                     return "pbkdf2$" + ITERATIONS + "$" + bytesToHex(salt) + "$" + bytesToHex(hash);
-                } catch (Exception e) {
-                    throw new RuntimeError(token, "Password hashing failed: " + e.getMessage());
+                } catch (GeneralSecurityException e) {
+                    throw new RuntimeError(token, "Password hashing failed.", e);
                 }
             }
         });
@@ -71,8 +72,8 @@ public final class CryptoModule implements NativeModule {
                     return MessageDigest.isEqual(hash, testHash);
                 } catch (RuntimeError re) {
                     throw re;
-                } catch (Exception e) {
-                    throw new RuntimeError(token, "Invalid password hash format.");
+                } catch (GeneralSecurityException | IllegalArgumentException e) {
+                    throw new RuntimeError(token, "Invalid password hash format.", e);
                 }
             }
         });
@@ -113,8 +114,8 @@ public final class CryptoModule implements NativeModule {
                     mac.init(secretKey);
                     byte[] hash = mac.doFinal(((String) dataObj).getBytes(java.nio.charset.StandardCharsets.UTF_8));
                     return bytesToHex(hash);
-                } catch (Exception e) {
-                    throw new RuntimeError(token, "HMAC-SHA256 signing failed: " + e.getMessage());
+                } catch (GeneralSecurityException e) {
+                    throw new RuntimeError(token, "HMAC-SHA256 signing failed.", e);
                 }
             }
         });
@@ -130,14 +131,15 @@ public final class CryptoModule implements NativeModule {
                     MessageDigest digest = MessageDigest.getInstance("SHA-256");
                     byte[] hash = digest.digest(((String) dataObj).getBytes(java.nio.charset.StandardCharsets.UTF_8));
                     return bytesToHex(hash);
-                } catch (Exception e) {
-                    throw new RuntimeError(token, "SHA-256 hashing failed: " + e.getMessage());
+                } catch (GeneralSecurityException e) {
+                    throw new RuntimeError(token, "SHA-256 hashing failed.", e);
                 }
             }
         });
     }
 
-    private static byte[] pbkdf2(char[] password, byte[] salt, int iterations, int keyLength) throws Exception {
+    private static byte[] pbkdf2(char[] password, byte[] salt, int iterations, int keyLength)
+            throws GeneralSecurityException {
         PBEKeySpec spec = new PBEKeySpec(password, salt, iterations, keyLength);
         SecretKeyFactory skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
         return skf.generateSecret(spec).getEncoded();

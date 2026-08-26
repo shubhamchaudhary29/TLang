@@ -11,13 +11,19 @@ public final class Token {
     private final Object literal;
     private final int line;
     private final int column;
+    private final SourceUnit sourceUnit;
 
     public Token(TokenType type, String lexeme, Object literal, int line, int column) {
+        this(type, lexeme, literal, line, column, SourceUnit.unknown());
+    }
+
+    public Token(TokenType type, String lexeme, Object literal, int line, int column, SourceUnit sourceUnit) {
         this.type = type;
         this.lexeme = lexeme;
         this.literal = literal;
         this.line = line;
         this.column = column;
+        this.sourceUnit = sourceUnit == null ? SourceUnit.unknown() : sourceUnit;
     }
 
     public Token(TokenType type, String lexeme, Object literal, int line) {
@@ -29,6 +35,7 @@ public final class Token {
     public Object getLiteral()  { return literal; }
     public int getLine()        { return line; }
     public int getColumn()      { return column; }
+    public SourceUnit getSourceUnit() { return sourceUnit; }
 
     @Override
     public String toString() {

@@ -1,5 +1,5 @@
 // Expected exit code: 70
-// Expected error: Runtime error: Database error: [SQLITE_ERROR]
+// Expected error: DatabaseError: [SQLITE_ERROR]
 import db
 
 let conn be db.open(":memory:")

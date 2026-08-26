@@ -1,0 +1,4 @@
+import stack_math
+
+define buildReport taking total
+    return stack_math.divide(total, 0)
