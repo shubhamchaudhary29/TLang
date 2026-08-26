@@ -38,8 +38,9 @@ another request's execution state.
 | Scalar global values | Thread-safe shared binding | Each read/write is atomic. A compound expression such as `set n to n + 1` is multiple operations and is not an atomic increment. |
 | TLang lists and maps | Thread-safe shared | Primitive `add`, `set`, `put`, `remove`, lookup, and snapshot operations are synchronized. Multi-operation application invariants still require an external transaction/coordination mechanism. |
 | Request, query, header, JSON-body, and path-parameter maps | Request-local | A new object graph is created for every exchange. |
-| Response status, headers, and body buffer | Request-local | Exactly one wrapper is created and flushed per exchange. Handler failures replace an unflushed partial response with a 500 response. |
-| Module export cache | Thread-safe shared | First load is atomic; a user module executes once per `ModuleLoader`. Module failures raise `RuntimeError` and never terminate the JVM. |
+| Response status, headers, and body buffer | Request-local | Exactly one wrapper is created and flushed per exchange. Handler failures replace an unflushed partial response with a generic 500 response; detailed TLang diagnostics remain server-side. |
+| Runtime diagnostics | Immutable request-local values | Categories, source locations, and TLang frames are copied outward per failure. Simultaneous failures never share a mutable frame list. |
+| Module export cache | Thread-safe shared | First load is atomic; a user module executes once per `ModuleLoader`. Module failures preserve their source/category and never terminate the JVM. |
 | Native JSON/crypto/validation/filesystem/random utilities | Immutable or stateless shared | Temporary parsers, buffers, digests, and results are created per call. Shared inputs are read through stable snapshots. |
 | Config and cache module stores | Thread-safe shared | Backed by concurrent maps. Cache expiry removal is conditional on the entry observed. |
 | SQLite connection object | Thread-safe shared per connection | Operations and `close()` on one JDBC connection are serialized by that connection's lock. Different connections can proceed concurrently and remain subject to SQLite file locking/busy errors. |
@@ -87,3 +88,8 @@ parallel entry, closures/recursion, local/request/response isolation, security
 headers, runtime failures, native modules, shared collections, SQLite reads and
 writes, routing, stress, and shutdown. `ConcurrentHttpBenchmark` measures a
 complete loopback small-response handler at concurrency 1, 10, 50, and 100.
+
+Detailed handler diagnostics are formatted to the server's standard error with
+an HTTP method/path frame. Remote clients receive only `500 Internal Server
+Error`; source paths, TLang/Java frames, native causes, and request secrets are
+not included. See [Runtime diagnostics](errors.md).

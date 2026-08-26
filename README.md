@@ -69,6 +69,7 @@ Explore the TLang guides and references:
 - **[Concurrent API Example](examples/concurrent-api/README.md)**: A runnable multi-route service with parallel CPU work and shared collection state.
 - **[Performance and Benchmarking](docs/performance.md)**: JMH commands, benchmark coverage, methodology, and result interpretation.
 - **[Concurrent Runtime Architecture](docs/concurrent-runtime.md)**: HTTP execution isolation, shared-state semantics, SQLite behavior, and lifecycle guarantees.
+- **[Runtime Diagnostics](docs/errors.md)**: Structured error categories, source-aware TLang stack traces, native causes, and safe HTTP error responses.
 
 ---
 

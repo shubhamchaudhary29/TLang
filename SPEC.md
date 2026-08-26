@@ -168,7 +168,7 @@ The following table lists operators from lowest precedence (parsed first) to hig
 
 ### Truthiness and Type Checking
 - **Strict Conditional Types**: Conditional statements (`if`, `while`, loop guards) require expressions that evaluate strictly to a `boolean` type (`true` or `false`).
-- **No Implicit Coercion**: Passing a non-boolean (such as an integer, string, list, or map) to a conditional guard throws a `RuntimeError`.
+- **No Implicit Coercion**: Passing a non-boolean (such as an integer, string, list, or map) to a conditional guard throws a `TypeError`.
 - **Truthiness Evaluation**: An expression is truthy if it evaluates to `true` and falsy if it evaluates to `false`.
 
 ### Operator Semantics
@@ -177,7 +177,7 @@ The following table lists operators from lowest precedence (parsed first) to hig
 
 ### Object Representation
 - **No Formal Class Syntax**: TLang has no classes. Objects are modeled dynamically using Map literals (`{}`).
-- **Field Access**: Accessing a property using dot notation (`obj.prop`) is semantically equivalent to a map key lookup (`obj["prop"]`). Attempting to access a non-existent key throws a `RuntimeError`.
+- **Field Access**: Accessing a property using dot notation (`obj.prop`) is semantically equivalent to a map key lookup (`obj["prop"]`). Attempting to access a non-existent key throws an `IndexError`.
 - **Field Assignment**: Setting a property (`set obj.prop to value`) updates or inserts the key `"prop"` in the underlying map.
 
 ### Imports and Module Loading
@@ -185,8 +185,9 @@ The following table lists operators from lowest precedence (parsed first) to hig
   1. **Native Modules**: Check `ModuleRegistry` first. Native modules include: `math`, `filesystem`, `time`, `random`, `strings`, `json`, `http`, and `db`.
   2. **User Modules**: If not in the registry, look for a `<name>.tiny` file relative to the importing script's directory.
 - **Isolation**: Each module is executed once inside its own clean global environment. The top-level bindings are captured and returned as a map.
-- **Concurrent loading**: Module initialization and cache publication are atomic per loader. Concurrent first imports observe the same completed export map. A load failure raises `RuntimeError` without terminating the process.
-- **Circular Imports**: A runtime stack tracks currently loading module files. Importing a module that is currently in the loading chain throws a `RuntimeError` due to a circular import.
+- **Concurrent loading**: Module initialization and cache publication are atomic per loader. Concurrent first imports observe the same completed export map. A load failure raises a diagnostic without terminating the process.
+- **Circular Imports**: A loader-local stack tracks currently loading module files. Importing a module that is currently in the loading chain throws an `ImportError`.
+- **Module diagnostics**: User-module tokens retain the imported file's source identity. Runtime failures keep their original module location while callers in other files add their own frames. Lexer, parser, and semantic failures inside imports report the failing module rather than the main script.
 
 ---
 
@@ -220,7 +221,33 @@ let multiply be function taking a and b
 
 ---
 
-## 5. Concurrent HTTP Execution Semantics
+## 5. Runtime Diagnostic Semantics
+
+- Runtime failures carry a structured category, message, primary source
+  location, and an immutable list of TLang stack frames.
+- Defined categories are `RuntimeError`, `TypeError`, `NameError`,
+  `ImportError`, `DatabaseError`, `HttpError`, `ValidationError`, `IndexError`,
+  and `ArityError`.
+- The primary location identifies the expression that failed. Tokens retain
+  their immutable source-unit identity, including across user modules,
+  closures, and string interpolation.
+- Function frames use the call site that invoked the function. Frames are
+  ordered innermost-first and repeated recursive frames are retained.
+- Named functions use their declared name; anonymous functions use
+  `<anonymous>`. Module initialization, native calls, and HTTP handlers may add
+  explicit boundary frames.
+- Stack traces describe TLang execution only. Normal diagnostics never include
+  interpreter Java methods, Java class names, Java stack traces, or retained
+  native causes.
+- Runtime failures preserve exit code `70`. Lexer, parser, resolver, and
+  imported compile-time diagnostics preserve exit code `65`.
+- TLang does not define language-level exception handling; runtime diagnostics
+  propagate until the CLI or an embedding boundary such as the HTTP server
+  handles them.
+
+---
+
+## 6. Concurrent HTTP Execution Semantics
 
 - Each HTTP exchange executes with its own interpreter current-environment
   cursor and recursion counter. Function-call environments, parameters, locals,
@@ -236,16 +263,21 @@ let multiply be function taking a and b
   cannot be restarted after it stops.
 - Calls on one SQLite connection are serialized; different connections follow
   SQLite's normal concurrency and locking rules.
+- A handler runtime failure aborts only that request and contributes an HTTP
+  method/path frame to the server-side diagnostic. The server remains alive.
+- Remote error responses are always generic `500 Internal Server Error`
+  responses. Detailed TLang frames, source paths, request data, native details,
+  and Java causes are not exposed to the client.
 
 The HTTP host runtime provides concurrency; the language itself does not add
 async syntax or a general thread-spawning primitive.
 
 ---
 
-## 6. Explicitly Out of Scope for v1
+## 7. Explicitly Out of Scope for v1
 
 The following features are **explicitly out of scope** for TLang v1.0. Future tooling should be designed under the assumption that these are not supported, and any additions will require a revised specification:
-- **No try/catch exception handling**: Errors propagate up and terminate execution.
+- **No try/catch exception handling**: Errors propagate to the containing host boundary. A CLI run terminates; an HTTP runtime error terminates only the affected request.
 - **No floating-point numbers**: All numeric operations are integer-only.
 - **No formal class syntax**: Objects are dynamic maps; there is no inheritance or prototype chain.
 - **No language-level async syntax**: TLang has no futures, promises, or async/await syntax. The HTTP host runtime may execute independent handlers concurrently using isolated interpreter execution cursors.
@@ -253,7 +285,7 @@ The following features are **explicitly out of scope** for TLang v1.0. Future to
 
 ---
 
-## 7. Conformance Baseline
+## 8. Conformance Baseline
 
 - **Executable Suite**: The `.tiny` files located under `src/test/resources` (across the `lexer`, `parser`, `semantic`, `runtime`, and `integration` directories) define the formal conformance suite for TLang.
 - **Validation**: All changes to the language runtime must verify against this baseline using the `scripts/run_all_tests.sh` runner, which must remain 100% green.
@@ -261,10 +293,11 @@ The following features are **explicitly out of scope** for TLang v1.0. Future to
 
 ---
 
-## 8. See Also
+## 9. See Also
 
 For practical guides and reference material, see:
 - **[Getting Started Guide](docs/getting-started.md)**: A step-by-step introduction to installing and running TLang.
 - **[Language Reference Guide](docs/language-reference.md)**: A developer-friendly walkthrough of the language constructs.
 - **[Standard Library Reference](docs/stdlib/index.md)**: Comprehensive documentation on all built-in native modules.
+- **[Runtime Diagnostics](docs/errors.md)**: Runtime categories, source identity, TLang stack frames, and HTTP error security.
 - **[Language Philosophy (LANGUAGE_PHILOSOPHY.md)](LANGUAGE_PHILOSOPHY.md)**: The developer-experience-first principles guiding TLang's design.
