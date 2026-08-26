@@ -6,7 +6,8 @@ Provides a process-local, in-memory key-value cache with Time-To-Live (TTL) expi
 ---
 
 ## Design Choices
-- **Lazy Expiry-on-Read**: To align with TLang's single-threaded execution model and avoid introducing background worker threads (which would violate the simple execution philosophy), eviction is performed lazily. Expired keys are checked and deleted only when `get()` is called.
+- **Lazy Expiry-on-Read**: Eviction is performed lazily without a background worker. Expired keys are checked and conditionally deleted when `get()` is called.
+- **Concurrent access**: The process-wide store uses atomic concurrent-map operations and can be called safely by simultaneous HTTP handlers.
 - **Value Preservation**: Since the cache operates entirely in-process within the running JVM environment, it supports storing any native TLang value type (`NUMBER`, `STRING`, `BOOLEAN`, `LIST`, `MAP`) without requiring serializing or parsing overhead.
 - **Missing Keys**: Requesting a missing key or an expired key returns `null` (nil) rather than throwing a runtime error.
 

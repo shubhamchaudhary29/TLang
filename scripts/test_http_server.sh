@@ -7,7 +7,7 @@ echo "── Building TLang ──"
 "$PROJECT_DIR/scripts/build.sh" 2>&1
 
 echo "── Starting HTTP server ──"
-java -cp "$PROJECT_DIR/out:$PROJECT_DIR/lib/sqlite-jdbc-3.34.0.jar:$PROJECT_DIR/lib/javax.mail-1.6.2.jar:$PROJECT_DIR/lib/activation-1.1.1.jar" dev.tlang.Main "$PROJECT_DIR/src/test/resources/runtime/test_http_server.tiny" &
+java -cp "$PROJECT_DIR/build/classes/java/main:$PROJECT_DIR/build/resources/main:$PROJECT_DIR/build/dependencies/*" dev.tlang.Main "$PROJECT_DIR/src/test/resources/runtime/test_http_server.tiny" &
 SERVER_PID=$!
 
 cleanup() {
@@ -18,7 +18,18 @@ cleanup() {
 trap cleanup EXIT
 
 # Wait for server to bind
-sleep 1.5
+ready=false
+for attempt in $(seq 1 50); do
+    if curl -s -o /dev/null http://localhost:8085/; then
+        ready=true
+        break
+    fi
+    sleep 0.1
+done
+if [ "$ready" != "true" ]; then
+    echo "HTTP SERVER FAILED TO START"
+    exit 1
+fi
 
 errors=0
 

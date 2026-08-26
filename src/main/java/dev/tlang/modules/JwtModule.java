@@ -9,6 +9,7 @@ import dev.tlang.lexer.Token;
 import dev.tlang.types.Type;
 import dev.tlang.errors.RuntimeError;
 import dev.tlang.interpreter.NativeFunction;
+import dev.tlang.interpreter.RuntimeCollections;
 import dev.tlang.runtime.filesystem.StdlibOps;
 import dev.tlang.runtime.json.JsonParser;
 
@@ -34,15 +35,15 @@ public final class JwtModule implements NativeModule {
 
                 try {
                     // Header
-                    Map<String, Object> header = new LinkedHashMap<>();
+                    Map<String, Object> header = RuntimeCollections.newMap();
                     header.put("alg", "HS256");
                     header.put("typ", "JWT");
                     String headerJson = JsonModule.jsonStringifyExternal(header, token);
                     String headerB64 = base64UrlEncode(headerJson);
 
                     // Payload
-                    Map<String, Object> finalPayload = new LinkedHashMap<>();
-                    for (Map.Entry<?, ?> entry : payload.entrySet()) {
+                    Map<String, Object> finalPayload = RuntimeCollections.newMap();
+                    for (Map.Entry<?, ?> entry : RuntimeCollections.snapshot(payload).entrySet()) {
                         if (entry.getKey() instanceof String) {
                             finalPayload.put((String) entry.getKey(), entry.getValue());
                         }
@@ -121,7 +122,7 @@ public final class JwtModule implements NativeModule {
                         }
                     }
 
-                    Map<String, Object> result = new LinkedHashMap<>();
+                    Map<String, Object> result = RuntimeCollections.newMap();
                     result.put("valid", true);
                     result.put("payload", payloadMap);
                     return result;
@@ -132,7 +133,7 @@ public final class JwtModule implements NativeModule {
         });
     }
 
-    private void initCrypto(Token token) {
+    private synchronized void initCrypto(Token token) {
         if (hmacSha256 == null) {
             Map<String, Object> cryptoExports = ModuleRegistry.getModule("crypto");
             if (cryptoExports == null) {
@@ -147,9 +148,9 @@ public final class JwtModule implements NativeModule {
     }
 
     private Map<String, Object> createInvalidResult() {
-        Map<String, Object> result = new LinkedHashMap<>();
+        Map<String, Object> result = RuntimeCollections.newMap();
         result.put("valid", false);
-        result.put("payload", new LinkedHashMap<String, Object>());
+        result.put("payload", RuntimeCollections.<String, Object>newMap());
         return result;
     }
 

@@ -9,6 +9,7 @@ import dev.tlang.lexer.Token;
 import dev.tlang.types.Type;
 import dev.tlang.errors.RuntimeError;
 import dev.tlang.interpreter.NativeFunction;
+import dev.tlang.interpreter.RuntimeCollections;
 
 public final class LogModule implements NativeModule {
     private final Map<String, Object> exports = new LinkedHashMap<>();
@@ -48,7 +49,7 @@ public final class LogModule implements NativeModule {
                 logMap.put("message", messageObj);
 
                 if (fields != null) {
-                    for (Map.Entry<?, ?> entry : fields.entrySet()) {
+                    for (Map.Entry<?, ?> entry : RuntimeCollections.snapshot(fields).entrySet()) {
                         if (!(entry.getKey() instanceof String)) {
                             throw new RuntimeError(token, "Log fields keys must be strings.");
                         }

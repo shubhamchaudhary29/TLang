@@ -5,6 +5,7 @@ import dev.tlang.errors.ParseError;
 import dev.tlang.errors.RuntimeError;
 import dev.tlang.errors.SemanticError;
 import dev.tlang.errors.ErrorFormatter;
+import dev.tlang.errors.ModuleLoadError;
 import dev.tlang.ast.Stmt;
 import dev.tlang.lexer.Lexer;
 import dev.tlang.lexer.Token;
@@ -71,6 +72,16 @@ public final class RunCommand implements Command {
             Token t = e.getToken();
             System.err.println(ErrorFormatter.format(source, fileName, t.getLine(), t.getColumn(), "Parse error", e.getRawMessage()));
             System.exit(65);
+        } catch (ModuleLoadError e) {
+            System.err.println(ErrorFormatter.format(
+                e.getSource(),
+                e.getSourceName(),
+                e.getLine(),
+                e.getColumn(),
+                e.getDiagnosticKind(),
+                e.getRawMessage()
+            ));
+            System.exit(e.getExitCode());
         } catch (RuntimeError e) {
             Token t = e.getToken();
             if (t != null) {

@@ -5,9 +5,11 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import dev.tlang.interpreter.RuntimeCollections;
 
 public final class ModuleRegistry {
     private static final Map<String, NativeModule> REGISTRY = new HashMap<>();
+    private static final Map<String, Map<String, Object>> EXPORTS = new HashMap<>();
 
     static {
         REGISTRY.put("math", new MathModule());
@@ -25,11 +27,13 @@ public final class ModuleRegistry {
         REGISTRY.put("jwt", new JwtModule());
         REGISTRY.put("mail", new MailModule());
         REGISTRY.put("cache", new CacheModule());
+        for (Map.Entry<String, NativeModule> entry : REGISTRY.entrySet()) {
+            EXPORTS.put(entry.getKey(), RuntimeCollections.newMap(entry.getValue().getExports()));
+        }
     }
 
     public static Map<String, Object> getModule(String name) {
-        NativeModule mod = REGISTRY.get(name);
-        return mod != null ? mod.getExports() : null;
+        return EXPORTS.get(name);
     }
 
     public static boolean hasModule(String name) {
@@ -47,6 +51,6 @@ public final class ModuleRegistry {
         if (exports == null) {
             return Set.of();
         }
-        return Collections.unmodifiableSet(new TreeSet<>(exports.keySet()));
+        return Collections.unmodifiableSet(new TreeSet<>(RuntimeCollections.snapshot(exports).keySet()));
     }
 }

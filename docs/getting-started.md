@@ -1,6 +1,6 @@
 # Getting Started with TLang
 
-TLang is a small, dynamically typed scripting language for straightforward backend APIs. It prioritizes simple syntax and a built-in native standard library; it is not a statically type-safe or concurrent runtime.
+TLang is a small, dynamically typed scripting language for straightforward backend APIs. It prioritizes simple syntax and a built-in native standard library. It is dynamically typed, and its HTTP runtime handles requests concurrently with isolated per-request execution state.
 
 ---
 

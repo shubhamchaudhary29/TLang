@@ -10,6 +10,7 @@ import dev.tlang.interpreter.NativeFunction;
 import dev.tlang.errors.RuntimeError;
 import dev.tlang.types.Type;
 import dev.tlang.lexer.Token;
+import dev.tlang.interpreter.RuntimeCollections;
 
 /**
  * Wraps an HttpExchange response into a TLang Map with chainable helper functions.
@@ -22,7 +23,7 @@ public final class ResponseWrapper {
     private boolean sent = false;
     private String bufferedBody = "";
     private boolean flushed = false;
-    private final Map<String, Object> resMap = new LinkedHashMap<>();
+    private final Map<String, Object> resMap = RuntimeCollections.newMap();
 
     public ResponseWrapper(HttpExchange exchange) {
         this.exchange = exchange;
@@ -119,6 +120,14 @@ public final class ResponseWrapper {
     private void bufferResponse(String body) {
         sent = true;
         bufferedBody = body;
+    }
+
+    void replaceWithError(int status, String message) {
+        statusCode = status;
+        responseHeaders.clear();
+        responseHeaders.put("Content-Type", "text/plain; charset=utf-8");
+        sent = true;
+        bufferedBody = message;
     }
 
     public void flush() throws IOException {

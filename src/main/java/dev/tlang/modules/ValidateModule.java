@@ -9,6 +9,7 @@ import dev.tlang.lexer.Token;
 import dev.tlang.types.Type;
 import dev.tlang.errors.RuntimeError;
 import dev.tlang.interpreter.NativeFunction;
+import dev.tlang.interpreter.RuntimeCollections;
 
 public final class ValidateModule implements NativeModule {
     private final Map<String, Object> exports = new LinkedHashMap<>();
@@ -27,10 +28,10 @@ public final class ValidateModule implements NativeModule {
                     throw new RuntimeError(token, "Second argument to 'check' must be a map.");
                 }
 
-                Map<?, ?> data = (Map<?, ?>) dataObj;
-                Map<?, ?> schema = (Map<?, ?>) schemaObj;
+                Map<?, ?> data = RuntimeCollections.snapshot((Map<?, ?>) dataObj);
+                Map<?, ?> schema = RuntimeCollections.snapshot((Map<?, ?>) schemaObj);
 
-                Map<String, String> errorsMap = new LinkedHashMap<>();
+                Map<String, String> errorsMap = RuntimeCollections.newMap();
 
                 for (Map.Entry<?, ?> entry : schema.entrySet()) {
                     Object fieldNameObj = entry.getKey();
@@ -42,7 +43,7 @@ public final class ValidateModule implements NativeModule {
                     if (Type.of(rulesObj) != Type.MAP) {
                         throw new RuntimeError(token, "Schema rules for field '" + fieldName + "' must be a map.");
                     }
-                    Map<?, ?> rules = (Map<?, ?>) rulesObj;
+                    Map<?, ?> rules = RuntimeCollections.snapshot((Map<?, ?>) rulesObj);
 
                     // Validate rule keys
                     for (Object ruleKeyObj : rules.keySet()) {
@@ -173,7 +174,7 @@ public final class ValidateModule implements NativeModule {
 
                         // In check
                         if (inRule != null) {
-                            List<?> inList = (List<?>) inRule;
+                            List<?> inList = RuntimeCollections.snapshot((List<?>) inRule);
                             if (!inList.contains(val)) {
                                 errorsMap.put(fieldName, fieldName + " must be one of: " + inList.toString());
                             }
@@ -181,7 +182,7 @@ public final class ValidateModule implements NativeModule {
                     }
                 }
 
-                Map<String, Object> result = new LinkedHashMap<>();
+                Map<String, Object> result = RuntimeCollections.newMap();
                 result.put("valid", errorsMap.isEmpty());
                 result.put("errors", errorsMap);
                 return result;

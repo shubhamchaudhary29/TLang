@@ -1,9 +1,8 @@
 package dev.tlang.runtime.json;
 
 import dev.tlang.errors.RuntimeError;
+import dev.tlang.interpreter.RuntimeCollections;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import dev.tlang.lexer.Token;
@@ -56,7 +55,7 @@ public final class JsonParser {
 
     private Map<String, Object> parseObject() {
         consume('{');
-        Map<String, Object> map = new LinkedHashMap<>();
+        Map<String, Object> map = RuntimeCollections.newMap();
         skipWhitespace();
         if (peek() == '}') {
             consume('}');
@@ -91,7 +90,7 @@ public final class JsonParser {
 
     private List<Object> parseArray() {
         consume('[');
-        List<Object> list = new ArrayList<>();
+        List<Object> list = RuntimeCollections.newList();
         skipWhitespace();
         if (peek() == ']') {
             consume(']');

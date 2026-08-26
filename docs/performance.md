@@ -48,8 +48,11 @@ specific commit and environment, not a universal performance guarantee.
 - Standard library: JSON parsing/stringification and string joining.
 - Database: a controlled SQLite round trip in a fresh temporary directory whose
   path contains spaces; state is removed after every invocation.
-- Backend: deterministic HTTP route normalization, segmentation, and
+- Backend primitives: deterministic HTTP route normalization, segmentation, and
   parameterized route matching without network access.
+- Concurrent backend: complete loopback HTTP requests through the real server,
+  request interpreter fork, handler, response buffer, and socket at batch
+  concurrency 1, 10, 50, and 100. Each invocation validates every response.
 - End to end: a warmed in-memory source run through lexing, parsing, resolution,
   and interpretation.
 
@@ -84,16 +87,28 @@ configuration can all move scores. GitHub-hosted runner timings are especially
 variable, so CI checks compilation, correctness, and smoke execution only. It
 does not enforce absolute scores or percentage regression gates.
 
+## Concurrent HTTP results
+
+`ConcurrentHttpBenchmark.loopbackBatch` reports average milliseconds for a
+whole simultaneous batch, parameterized by `concurrency`. It is a real network
+benchmark against a small `"ok"` handler, not a router-method microbenchmark.
+For a result with batch size `N` and average duration `D` milliseconds, the
+corresponding batch throughput is `N * 1000 / D` requests/second. Inspect the
+JMH error/confidence values and the machine metadata before comparing runs.
+
+The benchmark fails if any response has a non-200 status or a corrupt body.
+JMH is not a load generator for saturation/capacity planning; use a dedicated
+tool and a representative application/database for production sizing.
+
 ## Current limitations and future work
 
 TLang currently uses a tree-walking interpreter. HTTP handler execution is
-serialized by synchronization on the interpreter, so request handlers sharing
-an interpreter do not run concurrently. The router benchmarks intentionally
-measure deterministic routing primitives rather than claiming concurrent HTTP
-throughput.
+concurrent, but CPU-bound handlers still consume one fixed-pool worker for their
+duration and synchronous filesystem, HTTP-client, and database calls block that
+request's worker. Bytecode/JIT work and language-level async syntax remain
+separate future phases.
 
 Future optimization work should first capture a full JSON result and matching
 environment metadata, make one focused change, and rerun under the same
 controlled conditions. Improvements should preserve fixture results and the
-full validation suite. Bytecode/JIT work, concurrency changes, and package
-management remain separate future roadmap phases.
+full validation suite. Package management remains a separate roadmap phase.
