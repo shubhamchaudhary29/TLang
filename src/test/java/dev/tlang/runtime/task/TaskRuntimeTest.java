@@ -328,21 +328,23 @@ class TaskRuntimeTest {
         assertEquals(RuntimeErrorKind.TASK_ERROR, self.getKind());
         assertTrue(self.getMessage().contains("cycle"));
 
-        CyclicBarrier pairGate = new CyclicBarrier(2);
+        CountDownLatch pairGate = new CountDownLatch(1);
         Interpreter pairInterpreter = interpreter(directory, new TaskRuntime());
-        define(pairInterpreter, "pair_gate", barrierFunction(pairGate));
+        define(pairInterpreter, "wait_pair", latchAwait(pairGate));
+        define(pairInterpreter, "open_pair", latchRelease(pairGate));
         RuntimeError pair = assertTimeoutPreemptively(Duration.ofSeconds(5),
             () -> assertThrows(RuntimeError.class, () -> interpret(pairInterpreter, """
                 let firstTask be nil
                 let secondTask be nil
                 define first
-                    pair_gate()
+                    wait_pair()
                     return await secondTask
                 define second
-                    pair_gate()
+                    wait_pair()
                     return await firstTask
                 set firstTask to spawn first()
                 set secondTask to spawn second()
+                open_pair()
                 let result be await firstTask
                 """, "pair-cycle.tiny")));
         assertEquals(RuntimeErrorKind.TASK_ERROR, pair.getKind());
