@@ -117,7 +117,9 @@ symlinked content, and cache/install escapes are rejected.
 Git hooks are disabled for clone and checkout. Repositories using submodules or
 `.gitattributes` external checkout filters are rejected, because either could
 turn acquisition into dependency-selected code execution. URLs may use ordinary
-Git authentication configuration but may not embed passwords.
+Git authentication configuration but may not embed passwords. Checkout forces
+LF content (`core.autocrlf=false`, `core.eol=lf`) so cache and lock content
+digests do not vary with the installer's operating-system Git defaults.
 
 Path dependencies intentionally permit documented `../sibling` paths. They are
 canonicalized with `toRealPath`, may not point into the project's `.tlang`

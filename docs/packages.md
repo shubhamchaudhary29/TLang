@@ -57,7 +57,9 @@ Branches, tags, and full commits are accepted. HTTPS, SSH, and `file:` Git URIs
 are supported. TLang clones using an argument-safe process invocation and never
 runs package scripts or hooks from the package manifest. Git hooks are disabled;
 submodules and dependency-selected external checkout filters are rejected to
-prevent checkout from becoming an install-time code-execution mechanism.
+prevent checkout from becoming an install-time code-execution mechanism. Git
+checkout also disables automatic CRLF conversion, keeping locked content
+digests identical across operating systems.
 
 The manifest parser is deliberately strict. Unknown tables or fields,
 duplicates, source conflicts, absolute paths, malformed URLs, missing

@@ -93,6 +93,7 @@ final class GitPackageStore {
         }
         try {
             run(List.of("git", "-c", "core.hooksPath=" + project.state().resolve("no-hooks"),
+                    "-c", "core.autocrlf=false", "-c", "core.eol=lf",
                     "clone", "--quiet", "--no-checkout", "--", repository, temporary.toString()),
                 project.root(), "dependency '" + packageName + "' could not be cloned");
             return temporary;
@@ -107,6 +108,8 @@ final class GitPackageStore {
         command.add("git");
         command.add("-c"); command.add("advice.detachedHead=false");
         command.add("-c"); command.add("core.hooksPath=" + project.state().resolve("no-hooks"));
+        command.add("-c"); command.add("core.autocrlf=false");
+        command.add("-c"); command.add("core.eol=lf");
         command.add("-C"); command.add(repository.toString());
         command.addAll(arguments);
         return run(command, project.root(), failure);
