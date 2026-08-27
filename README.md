@@ -24,6 +24,22 @@ Execute it using the compiled distribution executable:
 build/install/tlang/bin/tlang run hello.tiny
 ```
 
+### Reproducible projects
+
+Create a project and install a local or Git dependency with:
+
+```bash
+tlang init
+tlang add utils --path ../utils
+tlang install
+tlang run main.tiny
+```
+
+Commit `tlang.toml` and `tlang.lock`; the generated `.tlang/` cache and install
+tree stays local. Git dependencies are pinned to exact commits, transitive
+graphs are deterministic, and `tlang install --offline` never accesses the
+network. See [Projects and package management](docs/packages.md).
+
 ---
 
 ## Coding Examples
@@ -88,6 +104,8 @@ Explore the TLang guides and references:
 - **[Performance and Benchmarking](docs/performance.md)**: JMH commands, benchmark coverage, methodology, and result interpretation.
 - **[Concurrent Runtime Architecture](docs/concurrent-runtime.md)**: HTTP execution isolation, shared-state semantics, SQLite behavior, and lifecycle guarantees.
 - **[Runtime Diagnostics](docs/errors.md)**: Structured error categories, source-aware TLang stack traces, native causes, and safe HTTP error responses.
+- **[Projects and Packages](docs/packages.md)**: Manifests, lockfiles, local/Git dependencies, imports, offline installs, security, and troubleshooting.
+- **[Local Package Example](examples/packages/app/README.md)**: A complete network-free project and dependency.
 
 ---
 

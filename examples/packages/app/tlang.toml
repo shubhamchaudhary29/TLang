@@ -1,0 +1,6 @@
+[package]
+name = "package-example"
+version = "0.1.0"
+
+[dependencies]
+greeting = { path = "../greeting" }

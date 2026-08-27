@@ -94,6 +94,26 @@ greet("Alice")          # Output: Hello, Alice!
 greet("Bob", "Welcome")  # Output: Welcome, Bob!
 ```
 
+## Start a project
+
+Standalone scripts need no configuration. For a reproducible multi-file
+project, create a manifest and lock its dependencies:
+
+```bash
+mkdir my_api
+cd my_api
+tlang init
+tlang add utils --path ../utils
+tlang install
+tlang run main.tiny
+```
+
+Commit `tlang.toml` and `tlang.lock`, but not `.tlang/`. A cloned project can
+then reproduce the same pinned Git graph with `tlang install`; use `--offline`
+when the exact commits are already cached. Read [Projects and package
+management](packages.md) for the manifest schema, package entry modules,
+updates, import precedence, and security model.
+
 ---
 
 ## Next Steps
@@ -102,3 +122,4 @@ Once you've run your first script, check out these references for deeper learnin
 - **[Language Reference](language-reference.md)**: Explore the detailed language syntax, multi-line list/map literals, lambdas, and imports.
 - **[Standard Library Reference](stdlib/index.md)**: Browse the documentation for built-in modules like `http`, `db` (SQLite), `jwt`, `json`, and more.
 - **[Example: Auth Service](examples/auth-service.md)**: Read a walkthrough of a complete JSON API backend authentication service written in TLang.
+- **[Projects and Packages](packages.md)**: Build reproducible projects with local and pinned Git dependencies.
