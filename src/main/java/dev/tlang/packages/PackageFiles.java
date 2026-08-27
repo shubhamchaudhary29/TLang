@@ -101,15 +101,28 @@ final class PackageFiles {
         try {
             Files.walkFileTree(path, new SimpleFileVisitor<>() {
                 @Override public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    Files.delete(file); return FileVisitResult.CONTINUE;
+                    deleteWritable(file); return FileVisitResult.CONTINUE;
                 }
                 @Override public FileVisitResult postVisitDirectory(Path dir, IOException error) throws IOException {
                     if (error != null) throw error;
-                    Files.delete(dir); return FileVisitResult.CONTINUE;
+                    deleteWritable(dir); return FileVisitResult.CONTINUE;
                 }
             });
         } catch (IOException e) {
             throw new PackageException("could not remove temporary package state '" + path + "'", e);
+        }
+    }
+
+    private static void deleteWritable(Path path) throws IOException {
+        try {
+            Files.delete(path);
+        } catch (java.nio.file.AccessDeniedException denied) {
+            // Git object packs can carry the DOS read-only bit on Windows.
+            // Clear it only on the already-validated temporary/cache target.
+            path.toFile().setWritable(true);
+            try { Files.setAttribute(path, "dos:readonly", false, LinkOption.NOFOLLOW_LINKS); }
+            catch (UnsupportedOperationException | IOException ignored) {}
+            Files.delete(path);
         }
     }
 

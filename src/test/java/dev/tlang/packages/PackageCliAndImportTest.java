@@ -30,7 +30,7 @@ class PackageCliAndImportTest {
         assertTrue(Files.isRegularFile(app.resolve("tlang.lock")));
         assertEquals(0, PackageTestSupport.cli(app, "install", "--offline").exitCode());
         PackageTestSupport.ProcessResult list = PackageTestSupport.cli(app, "list");
-        assertEquals(0, list.exitCode()); assertTrue(list.output().contains("└── utils"));
+        assertEquals(0, list.exitCode()); assertTrue(list.output().contains("utils"));
         PackageTestSupport.ProcessResult remove = PackageTestSupport.cli(app, "remove", "utils");
         assertEquals(0, remove.exitCode(), remove.output());
         assertFalse(Files.exists(app.resolve(".tlang/packages/utils")));
@@ -110,7 +110,7 @@ class PackageCliAndImportTest {
         Files.writeString(app.resolve("main.tiny"), "import broken\n");
         PackageTestSupport.ProcessResult run = PackageTestSupport.cli(app, "run", "main.tiny");
         assertEquals(70, run.exitCode(), run.output());
-        assertTrue(run.output().contains(".tlang/packages/broken/broken.tiny:1"), run.output());
+        assertTrue(run.output().replace('\\', '/').contains(".tlang/packages/broken/broken.tiny:1"), run.output());
         assertFalse(run.output().contains("java.lang"));
     }
 

@@ -156,7 +156,7 @@ public final class ManifestCodec {
     }
 
     static boolean looksLikeForeignAbsolutePath(String path) {
-        return path.matches("^[A-Za-z]:[\\\\/].*") || path.startsWith("\\\\");
+        return path.startsWith("/") || path.matches("^[A-Za-z]:[\\\\/].*") || path.startsWith("\\\\");
     }
 
     private static boolean hasLeadingZeroPrereleaseNumber(String version) {
