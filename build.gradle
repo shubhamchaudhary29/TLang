@@ -40,6 +40,17 @@ test {
     useJUnitPlatform()
 }
 
+tasks.register('packageTests', Test) {
+    group = 'verification'
+    description = 'Runs the M4 manifest, lockfile, resolver, Git, CLI, import, and installer suites.'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform()
+    filter {
+        includeTestsMatching 'dev.tlang.packages.*'
+    }
+}
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)

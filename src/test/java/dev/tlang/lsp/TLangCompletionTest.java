@@ -20,6 +20,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+
+import dev.tlang.packages.DependencySpec;
+import dev.tlang.packages.ManifestCodec;
+import dev.tlang.packages.PackageManifest;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -154,6 +159,26 @@ final class TLangCompletionTest {
             helper.|
             """);
         assertEquals(List.of("greet", "value"), labels(request));
+    }
+
+    @Test
+    void completesDirectPackageNamesAndInstalledExports(@TempDir Path directory) throws Exception {
+        PackageManifest manifest = new PackageManifest("app", "1.0.0", Map.of(
+            "helpers", DependencySpec.path("helpers", "../helpers")));
+        Files.writeString(directory.resolve("tlang.toml"), ManifestCodec.write(manifest));
+        Path installed = directory.resolve(".tlang/packages/helpers");
+        Files.createDirectories(installed);
+        Files.writeString(installed.resolve("helpers.tiny"), """
+            let answer be 42
+            define greet taking name
+              return name
+            """);
+        String uri = directory.resolve("main.tiny").toUri().toString();
+        assertEquals(List.of("helpers"), labels(open(uri, "import hel|")));
+        assertEquals(List.of("answer", "greet"), labels(open(uri, """
+            import helpers
+            helpers.|
+            """)));
     }
 
     @Test
