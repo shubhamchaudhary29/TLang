@@ -2,6 +2,23 @@
 
 ## Unreleased (0.3.0)
 
+- Added strict `tlang.toml` project manifests and deterministic, integrity-checked
+  `tlang.lock` dependency graphs.
+- Added `tlang init`, `add`, `remove`, `install`, and `list`, including local path
+  and Git dependencies, immutable commit pinning, transitive resolution, clear
+  cycle/source-conflict diagnostics, and explicit `install --update` behavior.
+- Added project-local atomic package installation and exact-commit Git caching,
+  corruption/partial-install repair, process-safe locking, and network-free
+  `install --offline` behavior.
+- Integrated declared packages with source-aware module loading while preserving
+  standalone scripts, sibling/project modules, native-module compatibility,
+  task/closure behavior, and dependency source paths in structured diagnostics.
+- Hardened package metadata, paths, lockfiles, Git arguments, package trees, and
+  install destinations against malformed input, traversal, symlink escape,
+  command injection, partial writes, and install-time code execution.
+- Added deterministic local Git fixtures and manifest, lockfile, resolver, CLI,
+  import, cache, offline, security, failure, large-graph, and concurrent-install
+  coverage plus a network-free runnable package example.
 - Added explicit `spawn call(...)` and blocking `await task` expressions backed
   by root-owned Java 21 virtual-thread task runtimes.
 - Added opaque task values, isolated task interpreter cursors, configurable

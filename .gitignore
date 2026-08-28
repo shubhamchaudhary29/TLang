@@ -16,6 +16,7 @@
 /.gradle/
 /build/
 /benchmark-results/
+**/.tlang/
 
 # IDE files
 .idea/

@@ -1,5 +1,6 @@
 package dev.tlang.cli;
 
+import dev.tlang.packages.PackageException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -12,6 +13,11 @@ public final class TLangCLI {
         COMMANDS.put("help", new HelpCommand());
         COMMANDS.put("fmt", new FmtCommand());
         COMMANDS.put("lsp", new LspCommand());
+        COMMANDS.put("init", new InitCommand());
+        COMMANDS.put("add", new AddCommand());
+        COMMANDS.put("remove", new RemoveCommand());
+        COMMANDS.put("install", new InstallCommand());
+        COMMANDS.put("list", new ListCommand());
     }
 
     public static void main(String[] args) {
@@ -47,6 +53,12 @@ public final class TLangCLI {
 
         try {
             cmd.execute(cmdArgs);
+        } catch (IllegalArgumentException e) {
+            System.err.println(e.getMessage());
+            System.exit(64);
+        } catch (PackageException e) {
+            System.err.println("Package error: " + e.getMessage());
+            System.exit(1);
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
             System.exit(1);
@@ -55,7 +67,7 @@ public final class TLangCLI {
 
     private static boolean isReserved(String cmd) {
         return cmd.equals("doctor") || cmd.equals("test")
-            || cmd.equals("repl") || cmd.equals("new") || cmd.equals("install")
+            || cmd.equals("repl") || cmd.equals("new")
             || cmd.equals("publish");
     }
 }

@@ -4,6 +4,8 @@ import dev.tlang.lexer.Lexer;
 import dev.tlang.lexer.Token;
 import dev.tlang.lexer.TokenType;
 import dev.tlang.modules.ModuleRegistry;
+import dev.tlang.packages.PackageException;
+import dev.tlang.packages.ProjectLayout;
 import dev.tlang.resolver.SymbolTable;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionItemKind;
@@ -93,6 +95,14 @@ final class CompletionAnalyzer {
             } catch (IOException | SecurityException ignored) {
                 // Completion must remain available when a workspace cannot be read.
             }
+            try {
+                ProjectLayout project = ProjectLayout.find(directory);
+                for (String name : project.readManifest().dependencies().keySet()) {
+                    add(candidates, new Candidate(name, CompletionItemKind.Module, "TLang package"));
+                }
+            } catch (PackageException | SecurityException ignored) {
+                // An incomplete project must not disable ordinary completion.
+            }
         }
         return items(candidates.values(), prefix);
     }
@@ -115,6 +125,12 @@ final class CompletionAnalyzer {
             if (directory != null) {
                 Path modulePath = directory.resolve(receiver + ".tiny").normalize();
                 try {
+                    if (!Files.isRegularFile(modulePath)) {
+                        ProjectLayout project = ProjectLayout.find(directory);
+                        if (project.readManifest().dependencies().containsKey(receiver)) {
+                            modulePath = project.packages().resolve(receiver).resolve(receiver + ".tiny").normalize();
+                        }
+                    }
                     if (Files.isRegularFile(modulePath)) {
                         String moduleSource = Files.readString(modulePath);
                         DocumentModel module = DocumentModel.build(
@@ -125,7 +141,7 @@ final class CompletionAnalyzer {
                             }
                         }
                     }
-                } catch (IOException | SecurityException ignored) {
+                } catch (IOException | SecurityException | PackageException ignored) {
                     // Missing/unreadable modules simply have no known members.
                 }
             }

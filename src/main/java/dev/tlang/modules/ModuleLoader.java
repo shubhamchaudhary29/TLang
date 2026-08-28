@@ -19,6 +19,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import dev.tlang.packages.PackageContext;
 
 import dev.tlang.ast.Stmt;
 import dev.tlang.lexer.Lexer;
@@ -32,11 +33,13 @@ import dev.tlang.errors.SemanticError;
  */
 public final class ModuleLoader {
     private final Path scriptDir;
+    private final PackageContext packageContext;
     private final Map<String, Map<String, Object>> loadedModules = new HashMap<>();
     private final Set<String> loading = new HashSet<>();
 
     public ModuleLoader(Path scriptDir) {
-        this.scriptDir = scriptDir;
+        this.scriptDir = scriptDir.toAbsolutePath().normalize();
+        this.packageContext = PackageContext.discover(this.scriptDir);
     }
 
     /**
@@ -63,8 +66,8 @@ public final class ModuleLoader {
             return nativeModule;
         }
 
-        // 2. Resolve to absolute file path relative to script directory
-        Path modulePath = scriptDir.resolve(moduleName + ".tiny").toAbsolutePath().normalize();
+        // 2. Resolve user/project/package modules without mutable global context.
+        Path modulePath = resolveModulePath(moduleName, importToken);
         String cacheKey = modulePath.toString();
 
         if (loadedModules.containsKey(cacheKey)) {
@@ -137,6 +140,44 @@ public final class ModuleLoader {
 
         } finally {
             loading.remove(cacheKey);
+        }
+    }
+
+    private Path resolveModulePath(String moduleName, Token importToken) {
+        Path importingFile = sourcePath(importToken);
+        Path importingDirectory = importingFile == null ? scriptDir : importingFile.getParent();
+        if (importingDirectory != null) {
+            Path sibling = importingDirectory.resolve(moduleName + ".tiny").toAbsolutePath().normalize();
+            if (Files.isRegularFile(sibling) && !Files.isSymbolicLink(sibling)) return sibling;
+        }
+        if (packageContext != null) {
+            if (packageContext.isProjectSource(importingFile)) {
+                Path projectModule = packageContext.projectRoot().resolve(moduleName + ".tiny").normalize();
+                if (Files.isRegularFile(projectModule) && !Files.isSymbolicLink(projectModule)) return projectModule;
+            }
+            Path dependency = packageContext.resolveDependency(moduleName, importingFile);
+            if (dependency != null) return dependency;
+        }
+        // Preserve a deterministic not-found path without letting dependency
+        // modules fall back into unrelated project files.
+        Path missingBase = importingDirectory == null ? scriptDir : importingDirectory;
+        return missingBase.resolve(moduleName + ".tiny").toAbsolutePath().normalize();
+    }
+
+    private Path sourcePath(Token token) {
+        String name = token.getSourceUnit().name();
+        if (name == null || name.isBlank()) return null;
+        try {
+            Path raw = Path.of(name);
+            if (raw.isAbsolute()) return raw.normalize();
+            Path fromWorkingDirectory = raw.toAbsolutePath().normalize();
+            Path parent = fromWorkingDirectory.getParent();
+            if ((parent != null && parent.equals(scriptDir)) || fromWorkingDirectory.startsWith(scriptDir)) {
+                return fromWorkingDirectory;
+            }
+            return scriptDir.resolve(raw).toAbsolutePath().normalize();
+        } catch (java.nio.file.InvalidPathException ignored) {
+            return null;
         }
     }
 

@@ -189,7 +189,9 @@ let handlers be [
 
 ## 7. Modules and Imports
 
-TLang is modular. You can import built-in standard library modules or local `.tiny` source files as modules using the `import` statement.
+TLang is modular. You can import built-in standard library modules, local
+`.tiny` source files, or installed project packages using the `import`
+statement.
 
 ```tiny
 import log
@@ -200,3 +202,11 @@ show math.floor_div(7, 2)
 ```
 
 For more details on what modules are available, see the **[Standard Library Reference](stdlib/index.md)**.
+
+In a project, native modules resolve first for backward compatibility, followed
+by a module beside the importer, a project-root module (for project source), and
+an allowed installed package. Project source may import direct dependencies;
+dependency source may import only dependencies declared by that package.
+Package entry modules are `.tlang/packages/<name>/<name>.tiny`, and retain that
+source path in runtime diagnostics. See [Projects and package
+management](packages.md) for complete behavior.

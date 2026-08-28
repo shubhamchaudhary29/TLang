@@ -182,10 +182,15 @@ The following table lists operators from lowest precedence (parsed first) to hig
 - **Field Access**: Accessing a property using dot notation (`obj.prop`) is semantically equivalent to a map key lookup (`obj["prop"]`). Attempting to access a non-existent key throws an `IndexError`.
 - **Field Assignment**: Setting a property (`set obj.prop to value`) updates or inserts the key `"prop"` in the underlying map.
 
-### Imports and Module Loading
-- **Import Statement**: `import <name>` resolves external dependencies in two sequential steps:
-  1. **Native Modules**: Check `ModuleRegistry` first. Native modules include: `math`, `filesystem`, `time`, `random`, `strings`, `json`, `http`, and `db`.
-  2. **User Modules**: If not in the registry, look for a `<name>.tiny` file relative to the importing script's directory.
+### Imports, projects, and module loading
+- **Import Statement**: `import <name>` resolves in deterministic order:
+  1. **Native Modules**: Check `ModuleRegistry` first. Native names remain reserved for backward compatibility.
+  2. **Sibling Module**: Look for `<name>.tiny` beside the importing source file.
+  3. **Project Module**: For project-owned source, look for `<name>.tiny` at the project root.
+  4. **Package Module**: Resolve a permitted locked dependency to `.tlang/packages/<name>/<name>.tiny`.
+- **Project graph**: A project is the nearest ancestor containing `tlang.toml`. Root source may import direct manifest dependencies. Package source may import only dependency edges recorded for that package in the matching version-1 `tlang.lock` graph. Standalone scripts require neither file.
+- **Package identity**: Dependency aliases are importable lowercase TLang identifiers and equal the depended-on manifest name. Local sources are canonical paths with content digests; Git sources are repository URIs pinned to immutable 40-character commits.
+- **Reproducibility**: Lockfile package records and edges have stable name ordering. A manifest digest detects mismatch and a graph digest detects lockfile mutation or truncation. Normal install never advances locked Git refs; explicit update resolution may do so.
 - **Isolation**: Each module is executed once inside its own clean global environment. The top-level bindings are captured and returned as a map.
 - **Concurrent loading**: Module initialization and cache publication are atomic per loader. Concurrent first imports observe the same completed export map. A load failure raises a diagnostic without terminating the process.
 - **Circular Imports**: A loader-local stack tracks currently loading module files. Importing a module that is currently in the loading chain throws an `ImportError`.
