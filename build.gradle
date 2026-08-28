@@ -220,6 +220,12 @@ tasks.named('check') {
 
 // jpackage task integration for native installers
 def jpackageVersion = project.version.toString().split('-')[0]
+// Apple bundle versions must start with a positive integer. Preserve the
+// pre-1.0 minor/patch components behind a stable compatibility major, while
+// keeping the public installer filename and embedded CLI version unchanged.
+def macJpackageVersion = jpackageVersion.startsWith('0.')
+    ? "1.${jpackageVersion.substring(2)}"
+    : jpackageVersion
 def requireReleaseVersion = {
     if (project.version.toString().endsWith('-SNAPSHOT')) {
         throw new GradleException('Native installers require a non-snapshot release version.')
@@ -272,7 +278,7 @@ tasks.register('jpackageMac', Exec) {
         '--verbose',
         '--type', 'pkg',
         '--name', 'TLang',
-        '--app-version', jpackageVersion,
+        '--app-version', macJpackageVersion,
         '--input', "${layout.buildDirectory.get().asFile}/install/tlang/lib",
         '--main-jar', tasks.named('jar').get().archiveFileName.get(),
         '--main-class', 'dev.tlang.Main',
@@ -280,6 +286,20 @@ tasks.register('jpackageMac', Exec) {
         '--resource-dir', 'packaging/macos',
         '--vendor', 'TLang',
         '--description', 'TLang Programming Language'
+
+    doLast {
+        def packages = fileTree("${layout.buildDirectory.get().asFile}/jpackage") {
+            include '*.pkg'
+        }.files
+        if (packages.size() != 1) {
+            throw new GradleException("Expected exactly one macOS package, found ${packages.size()}.")
+        }
+        def publicPackage = file("${layout.buildDirectory.get().asFile}/jpackage/TLang-${jpackageVersion}.pkg")
+        def generatedPackage = packages.first()
+        if (generatedPackage != publicPackage && !generatedPackage.renameTo(publicPackage)) {
+            throw new GradleException("Could not rename ${generatedPackage.name} to ${publicPackage.name}.")
+        }
+    }
 }
 
 tasks.register('jpackageWindows', Exec) {
