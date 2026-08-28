@@ -7,8 +7,11 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -61,6 +64,90 @@ class PackageSecurityAndFailureTest {
             () -> manager.add(app, DependencySpec.path("b", "../b"))).getMessage().contains("conflicting sources"));
         assertEquals(manifest, Files.readString(app.resolve("tlang.toml")));
         assertEquals(lock, Files.readString(app.resolve("tlang.lock")));
+    }
+
+    @Test void failedAddCommitRestoresMetadataAndInstalledPackages() throws Exception {
+        Path a = temporary.resolve("a"); Path b = temporary.resolve("b");
+        PackageTestSupport.writePackage(a, "a", Map.of(), null);
+        PackageTestSupport.writePackage(b, "b", Map.of(), null);
+        Path app = initializedApp(); PackageManager manager = new PackageManager();
+        manager.add(app, DependencySpec.path("a", "../a"));
+        byte[] manifest = Files.readAllBytes(app.resolve("tlang.toml"));
+        byte[] lock = Files.readAllBytes(app.resolve("tlang.lock"));
+        Map<String, String> installed = installedHashes(app);
+
+        PackageManager failing = failOnMetadataWrite(2, app.resolve(".tlang/packages/b"));
+        assertThrows(PackageException.class,
+            () -> failing.add(app, DependencySpec.path("b", "../b")));
+
+        assertArrayEquals(manifest, Files.readAllBytes(app.resolve("tlang.toml")));
+        assertArrayEquals(lock, Files.readAllBytes(app.resolve("tlang.lock")));
+        assertEquals(installed, installedHashes(app));
+        assertTrue(Files.exists(app.resolve(".tlang/packages/a/.tlang-package-meta")));
+        assertFalse(Files.exists(app.resolve(".tlang/packages/b")));
+        assertNoTransactionDirectories(app);
+        assertEquals(Set.of("a"), manager.install(app, false, false).packages().keySet());
+    }
+
+    @Test void failedRemoveCommitRestoresMetadataAndInstalledPackages() throws Exception {
+        Path a = temporary.resolve("a"); Path b = temporary.resolve("b");
+        PackageTestSupport.writePackage(a, "a", Map.of(), null);
+        PackageTestSupport.writePackage(b, "b", Map.of(), null);
+        Path app = initializedApp(); PackageManager manager = new PackageManager();
+        manager.add(app, DependencySpec.path("a", "../a"));
+        manager.add(app, DependencySpec.path("b", "../b"));
+        byte[] manifest = Files.readAllBytes(app.resolve("tlang.toml"));
+        byte[] lock = Files.readAllBytes(app.resolve("tlang.lock"));
+        Map<String, String> installed = installedHashes(app);
+
+        PackageManager failing = failOnMetadataWrite(2, app.resolve(".tlang/packages/b"));
+        assertThrows(PackageException.class, () -> failing.remove(app, "a"));
+
+        assertArrayEquals(manifest, Files.readAllBytes(app.resolve("tlang.toml")));
+        assertArrayEquals(lock, Files.readAllBytes(app.resolve("tlang.lock")));
+        assertEquals(installed, installedHashes(app));
+        assertInstalledMatchesLock(app);
+        assertNoTransactionDirectories(app);
+        assertEquals(Set.of("a", "b"), manager.install(app, false, false).packages().keySet());
+    }
+
+    @Test void failedRemoveRestoresSharedTransitiveGraph() throws Exception {
+        Path common = temporary.resolve("common"); Path a = temporary.resolve("a"); Path b = temporary.resolve("b");
+        PackageTestSupport.writePackage(common, "common", Map.of(), null);
+        PackageTestSupport.writePackage(a, "a", Map.of("common", DependencySpec.path("common", "../common")), null);
+        PackageTestSupport.writePackage(b, "b", Map.of("common", DependencySpec.path("common", "../common")), null);
+        Path app = initializedApp(); PackageManager manager = new PackageManager();
+        manager.add(app, DependencySpec.path("a", "../a"));
+        manager.add(app, DependencySpec.path("b", "../b"));
+        byte[] manifest = Files.readAllBytes(app.resolve("tlang.toml"));
+        byte[] lock = Files.readAllBytes(app.resolve("tlang.lock"));
+        Map<String, String> installed = installedHashes(app);
+
+        PackageManager failing = failOnMetadataWrite(1, app.resolve(".tlang/packages/common"));
+        assertThrows(PackageException.class, () -> failing.remove(app, "a"));
+
+        assertArrayEquals(manifest, Files.readAllBytes(app.resolve("tlang.toml")));
+        assertArrayEquals(lock, Files.readAllBytes(app.resolve("tlang.lock")));
+        assertEquals(installed, installedHashes(app));
+        assertEquals(Set.of("a", "b", "common"), installed.keySet());
+        assertInstalledMatchesLock(app);
+        assertNoTransactionDirectories(app);
+    }
+
+    @Test void failedFirstAddRestoresManifestAndLockfileAbsence() throws Exception {
+        Path b = temporary.resolve("b"); PackageTestSupport.writePackage(b, "b", Map.of(), null);
+        Path app = initializedApp();
+        byte[] manifest = Files.readAllBytes(app.resolve("tlang.toml"));
+        assertFalse(Files.exists(app.resolve("tlang.lock")));
+
+        PackageManager failing = failOnMetadataWrite(1, app.resolve(".tlang/packages/b"));
+        assertThrows(PackageException.class,
+            () -> failing.add(app, DependencySpec.path("b", "../b")));
+
+        assertArrayEquals(manifest, Files.readAllBytes(app.resolve("tlang.toml")));
+        assertFalse(Files.exists(app.resolve("tlang.lock")));
+        assertFalse(Files.exists(app.resolve(".tlang/packages/b")));
+        assertNoTransactionDirectories(app);
     }
 
     @Test void normalizedPathRoundTripsAcrossInstall() throws Exception {
@@ -141,5 +228,51 @@ class PackageSecurityAndFailureTest {
 
     private Path initializedApp() throws Exception {
         Path app = temporary.resolve("app"); Files.createDirectories(app); new PackageManager().init(app, "app"); return app;
+    }
+
+    private static PackageManager failOnMetadataWrite(int failedWrite, Path materializedPackage) {
+        AtomicInteger writes = new AtomicInteger();
+        return new PackageManager((target, content) -> {
+            assertTrue(Files.isDirectory(materializedPackage), "packages must be materialized before metadata commit");
+            if (writes.incrementAndGet() == failedWrite) throw new PackageException("injected metadata commit failure");
+            PackageFiles.atomicWrite(target, content);
+        });
+    }
+
+    private static Map<String, String> installedHashes(Path app) throws Exception {
+        Path packages = app.resolve(".tlang/packages");
+        if (!Files.exists(packages)) return Map.of();
+        Map<String, String> hashes = new java.util.TreeMap<>();
+        try (var paths = Files.list(packages)) {
+            for (Path path : paths.filter(Files::isDirectory).toList()) {
+                if (!path.getFileName().toString().startsWith(".")) {
+                    hashes.put(path.getFileName().toString(), PackageHashes.tree(path));
+                }
+            }
+        }
+        return hashes;
+    }
+
+    private static void assertInstalledMatchesLock(Path app) throws Exception {
+        PackageLock lock = LockfileCodec.parse(Files.readString(app.resolve("tlang.lock")), "lock");
+        assertEquals(lock.packages().keySet(), installedHashes(app).keySet());
+        for (PackageRecord record : lock.packages().values()) {
+            Path installed = app.resolve(".tlang/packages").resolve(record.name());
+            assertEquals(record.contentSha256(), PackageHashes.tree(installed));
+            assertEquals("name=" + record.name() + "\ncontent-sha256=" + record.contentSha256() + "\n",
+                Files.readString(installed.resolve(PackageHashes.METADATA_FILE)));
+        }
+    }
+
+    private static void assertNoTransactionDirectories(Path app) throws Exception {
+        Path state = app.resolve(".tlang");
+        if (!Files.exists(state)) return;
+        try (var paths = Files.walk(state)) {
+            Set<String> stale = new HashSet<>();
+            paths.map(path -> path.getFileName().toString())
+                .filter(name -> name.startsWith(".tmp-") || name.contains(".old-"))
+                .forEach(stale::add);
+            assertTrue(stale.isEmpty(), "stale transaction paths: " + stale);
+        }
     }
 }

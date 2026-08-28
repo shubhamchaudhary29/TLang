@@ -182,6 +182,7 @@ jobs:
             if ./gradlew test \
               --tests dev.tlang.packages.PackageManagerIntegrationTest \
               --tests dev.tlang.packages.PackageCliAndImportTest \
+              --tests dev.tlang.packages.PackageSecurityAndFailureTest \
               --rerun-tasks \
               --no-daemon \
               --console=plain; then

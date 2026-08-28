@@ -4,9 +4,21 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.BiConsumer;
 
 /** Transactional orchestration for package CLI commands. */
 public final class PackageManager {
+    private final BiConsumer<Path, String> metadataWriter;
+
+    public PackageManager() {
+        this(PackageFiles::atomicWrite);
+    }
+
+    PackageManager(BiConsumer<Path, String> metadataWriter) {
+        this.metadataWriter = Objects.requireNonNull(metadataWriter, "metadataWriter");
+    }
+
     public Path init(Path directory, String requestedName) {
         Path root = directory.toAbsolutePath().normalize();
         Path manifestPath = root.resolve("tlang.toml");
@@ -32,8 +44,7 @@ public final class PackageManager {
             PackageLock previous = readOptionalLock(project);
             if (previous != null) LockfileCodec.verifyManifest(current, previous);
             DependencyResolution resolution = new DependencyResolver(project, previous, false, false).resolve(proposed);
-            new PackageInstaller(project).install(resolution.lock(), resolution.sourceRoots(), false);
-            writeManifestAndLock(project, proposed, resolution.lock());
+            mutate(project, proposed, resolution);
             return resolution.lock();
         }
     }
@@ -49,8 +60,7 @@ public final class PackageManager {
             PackageLock previous = readOptionalLock(project);
             if (previous != null) LockfileCodec.verifyManifest(current, previous);
             DependencyResolution resolution = new DependencyResolver(project, previous, false, false).resolve(proposed);
-            new PackageInstaller(project).install(resolution.lock(), resolution.sourceRoots(), false);
-            writeManifestAndLock(project, proposed, resolution.lock());
+            mutate(project, proposed, resolution);
             return resolution.lock();
         }
     }
@@ -112,22 +122,11 @@ public final class PackageManager {
         return Files.exists(project.lockfile(), LinkOption.NOFOLLOW_LINKS) ? project.readLock() : null;
     }
 
-    private static void writeManifestAndLock(ProjectLayout project, PackageManifest manifest, PackageLock lock) {
-        String oldManifest = PackageFiles.read(project.manifest(), "manifest");
-        String oldLock = Files.exists(project.lockfile(), LinkOption.NOFOLLOW_LINKS)
-            ? PackageFiles.read(project.lockfile(), "lockfile") : null;
-        try {
-            PackageFiles.atomicWrite(project.manifest(), ManifestCodec.write(manifest));
-            PackageFiles.atomicWrite(project.lockfile(), LockfileCodec.write(lock));
-        } catch (RuntimeException failure) {
-            try {
-                PackageFiles.atomicWrite(project.manifest(), oldManifest);
-                if (oldLock != null) PackageFiles.atomicWrite(project.lockfile(), oldLock);
-                else Files.deleteIfExists(project.lockfile());
-            } catch (java.io.IOException | RuntimeException rollbackFailure) {
-                failure.addSuppressed(rollbackFailure);
-            }
-            throw failure;
+    private void mutate(ProjectLayout project, PackageManifest manifest, DependencyResolution resolution) {
+        // The project lock remains held while all three state components commit or roll back.
+        try (PackageMutationTransaction transaction = PackageMutationTransaction.begin(project)) {
+            new PackageInstaller(project).install(resolution.lock(), resolution.sourceRoots(), false);
+            transaction.commit(manifest, resolution.lock(), metadataWriter);
         }
     }
 
