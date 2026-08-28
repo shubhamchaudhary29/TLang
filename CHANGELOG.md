@@ -1,5 +1,7 @@
 # Changelog
 
+## Unreleased (0.4.0)
+
 ## v0.3.0
 
 - Added strict `tlang.toml` project manifests and deterministic, integrity-checked
