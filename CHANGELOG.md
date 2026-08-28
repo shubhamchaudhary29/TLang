@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased (0.3.0)
+## v0.3.0
 
 - Added strict `tlang.toml` project manifests and deterministic, integrity-checked
   `tlang.lock` dependency graphs.
