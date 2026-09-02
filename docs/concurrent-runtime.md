@@ -44,7 +44,9 @@ another request's execution state.
 | Module export cache | Thread-safe shared | First load is atomic; a user module executes once per `ModuleLoader`. Module failures preserve their source/category and never terminate the JVM. |
 | Native JSON/crypto/validation/filesystem/random utilities | Immutable or stateless shared | Temporary parsers, buffers, digests, and results are created per call. Shared inputs are read through stable snapshots. |
 | Config and cache module stores | Thread-safe shared | Backed by concurrent maps. Cache expiry removal is conditional on the entry observed. |
-| SQLite connection object | Thread-safe shared per connection | Operations and `close()` on one JDBC connection are serialized by that connection's lock. Different connections can proceed concurrently and remain subject to SQLite file locking/busy errors. |
+| SQLite database handle | Thread-safe shared per handle | Operations and `close()` on its one JDBC connection are serialized. Different handles remain subject to SQLite file locking/busy errors. Only one transaction may be active on a handle. |
+| PostgreSQL database handle | Thread-safe shared pool | Ordinary operations borrow independent connections from a bounded pool and can run concurrently across HTTP/task cursors. `close()` waits for in-flight ordinary operations, rolls back pinned transactions, and shuts down the pool. |
+| Database transaction handle | Serialized, not concurrently shareable | A transaction pins one connection until commit, rollback, or failure. Any operation failure auto-rolls back. Unfinished transactions and handles opened locally are also cleaned up at request/task boundaries, so cursor failure cannot strand a pool resource. |
 | HTTP client | Thread-safe shared | Java's immutable requests and thread-safe `HttpClient` are used; calls remain synchronous from the calling TLang handler. |
 | Filesystem and process environment | External shared state | Filesystem calls are synchronous and rely on OS filesystem semantics. Environment variables are read-only; `.env` cache publication is concurrent-safe. |
 
@@ -52,7 +54,7 @@ Global state remains global for backward compatibility. TLang deliberately does
 not apply copy-on-request semantics: a handler that assigns a global makes that
 new value visible to other handlers. Individual accesses cannot corrupt the
 environment, list, or map, but read-modify-write algorithms can interleave. Use
-SQLite transactions or another coordination primitive when the application
+database transactions or another coordination primitive when the application
 requires an atomic multi-step invariant.
 
 ## Executor and lifecycle

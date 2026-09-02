@@ -120,6 +120,6 @@ updates, import precedence, and security model.
 
 Once you've run your first script, check out these references for deeper learning:
 - **[Language Reference](language-reference.md)**: Explore the detailed language syntax, multi-line list/map literals, lambdas, and imports.
-- **[Standard Library Reference](stdlib/index.md)**: Browse the documentation for built-in modules like `http`, `db` (SQLite), `jwt`, `json`, and more.
+- **[Standard Library Reference](stdlib/index.md)**: Browse the documentation for built-in modules like `http`, `db` (SQLite/PostgreSQL), `jwt`, `json`, and more.
 - **[Example: Auth Service](examples/auth-service.md)**: Read a walkthrough of a complete JSON API backend authentication service written in TLang.
 - **[Projects and Packages](packages.md)**: Build reproducible projects with local and pinned Git dependencies.

@@ -206,6 +206,13 @@ public final class ServerOps {
             // Host implementation details are retained as the cause, never sent remotely.
             resWrapper.replaceWithError(500, "Internal Server Error");
         }
+        RuntimeError cleanupFailure = requestInterpreter.closeCursorResources();
+        if (cleanupFailure != null) {
+            RuntimeError diagnostic = cleanupFailure.withFrame(RuntimeStackFrame.httpHandler(
+                exchange.getRequestMethod(), Route.normalizePath(exchange.getRequestURI().getPath())));
+            diagnosticSink.accept(diagnostic);
+            resWrapper.replaceWithError(500, "Internal Server Error");
+        }
         resWrapper.flush();
     }
 

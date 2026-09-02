@@ -1,0 +1,33 @@
+import config
+import db
+import http
+import json
+import strings
+
+config.load()
+
+let connection be db.open(config.require("DATABASE_URL"), {
+    username: config.require("DATABASE_USER"),
+    password: config.require("DATABASE_PASSWORD"),
+    poolSize: 10,
+    connectionTimeoutMs: 5000,
+    queryTimeoutSeconds: 15
+})
+
+connection.execute("CREATE TABLE IF NOT EXISTS notes (id SERIAL PRIMARY KEY, content TEXT NOT NULL)", [])
+
+let server be http.server(strings.toNumber(config.getOr("PORT", "8080")))
+
+define createNote taking req and res
+    let payload be json.parse(req.body)
+    let rows be connection.query("INSERT INTO notes(content) VALUES (?) RETURNING id, content", [payload.content])
+    res.status(201).json(rows.get(0))
+
+define listNotes taking req and res
+    res.json(connection.query("SELECT id, content FROM notes ORDER BY id", []))
+
+server.post("/notes", createNote)
+server.get("/notes", listNotes)
+
+show "PostgreSQL notes API listening on http://127.0.0.1:" + config.getOr("PORT", "8080")
+server.start()

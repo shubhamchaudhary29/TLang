@@ -1,117 +1,174 @@
 # db
 
-## Purpose
-Provides native SQLite database access for reading, writing, updating, and deleting structured data in backend applications.
+`db` is TLang's single database module. It preserves path-based SQLite access
+and adds pooled PostgreSQL access without separate driver modules or new
+language syntax.
 
-## API
+## Opening a database
 
-### Top-Level Module Functions
+`db.open(target, options?)` returns a database handle.
 
-#### `open(path)`
-- **Signature**: `open(path: String)`
-- **Return Type**: `Map` (Database connection object)
-- **Description**: Opens a connection to a SQLite database. Use `":memory:"` for an in-memory database.
-
----
-
-### Connection Object Methods
-The database connection map returned by `open` exposes the following methods:
-
-#### `query(sql, params)`
-- **Signature**: `conn.query(sql: String, params: List)`
-- **Return Type**: `List` (of Maps)
-- **Description**: Runs a SQL query (SELECT) and returns the result set as a list of maps, where each map maps column labels to runtime values.
-
-#### `execute(sql, params)`
-- **Signature**: `conn.execute(sql: String, params: List)`
-- **Return Type**: `Number` (Integer)
-- **Description**: Executes a non-query SQL command (like CREATE TABLE) and returns the number of affected rows.
-
-#### `insert(sql, params)`
-- **Signature**: `conn.insert(sql: String, params: List)`
-- **Return Type**: `Number` (Integer)
-- **Description**: Alias for `execute`. Executes an INSERT statement and returns the number of affected rows.
-
-#### `update(sql, params)`
-- **Signature**: `conn.update(sql: String, params: List)`
-- **Return Type**: `Number` (Integer)
-- **Description**: Alias for `execute`. Executes an UPDATE statement and returns the number of affected rows.
-
-#### `delete(sql, params)`
-- **Signature**: `conn.delete(sql: String, params: List)`
-- **Return Type**: `Number` (Integer)
-- **Description**: Alias for `execute`. Executes a DELETE statement and returns the number of affected rows.
-
-#### `lastInsertId()`
-- **Signature**: `conn.lastInsertId()`
-- **Return Type**: `Number` (Integer)
-- **Description**: Returns the ID of the last row inserted on this connection (`last_insert_rowid()`). Note that this value represents the most recent insertion across any table on this connection.
-
-#### `close()`
-- **Signature**: `conn.close()`
-- **Return Type**: `Null`
-- **Description**: Closes the database connection.
-
----
-
-## Examples
-
-### 1. Database connection and Table creation
 ```tiny
 import db
 
-let conn be db.open("app.db")
-conn.execute("CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY, msg TEXT)", [])
-conn.close()
+let sqlite be db.open("app.db")
+let postgres be db.open("postgresql://localhost:5432/myapp")
 ```
 
-### 2. Inserting and Querying Rows
+SQLite targets are file paths; `":memory:"` creates an in-memory database.
+PostgreSQL targets use `postgresql://host[:port]/database` (the `postgres://`
+alias is also accepted). URL query strings, fragments, `jdbc:` URLs, and
+unrecognized schemes are rejected so callers cannot inject arbitrary JDBC
+properties. Percent-encoded usernames/passwords in URL user-info are supported,
+but separate configuration is preferred because URLs are commonly logged by
+other infrastructure.
+
+The optional map has exactly these keys:
+
+| Option | Default | Meaning |
+| --- | ---: | --- |
+| `username` | URL/driver default | PostgreSQL username |
+| `password` | URL/driver default | PostgreSQL password |
+| `poolSize` | `10` | PostgreSQL physical-connection upper bound (`1`–`64`) |
+| `connectionTimeoutMs` | `5000` | Maximum pool wait/connect time (`250`–`120000`) |
+| `queryTimeoutSeconds` | `30` | JDBC statement timeout (`1`–`3600`); applies to both providers |
+
+Use the existing `config` module for environment-backed secrets:
+
 ```tiny
+import config
 import db
 
-let conn be db.open(":memory:")
-conn.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, age INTEGER)", [])
-
-// Insert values
-let rowsAffected be conn.insert("INSERT INTO users (name, age) VALUES (?, ?)", ["Bob", 28])
-show rowsAffected // 1
-show conn.lastInsertId() // 1
-
-// Query values
-let results be conn.query("SELECT * FROM users WHERE age > ?", [20])
-let firstUser be results.get(0)
-show firstUser.get("name") // "Bob"
-conn.close()
+config.load()
+let conn be db.open(config.require("DATABASE_URL"), {
+    username: config.require("DATABASE_USER"),
+    password: config.require("DATABASE_PASSWORD"),
+    poolSize: 12,
+    connectionTimeoutMs: 5000,
+    queryTimeoutSeconds: 15
+})
 ```
 
----
+`db` does not read its own environment variables or create a second
+configuration system.
 
-## Errors
-- **Argument / Parameter validation**:
-  - `Database path must be a string.`
-  - `SQL query must be a string.`
-  - `Parameters must be a list.`
-- **Parameter count mismatch**:
-  - `Expected 2 parameters, but got 1.` (If the number of placeholders `?` in the SQL string does not match the size of the parameter list).
-- **Unsupported SQLite / Java Types**:
-  - Blobs are not supported: `BLOB type is not supported in this version of TLang database wrapper (future work).`
-  - Unsupported parameters: `Unsupported parameter type: ...`
-  - Real fractional values (e.g. `2.5`): `Floating point values with nonzero fractional parts (like 2.5) are not supported in TLang.`
-  - Integer overflow: SQLite 64-bit integer values exceeding 32-bit bounds will throw `Integer overflow: SQLite value ... does not fit in a 32-bit integer.`
-- **Connection errors**:
-  - Performing operations on a closed connection: `Connection is closed.`
-  - Database Driver issues: `SQLite JDBC driver not found on classpath: ...`
-  - Internal SQLite syntax errors or constraints: `Database error: [SQLITE_ERROR] SQL error or missing database ...`
+## Database-handle methods
 
----
+`query(sql, params)` executes a result-producing statement and returns a list
+of row maps. `execute(sql, params)` executes a non-query statement and returns
+its affected-row count. `insert`, `update`, and `delete` are compatibility
+aliases of `execute`.
 
-## Notes
-- **JDBC Driver dependency**: The wrapper relies on the presence of the `org.sqlite.JDBC` driver in the classpath.
-- **Concurrent use**: Calls on the same connection, including `close()`, are serialized by a per-connection lock because JDBC connections are not assumed to be thread-safe. Separate connections can run concurrently and are subject to SQLite's normal transaction, file-locking, and busy-error behavior. SQLite errors are surfaced as `RuntimeError`; the runtime does not silently retry or discard them.
-- **Lifecycle**: Connections are application resources and must be closed explicitly. Stopping an HTTP server does not close unrelated global database connections.
-- **Type Mapping**:
-  - SQLite `INTEGER` corresponds to TLang `NUMBER`.
-  - SQLite `TEXT` corresponds to TLang `STRING`.
-  - SQLite `NULL` maps to TLang `nil`.
-  - SQLite `REAL` is supported only if it represents a whole number (i.e. has a zero fractional part), converting directly to a TLang `NUMBER`.
-  - SQLite booleans (stored as integer `1` or `0`) can be queried, but inserting boolean parameters requires manual coercion or passes `1`/`0` directly under the hood.
+```tiny
+conn.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)", [])
+let affected be conn.insert("INSERT INTO users (id, name) VALUES (?, ?)", [1, "O'Brien"])
+let rows be conn.query("SELECT id, name FROM users WHERE id = ?", [1])
+```
+
+Every value in `params` is bound through `PreparedStatement`; values are never
+concatenated into SQL. Supported parameters are TLang strings, integers,
+booleans, and `nil`. The parameter list is mandatory, including `[]` when the
+SQL has no placeholders. Placeholder validation ignores quoted strings,
+identifiers, SQL comments, and PostgreSQL dollar-quoted strings.
+
+`lastInsertId()` preserves SQLite's `last_insert_rowid()` behavior. PostgreSQL
+callers use a result-producing statement with `RETURNING`:
+
+```tiny
+let inserted be conn.query("INSERT INTO users (name) VALUES (?) RETURNING id", ["Ada"])
+let id be inserted.get(0).id
+```
+
+`close()` is idempotent. Querying a closed handle raises `DatabaseError`.
+Stopping an HTTP server does not close unrelated global handles; applications
+must close them during their own shutdown path.
+
+Handles opened inside a request handler or spawned task are owned by that
+execution cursor and are automatically closed when it succeeds or fails.
+Top-level handles remain application-owned so a server can share one pool for
+its lifetime.
+
+The read-only `provider` field is `"sqlite"` or `"postgresql"`.
+
+## Transactions
+
+`begin()` returns a transaction handle with the same query/execute/insert/
+update/delete methods plus `commit()` and `rollback()`.
+
+```tiny
+let transaction be conn.begin()
+transaction.insert("INSERT INTO ledger (account, amount) VALUES (?, ?)", [7, 100])
+transaction.update("UPDATE accounts SET balance = balance + ? WHERE id = ?", [100, 7])
+transaction.commit()
+```
+
+A transaction pins one physical connection and serializes its own operations.
+Do not share a transaction handle between HTTP handlers or spawned tasks.
+Nested transactions are not exposed. SQLite permits one active transaction per
+database handle; while it is active, use the transaction handle rather than the
+parent handle. PostgreSQL can host multiple independent transaction handles up
+to the pool bound.
+
+If parameter binding, SQL execution, row conversion, or TLang-side argument
+validation fails during a transaction operation, the runtime automatically
+rolls back, closes the transaction, and releases its resource. This is required
+because TLang has no language-level `try/catch`. Closing the parent database
+handle also rolls back all active transactions. Calling commit/rollback after
+completion raises `DatabaseError`.
+
+## Values
+
+| Database value | TLang value |
+| --- | --- |
+| SQL `NULL` | `nil` |
+| `SMALLINT`/`INTEGER`/safe `BIGINT` or integral `NUMERIC` | integer |
+| PostgreSQL `BOOLEAN` | boolean |
+| SQLite boolean storage | integer `0`/`1` (backward compatible) |
+| text/varchar | string |
+| date/timestamp/UUID | ISO-formatted string |
+| result row | map keyed by column label |
+| result set | list of row maps |
+
+TLang integers are signed 32-bit values. Fractional numeric values and integers
+outside that range fail rather than truncate. Binary values and unsupported
+provider-specific objects (for example raw PostgreSQL `jsonb`) also fail; decode
+or cast them to text in SQL when that is the intended representation. Duplicate
+column labels fail rather than silently overwriting a map entry—use SQL aliases.
+
+## Pooling and concurrency
+
+Each PostgreSQL `db.open` owns one bounded HikariCP pool. Ordinary operations
+borrow a connection for the duration of one statement and return it in all
+success and failure paths. A shared PostgreSQL handle is safe across concurrent
+HTTP execution cursors and spawned tasks, and independent operations can run in
+parallel. Pool exhaustion waits at most `connectionTimeoutMs` and then raises a
+structured `DatabaseError`. `close()` prevents new borrows, waits for in-flight
+ordinary operations, rolls back pinned transactions, and shuts down the pool.
+
+SQLite keeps one JDBC connection per handle. Operations and close are
+serialized on that handle; separate handles follow SQLite's normal file locking
+and busy-error rules. TLang does not add hidden retries or a PostgreSQL-style
+pool around SQLite.
+
+## Errors and security
+
+Database failures retain the call-site source location and TLang stack frames.
+PostgreSQL failures are translated to safe descriptions for authentication,
+connection, pool wait, timeout, syntax, missing table, and common constraints.
+Messages and CLI formatting omit passwords, JDBC implementation stacks, raw
+server details, and connection URLs. HTTP clients continue to receive only
+`500 Internal Server Error`; detailed structured diagnostics stay server-side.
+
+Parameterized APIs prevent parameter values—including quotes, semicolons,
+SQL-looking strings, Unicode, multiline text, empty text, and `nil`—from
+changing SQL structure. Table/column names cannot be parameters; applications
+must select such identifiers from a fixed allowlist rather than accepting raw
+request input.
+
+## Current limits
+
+Migrations, schema DSLs, ORMs, query builders, savepoints/nested transactions,
+floating-point values, binary values, and automatic JSON decoding are outside
+this milestone. PostgreSQL network failures abort the affected operation or
+transaction; subsequent ordinary operations borrow a validated replacement
+connection from the pool.

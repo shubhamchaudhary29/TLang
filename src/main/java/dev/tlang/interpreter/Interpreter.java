@@ -36,6 +36,8 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
     private final ModuleLoader moduleLoader;
     private final Environment globalEnvironment;
     private final TaskRuntime taskRuntime;
+    private final boolean managedResourceCursor;
+    private final List<Runnable> cursorResources = new ArrayList<>();
     private Environment environment;
     private int callDepth = 0;
 
@@ -52,17 +54,20 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
         this.globalEnvironment = new Environment();
         this.environment = globalEnvironment;
         this.taskRuntime = taskRuntime;
+        this.managedResourceCursor = false;
         defineGlobals();
     }
 
     private Interpreter(
             ModuleLoader moduleLoader,
             Environment sharedGlobalEnvironment,
-            TaskRuntime taskRuntime) {
+            TaskRuntime taskRuntime,
+            boolean managedResourceCursor) {
         this.moduleLoader = moduleLoader;
         this.globalEnvironment = sharedGlobalEnvironment;
         this.environment = sharedGlobalEnvironment;
         this.taskRuntime = taskRuntime;
+        this.managedResourceCursor = managedResourceCursor;
     }
 
     /**
@@ -86,7 +91,40 @@ public final class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor {
     }
 
     private Interpreter forkExecutionCursor() {
-        return new Interpreter(moduleLoader, globalEnvironment, taskRuntime);
+        return new Interpreter(moduleLoader, globalEnvironment, taskRuntime, true);
+    }
+
+    /** Register a request/task-local native resource for boundary cleanup. */
+    public void registerCursorResource(Runnable cleanup) {
+        if (!managedResourceCursor) return;
+        synchronized (cursorResources) {
+            cursorResources.add(cleanup);
+        }
+    }
+
+    /** Close request/task-local resources in reverse creation order. */
+    public RuntimeError closeCursorResources() {
+        if (!managedResourceCursor) return null;
+        List<Runnable> cleanups;
+        synchronized (cursorResources) {
+            cleanups = new ArrayList<>(cursorResources);
+            cursorResources.clear();
+        }
+        RuntimeError firstFailure = null;
+        for (int index = cleanups.size() - 1; index >= 0; index--) {
+            try {
+                cleanups.get(index).run();
+            } catch (RuntimeError failure) {
+                if (firstFailure == null) firstFailure = failure;
+            } catch (RuntimeException failure) {
+                if (firstFailure == null) {
+                    firstFailure = new RuntimeError(
+                        RuntimeErrorKind.RUNTIME_ERROR, null,
+                        "Native resource cleanup failed.", failure);
+                }
+            }
+        }
+        return firstFailure;
     }
 
     // ── Public API ──────────────────────────────────────────────

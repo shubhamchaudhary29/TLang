@@ -32,7 +32,10 @@ The following features are **explicitly out of scope** for TLang v1.0. Any futur
 - **No try/catch exception handling**: Errors propagate up and terminate execution.
 - **No floating-point numbers**: All numeric operations are integer-only.
 - **No formal class syntax**: Objects are dynamic maps; there is no inheritance or prototype chain.
-- **No concurrent/async request handling**: Execution is single-threaded and synchronous.
+- **No general async function model**: Concurrent HTTP handlers and explicit
+  `spawn` / `await` tasks are supported runtime features. TLang still has no
+  `async define`, promises, coroutine state machines, cancellation syntax, or
+  event loop.
 - **No bytecode VM**: The interpreter is a tree-walking interpreter running directly on the Java AST, and the host JVM handles memory management.
 
 ---
