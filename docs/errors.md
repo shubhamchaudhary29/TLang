@@ -18,7 +18,7 @@ use exit code `65`.
 | `TypeError` | Invalid operand types and attempts to call non-callable values |
 | `NameError` | A runtime environment lookup or assignment cannot find a name |
 | `ImportError` | Missing or circular user-module imports |
-| `DatabaseError` | SQLite connection, statement, constraint, value, or lifecycle failures |
+| `DatabaseError` | SQLite/PostgreSQL connection, statement, timeout, constraint, value, pool, transaction, or lifecycle failures |
 | `HttpError` | Malformed HTTP URLs and transport, timeout, or request-construction failures |
 | `ValidationError` | Invalid use of the validation API or an invalid validation schema |
 | `IndexError` | Missing map keys and out-of-range list/string indexes |
@@ -83,6 +83,12 @@ Native integrations may retain a Java cause for debugging. Database provider
 errors and HTTP transport errors do this. Normal CLI formatting never renders
 the cause, Java class names, or a Java stack trace. Successful calls do not build
 formatted stack strings or capture Java stacks.
+
+PostgreSQL errors are translated to a small safe vocabulary (for example,
+authentication failure, connection failure, timeout, missing table, invalid
+SQL, and constraint violation). JDBC URLs, passwords, SQLState internals, and
+server detail fields are not included in the TLang-facing message. SQLite keeps
+its established diagnostic text for backward compatibility.
 
 ## HTTP security and concurrency
 

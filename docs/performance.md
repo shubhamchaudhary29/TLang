@@ -103,6 +103,15 @@ The benchmark fails if any response has a non-200 status or a corrupt body.
 JMH is not a load generator for saturation/capacity planning; use a dedicated
 tool and a representative application/database for production sizing.
 
+PostgreSQL is deliberately not assigned a CI benchmark score: container start,
+host networking, and database fsync behavior would make that number misleading.
+`./gradlew postgresIntegrationTest` instead validates pooled concurrency,
+timeouts, recovery, and exact results against a real isolated server. For local
+capacity work, run the PostgreSQL example with the intended schema/query mix and
+an external HTTP load generator, and record the PostgreSQL image, hardware,
+pool size, concurrency, dataset, warmup, and percentile latency alongside any
+result.
+
 ## Current limitations and future work
 
 TLang currently uses a tree-walking interpreter. HTTP handler execution is

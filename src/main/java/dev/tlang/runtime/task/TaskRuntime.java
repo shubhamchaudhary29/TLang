@@ -113,6 +113,8 @@ public final class TaskRuntime {
         task.markRunning();
         try {
             Object result = executionCursor.executeCallDirect(callee, arguments, callToken);
+            RuntimeError cleanupFailure = executionCursor.closeCursorResources();
+            if (cleanupFailure != null) throw cleanupFailure;
             releaseCapacity(task);
             task.succeed(result);
         } catch (RuntimeError failure) {
@@ -134,6 +136,7 @@ public final class TaskRuntime {
             task.failFatally(fatalFailure);
             throw fatalFailure;
         } finally {
+            executionCursor.closeCursorResources();
             currentTask.remove();
         }
     }

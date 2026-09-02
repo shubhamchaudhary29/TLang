@@ -2,6 +2,31 @@
 
 ## Unreleased (0.4.0)
 
+- Refactored the single `db` module behind provider, connection, value-conversion,
+  error-translation, and lifecycle boundaries while preserving path-based SQLite
+  behavior.
+- Added first-class PostgreSQL JDBC support with authenticated URLs/options,
+  safe parameter binding, queries and affected-row commands, `RETURNING`, null/
+  boolean/integer/text/date/timestamp conversion, and deterministic rejection of
+  lossy or unsupported values.
+- Added bounded per-handle HikariCP pools with configurable size, connection wait
+  timeout, statement timeout, validation, broken-connection recovery, and clean
+  shutdown.
+- Added explicit transaction handles with commit, rollback, automatic rollback
+  on operation failure, predictable closed-state behavior, and resource release
+  across runtime/HTTP/task failures.
+- Added credential-safe PostgreSQL diagnostics for transport, authentication,
+  timeout, syntax, missing-table, and constraint failures while preserving
+  source-aware `DatabaseError` stacks and generic remote HTTP 500 responses.
+- Added SQLite regression/security/concurrency tests plus real Testcontainers
+  PostgreSQL integration, pool, timeout, recovery, transaction, task, concurrent
+  HTTP, 100-operation stress, repeated lifecycle, and credential-leakage tests.
+- Added a dedicated PostgreSQL CI lane with ten-run repetition of critical
+  database concurrency/runtime tests and documented configuration, pooling,
+  transactions, types, security, concurrency, and current limitations.
+- Reconciled the language philosophy with the concurrent HTTP and explicit
+  `spawn` / `await` runtime behavior already shipped in v0.3.
+
 ## v0.3.0
 
 - Added strict `tlang.toml` project manifests and deterministic, integrity-checked

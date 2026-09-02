@@ -88,9 +88,11 @@ multi-task cycles before blocking; timeouts are not used as deadlock semantics.
 
 Closure environments stay alive when a task outlives the function that created
 it. Module exports and nested module functions are ordinary callable values and
-can be spawned. HTTP-client and SQLite connection native calls follow their
-existing semantics inside tasks; one SQLite connection still serializes its
-operations.
+can be spawned. HTTP-client and database native calls follow their existing
+semantics inside tasks; one SQLite handle still serializes its operations. A
+shared PostgreSQL handle borrows separately from its bounded pool, so task
+queries can overlap. A transaction handle is serialized and must not be shared
+between tasks.
 
 Globals, lists, and maps retain the concurrent runtime model. Individual
 binding and collection operations are synchronized. Compound operations such

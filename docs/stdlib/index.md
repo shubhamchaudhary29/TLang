@@ -5,7 +5,7 @@ TLang comes with a robust set of built-in native modules tailored for backend we
 *   **[cache](../../stdlib/cache.md)**: In-memory key-value caching with time-to-live (TTL) expiration.
 *   **[config](../../stdlib/config.md)**: Environment variable and configuration management (loads `.env` automatically).
 *   **[crypto](../../stdlib/crypto.md)**: Cryptographic hashing functions (SHA-256), HMAC signing, and secure password hashing/verification (PBKDF2WithHmacSHA256).
-*   **[db](../../stdlib/db.md)**: Embedded SQLite database client supporting parametrized queries and transactions.
+*   **[db](../../stdlib/db.md)**: Unified SQLite/PostgreSQL client with parameterized queries, bounded pooling, timeouts, and transactions.
 *   **[filesystem](../../stdlib/filesystem.md)**: File and directory manipulation utilities.
 *   **[http](../../stdlib/http.md)**: Concurrent HTTP server with isolated request execution contexts, routing, and middleware, plus a synchronous HTTP client.
 *   **[json](../../stdlib/json.md)**: JSON parsing and serialization utilities.

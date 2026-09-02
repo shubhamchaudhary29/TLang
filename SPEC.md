@@ -269,7 +269,10 @@ let multiply be function taking a and b
 - Route and middleware registration closes when the server starts. A server
   cannot be restarted after it stops.
 - Calls on one SQLite connection are serialized; different connections follow
-  SQLite's normal concurrency and locking rules.
+  SQLite's normal concurrency and locking rules. A PostgreSQL database handle
+  owns a bounded connection pool, so ordinary operations on a shared handle can
+  run concurrently. A transaction handle pins one pooled connection and is
+  serialized for its lifetime.
 - A handler runtime failure aborts only that request and contributes an HTTP
   method/path frame to the server-side diagnostic. The server remains alive.
 - Remote error responses are always generic `500 Internal Server Error`
