@@ -35,7 +35,7 @@ configurations {
 }
 
 dependencies {
-    implementation 'org.eclipse.lsp4j:org.eclipse.lsp4j:0.23.0'
+    implementation 'org.eclipse.lsp4j:org.eclipse.lsp4j:1.0.0'
     implementation 'org.xerial:sqlite-jdbc:3.53.2.0'
     implementation 'org.postgresql:postgresql:42.7.13'
     implementation 'com.zaxxer:HikariCP:6.3.3'
