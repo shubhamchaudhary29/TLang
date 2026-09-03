@@ -5,7 +5,7 @@ permissions:
 
 on:
   push:
-    branches: [ main, v0.2, v0.3-m4-packages, v0.4-m1-database ]
+    branches: [ main, v0.2, v0.3-m4-packages, v0.4-m1-database, v0.4-m2-migrations ]
   pull_request:
     branches: [ main ]
 
@@ -27,13 +27,16 @@ jobs:
         uses: gradle/actions/wrapper-validation@v4
 
       - name: Build, test, and validate version
-        run: ./gradlew clean check
+        run: ./gradlew clean check --no-daemon --console=plain
+
+      - name: Build all artifacts
+        run: ./gradlew build --no-daemon --console=plain
 
       - name: Build distribution and run installed CLI smoke test
         run: ./gradlew distributionSmokeTest
 
       - name: Compile and smoke test JMH benchmarks
-        run: ./gradlew benchmarkSmoke
+        run: ./gradlew benchmarkSmoke --no-daemon --console=plain
 
       - name: Upload test results on failure
         if: failure()
@@ -108,7 +111,7 @@ jobs:
       - name: Run real PostgreSQL integration suite
         run: ./gradlew postgresIntegrationTest --no-daemon --console=plain
 
-      - name: Repeat PostgreSQL concurrency and runtime tests 10 times
+      - name: Repeat PostgreSQL database and migration concurrency tests 10 times
         shell: bash
         run: |
           for iteration in {1..10}; do
@@ -116,6 +119,8 @@ jobs:
             if ./gradlew postgresIntegrationTest \
               --tests 'dev.tlang.runtime.database.PostgresIntegrationTest.concurrentReadsWritesAndMixedLoadPreserveAllRows' \
               --tests 'dev.tlang.runtime.database.PostgresRuntimeIntegrationTest.*' \
+              --tests 'dev.tlang.runtime.database.PostgresMigrationIntegrationTest.concurrentMigratorsSerializeWithoutDoubleApplication' \
+              --tests 'dev.tlang.runtime.database.PostgresMigrationIntegrationTest.lockAndPoolRecoverAfterConcurrentFailuresAndCredentialsStayRedacted' \
               --rerun-tasks \
               --no-daemon \
               --console=plain; then

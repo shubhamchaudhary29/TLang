@@ -1,7 +1,8 @@
 # PostgreSQL notes API
 
-This small example uses the standard `db` module, a bounded PostgreSQL pool,
-prepared parameters, `INSERT ... RETURNING`, and concurrent HTTP handlers.
+This small example uses the standard `db` module, forward-only SQL migrations,
+a bounded PostgreSQL pool, prepared parameters, `INSERT ... RETURNING`, and
+concurrent HTTP handlers.
 
 Create a database and export its configuration (or put the same keys in a
 local `.env` file):
@@ -14,6 +15,11 @@ export PORT=8080
 ./gradlew installDist
 build/install/tlang/bin/tlang run examples/postgres-api/app.tiny
 ```
+
+Run the command from the repository root. Startup applies
+`migrations/0001_create_notes.sql`; later starts verify its SHA-256 history and
+skip it. Add schema changes as new, higher-numbered `.sql` files instead of
+editing an applied file.
 
 Create and list notes:
 

@@ -252,6 +252,26 @@ let multiply be function taking a and b
   propagate until the CLI or an embedding boundary such as the HTTP server
   handles them.
 
+### Database migration semantics
+
+- A database handle exposes forward-only `migrate(path)` and read-only
+  `migrationStatus(path)` operations for SQLite and PostgreSQL.
+- Migration files are strict UTF-8 SQL named `<positive-version>_<name>.sql`.
+  Numeric version ordering is authoritative; filesystem enumeration order has
+  no semantic effect.
+- `_tlang_migrations` stores version, name, exact-file SHA-256 checksum, and an
+  applied UTC timestamp. Applied files are immutable, and migration history is
+  append-only: a newly discovered version below the applied frontier fails.
+- Migration SQL and its history row are committed atomically. SQL scripts may
+  contain multiple statements; separators inside literals, identifiers,
+  comments, PostgreSQL dollar quotes, and SQLite trigger bodies are not treated
+  as statement boundaries.
+- PostgreSQL runs serialize with a database-scoped session advisory lock.
+  SQLite runs serialize with an immediate database write transaction. Lock
+  waits are bounded and every failure path releases transaction/lock resources.
+- Migrations do not define down/rollback files, schema models, an ORM, a query
+  builder, automatic schema generation, or new language syntax.
+
 ---
 
 ## 6. Concurrent HTTP Execution Semantics

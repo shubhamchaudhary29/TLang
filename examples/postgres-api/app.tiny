@@ -14,7 +14,7 @@ let connection be db.open(config.require("DATABASE_URL"), {
     queryTimeoutSeconds: 15
 })
 
-connection.execute("CREATE TABLE IF NOT EXISTS notes (id SERIAL PRIMARY KEY, content TEXT NOT NULL)", [])
+connection.migrate("examples/postgres-api/migrations")
 
 let server be http.server(strings.toNumber(config.getOr("PORT", "8080")))
 

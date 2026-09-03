@@ -2,6 +2,20 @@
 
 ## Unreleased (0.4.0)
 
+- Added deterministic, forward-only SQL migrations to SQLite and PostgreSQL
+  handles through `migrate(path)` and read-only `migrationStatus(path)`.
+- Added strict numeric filename ordering, UTF-8 migration snapshots, raw-byte
+  SHA-256 drift detection, append-only history validation, and the namespaced
+  `_tlang_migrations` history table.
+- Added transactional multi-statement execution with correct handling of SQL
+  strings, quoted identifiers, comments, PostgreSQL dollar-quoted blocks, and
+  SQLite trigger bodies; failed SQL and history writes roll back together.
+- Serialized deploys across application processes with PostgreSQL session
+  advisory locks and SQLite immediate transactions, including bounded waits and
+  cleanup/recovery on every success and failure path.
+- Added SQLite edge/integrity/persistence/concurrency tests, real Testcontainers
+  PostgreSQL migration and lock tests, repeated CI stress validation, complete
+  migration documentation, and a runnable migrated PostgreSQL example.
 - Refactored the single `db` module behind provider, connection, value-conversion,
   error-translation, and lifecycle boundaries while preserving path-based SQLite
   behavior.
