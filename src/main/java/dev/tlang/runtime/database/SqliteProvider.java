@@ -35,7 +35,7 @@ public final class SqliteProvider implements DatabaseProvider {
         }
     }
 
-    private static final class SqliteConnection implements DatabaseConnection {
+    private static final class SqliteConnection implements MigrationCapableConnection {
         private final Object lock = new Object();
         private final int timeoutSeconds;
         private Connection connection;
@@ -86,6 +86,24 @@ public final class SqliteProvider implements DatabaseProvider {
                     throw DatabaseErrors.sqlite(error);
                 }
             }
+        }
+
+        @Override
+        public MigrationBackend migrationBackend() {
+            return new MigrationBackend() {
+                @Override
+                public SqlScriptParser.Dialect dialect() {
+                    return SqlScriptParser.Dialect.SQLITE;
+                }
+
+                @Override
+                public <T> T withMigrationLock(MigrationWork<T> work) {
+                    synchronized (lock) {
+                        return withOpenConnection(false, connection ->
+                            JdbcMigrationBackend.sqlite(connection, timeoutSeconds, work));
+                    }
+                }
+            };
         }
 
         @Override

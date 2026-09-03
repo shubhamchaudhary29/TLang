@@ -18,7 +18,7 @@ use exit code `65`.
 | `TypeError` | Invalid operand types and attempts to call non-callable values |
 | `NameError` | A runtime environment lookup or assignment cannot find a name |
 | `ImportError` | Missing or circular user-module imports |
-| `DatabaseError` | SQLite/PostgreSQL connection, statement, timeout, constraint, value, pool, transaction, or lifecycle failures |
+| `DatabaseError` | SQLite/PostgreSQL connection, statement, timeout, constraint, value, pool, transaction, migration, or lifecycle failures |
 | `HttpError` | Malformed HTTP URLs and transport, timeout, or request-construction failures |
 | `ValidationError` | Invalid use of the validation API or an invalid validation schema |
 | `IndexError` | Missing map keys and out-of-range list/string indexes |
@@ -89,6 +89,13 @@ authentication failure, connection failure, timeout, missing table, invalid
 SQL, and constraint violation). JDBC URLs, passwords, SQLState internals, and
 server detail fields are not included in the TLang-facing message. SQLite keeps
 its established diagnostic text for backward compatibility.
+
+Migration failures use deterministic categories within `DatabaseError`, such
+as invalid filename/path, duplicate version, changed applied migration,
+out-of-order migration, invalid history, SQL rollback, and lock acquisition.
+They identify only the safe migration filename or numeric version. Migration
+errors never add a connection URL, username, password, JDBC implementation
+detail, or SQLState to the language-facing message.
 
 ## HTTP security and concurrency
 

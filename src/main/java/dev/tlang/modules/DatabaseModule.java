@@ -8,6 +8,7 @@ import dev.tlang.interpreter.Interpreter;
 import dev.tlang.lexer.Token;
 import dev.tlang.runtime.database.DatabaseConnection;
 import dev.tlang.runtime.database.DatabaseFailure;
+import dev.tlang.runtime.database.DatabaseMigrations;
 import dev.tlang.runtime.database.DatabaseOptions;
 import dev.tlang.runtime.database.DatabaseProvider;
 import dev.tlang.runtime.database.DatabaseSession;
@@ -80,6 +81,34 @@ public final class DatabaseModule implements NativeModule {
     private static Map<String, Object> connectionMap(DatabaseConnection connection) {
         Map<String, Object> result = sessionMap(connection, null);
         result.put("provider", connection.providerName());
+        result.put("migrate", new NativeFunction("migrate", 2) {
+            @Override
+            public Object call(List<Object> args, Token token) {
+                try {
+                    String path = requireString(
+                        args.get(1), token, "Migration path must be a string.");
+                    return DatabaseMigrations.migrate(connection, path);
+                } catch (RuntimeError failure) {
+                    throw failure;
+                } catch (DatabaseFailure failure) {
+                    throw databaseError(token, failure);
+                }
+            }
+        }.setExpectsReceiver(true));
+        result.put("migrationStatus", new NativeFunction("migrationStatus", 2) {
+            @Override
+            public Object call(List<Object> args, Token token) {
+                try {
+                    String path = requireString(
+                        args.get(1), token, "Migration path must be a string.");
+                    return DatabaseMigrations.status(connection, path);
+                } catch (RuntimeError failure) {
+                    throw failure;
+                } catch (DatabaseFailure failure) {
+                    throw databaseError(token, failure);
+                }
+            }
+        }.setExpectsReceiver(true));
         result.put("begin", new NativeFunction("begin", 1) {
             @Override
             public Object call(List<Object> args, Token token) {

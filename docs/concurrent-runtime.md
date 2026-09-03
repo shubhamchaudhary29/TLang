@@ -47,6 +47,7 @@ another request's execution state.
 | SQLite database handle | Thread-safe shared per handle | Operations and `close()` on its one JDBC connection are serialized. Different handles remain subject to SQLite file locking/busy errors. Only one transaction may be active on a handle. |
 | PostgreSQL database handle | Thread-safe shared pool | Ordinary operations borrow independent connections from a bounded pool and can run concurrently across HTTP/task cursors. `close()` waits for in-flight ordinary operations, rolls back pinned transactions, and shuts down the pool. |
 | Database transaction handle | Serialized, not concurrently shareable | A transaction pins one connection until commit, rollback, or failure. Any operation failure auto-rolls back. Unfinished transactions and handles opened locally are also cleaned up at request/task boundaries, so cursor failure cannot strand a pool resource. |
+| Database migration run | Cross-process serialized | PostgreSQL uses a session advisory lock scoped to the current database; SQLite uses an immediate write transaction. The wait is bounded by the configured query timeout, and success/failure releases the lock and connection. |
 | HTTP client | Thread-safe shared | Java's immutable requests and thread-safe `HttpClient` are used; calls remain synchronous from the calling TLang handler. |
 | Filesystem and process environment | External shared state | Filesystem calls are synchronous and rely on OS filesystem semantics. Environment variables are read-only; `.env` cache publication is concurrent-safe. |
 

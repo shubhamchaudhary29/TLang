@@ -1,0 +1,6 @@
+// Expected exit code: 70
+// Expected error: DatabaseError: Migration path does not exist.
+import db
+
+let connection be db.open(":memory:")
+connection.migrate("src/test/resources/runtime/migrations_that_do_not_exist")

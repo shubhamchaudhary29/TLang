@@ -156,7 +156,7 @@ public final class PostgresProvider implements DatabaseProvider {
 
     private record ParsedTarget(String jdbcUrl, String username, String password) {}
 
-    private static final class PooledPostgresConnection implements DatabaseConnection {
+    private static final class PooledPostgresConnection implements MigrationCapableConnection {
         private final HikariDataSource dataSource;
         private final int timeoutSeconds;
         private final ReentrantReadWriteLock lifecycle = new ReentrantReadWriteLock();
@@ -238,6 +238,27 @@ public final class PostgresProvider implements DatabaseProvider {
             } finally {
                 lifecycle.readLock().unlock();
             }
+        }
+
+        @Override
+        public MigrationBackend migrationBackend() {
+            return new MigrationBackend() {
+                @Override
+                public SqlScriptParser.Dialect dialect() {
+                    return SqlScriptParser.Dialect.POSTGRESQL;
+                }
+
+                @Override
+                public <T> T withMigrationLock(MigrationWork<T> work) {
+                    lifecycle.readLock().lock();
+                    try {
+                        ensureOpen();
+                        return JdbcMigrationBackend.postgres(dataSource, timeoutSeconds, work);
+                    } finally {
+                        lifecycle.readLock().unlock();
+                    }
+                }
+            };
         }
 
         @Override

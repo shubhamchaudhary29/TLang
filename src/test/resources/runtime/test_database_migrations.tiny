@@ -1,0 +1,14 @@
+// Expected output:
+// 1
+// 0
+// 1
+// applied
+import db
+
+let connection be db.open(":memory:")
+let result be connection.migrate("src/test/resources/runtime/migrations_basic")
+show result.applied
+show result.skipped
+show connection.query("SELECT count(*) AS count FROM migrated_items", []).get(0).count
+show connection.migrationStatus("src/test/resources/runtime/migrations_basic").get(0).state
+connection.close()

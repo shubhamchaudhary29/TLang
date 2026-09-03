@@ -90,6 +90,127 @@ its lifetime.
 
 The read-only `provider` field is `"sqlite"` or `"postgresql"`.
 
+## Forward-only migrations
+
+`migrate(directory)` discovers, validates, and applies pending SQL migrations.
+It returns a deterministic summary map:
+
+```tiny
+let result be conn.migrate("migrations")
+show result.applied
+show result.skipped
+```
+
+`migrationStatus(directory)` performs the same discovery, checksum, history,
+and ordering validation without applying pending SQL. It returns one entry per
+discovered file, ordered by numeric version:
+
+```tiny
+let status be conn.migrationStatus("migrations")
+# [{version: 1, name: "create_users", checksum: "...", state: "applied"}, ...]
+```
+
+Migrations are intentionally forward-only. There is no `down`, automatic
+rollback migration, schema DSL, model layer, ORM, query builder, or automatic
+schema generation. Correct a migration that has never applied, or add a new
+higher-numbered file for a deployed schema.
+
+### Directory and filename contract
+
+Only immediate regular files in the requested directory are considered.
+Subdirectories and hidden files are ignored. Symbolic links in the directory
+path or among its entries are rejected. Any visible non-directory entry that
+does not match the migration grammar is an error; it is never executed.
+
+The exact filename grammar is:
+
+```text
+<version>_<name>.sql
+
+version := one or more ASCII digits, numerically 1..2147483647
+name    := a Unicode letter or number, followed by zero or more Unicode
+           letters, numbers, combining marks, `_`, `.`, or `-`
+suffix  := lowercase `.sql`
+```
+
+Examples are `0001_create_users.sql`, `0002_create_sessions.sql`, and
+`10_தமிழ்.sql`. Leading zeroes are allowed for readability but are not part of
+the identity: `0001_one.sql` and `1_other.sql` are duplicate version `1` and
+fail. Ordering is always numeric and never depends on filesystem order.
+
+The path may be relative to the process working directory or absolute. It must
+exist, name a readable directory, and must not contain a `..` component.
+Migration files must be strict UTF-8 and non-empty after excluding whitespace,
+comments, and separators. This intentionally makes missing paths, file paths,
+unsupported extensions, malformed names, unreadable files, symlinks, invalid
+UTF-8, blank SQL, and comments-only SQL deterministic `DatabaseError` failures.
+
+### History and drift protection
+
+TLang creates `_tlang_migrations` in the target database with these fields:
+
+| Field | Meaning |
+| --- | --- |
+| `version` | Positive 32-bit migration version and primary identity |
+| `name` | Filename name between the underscore and `.sql` |
+| `checksum` | Lowercase SHA-256 of the exact file bytes |
+| `applied_at` | UTC ISO-8601 application timestamp |
+
+Checksums use the exact bytes that were executed. Consequently LF and CRLF
+files have different checksums; repositories should enforce one line-ending
+policy and must not rewrite deployed migration files. If an applied version has
+a different name or checksum, migration stops before executing pending SQL and
+does not rewrite history. Invalid history rows also fail closed.
+
+Gaps are permitted when first applied, such as versions `0001` and `0003`.
+After `0003` is recorded, introducing an unapplied `0002` is rejected as
+out-of-order. The applied frontier is append-only. History entries created by a
+newer application version may be absent from an older checkout; they remain in
+the database and still establish the frontier.
+
+### SQL scripts and transactions
+
+Each file may contain multiple statements. TLang scans the complete script and
+does not use `split(";")`. Semicolons inside single-quoted strings, quoted
+identifiers, line/block comments, PostgreSQL dollar-quoted bodies, and SQLite
+trigger `BEGIN ... END` programs are preserved. Trailing SQL without a final
+semicolon is executed. Unterminated constructs fail instead of silently
+skipping content.
+
+PostgreSQL applies each pending migration and its history row in one database
+transaction. SQLite holds one `BEGIN IMMEDIATE` transaction for the migration
+run, so every pending file and history row in that run commits together. A
+syntax, constraint, later-statement, or history-insert failure rolls back its
+transaction: failed SQL has no history row, partial schema/data changes do not
+remain where the database supports transactional DDL, and the connection is
+usable for a corrected rerun.
+
+Scripts are sent as dialect SQL, not through an interactive client. Client-side
+commands such as PostgreSQL `psql` backslash commands are not supported.
+Top-level transaction-control statements (`BEGIN`, `START`, `COMMIT`, `END`,
+`ROLLBACK`, `SAVEPOINT`, `RELEASE`, and `PREPARE`) are rejected because they could escape
+the atomic boundary owned by the migration engine.
+
+### Concurrent deploys and production use
+
+PostgreSQL migration runs acquire a session advisory lock keyed to the current
+database and `_tlang_migrations`. SQLite acquires the database write lock with
+`BEGIN IMMEDIATE`. These are database-level locks, not Java-only monitors, so
+separate TLang processes cannot both apply the same version. A waiting run
+rechecks history after acquiring the lock and reports the migration as skipped.
+
+Lock waiting is bounded by `queryTimeoutSeconds`. PostgreSQL polls a nonblocking
+advisory-lock attempt; SQLite uses a temporary busy timeout. Success, SQL
+failure, validation failure, interruption, and connection close all release the
+lock and transaction/pooled connection. Keep migrations short, deploy only one
+ordered migration set, back up production data, and grant the configured role
+only the DDL privileges those migrations require.
+
+Migration filenames may appear in safe diagnostics. Database targets,
+credentials, JDBC details, SQLState values, and raw PostgreSQL server details do
+not. HTTP clients continue to receive only the generic 500 response described
+in [Runtime diagnostics](../docs/errors.md).
+
 ## Transactions
 
 `begin()` returns a transaction handle with the same query/execute/insert/
@@ -167,8 +288,8 @@ request input.
 
 ## Current limits
 
-Migrations, schema DSLs, ORMs, query builders, savepoints/nested transactions,
-floating-point values, binary values, and automatic JSON decoding are outside
-this milestone. PostgreSQL network failures abort the affected operation or
+Down migrations, schema DSLs, ORMs, query builders, savepoints/nested
+transactions, floating-point values, binary values, and automatic JSON decoding
+are not provided. PostgreSQL network failures abort the affected operation or
 transaction; subsequent ordinary operations borrow a validated replacement
 connection from the pool.

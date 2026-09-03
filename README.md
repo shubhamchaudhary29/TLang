@@ -91,13 +91,17 @@ let conn be db.open(config.require("DATABASE_URL"), {
     queryTimeoutSeconds: 15
 })
 
+let migrationResult be conn.migrate("migrations")
 let activeUsers be conn.query("SELECT id, name FROM users WHERE active = ?", [true])
 ```
 
 PostgreSQL handles are safe to share across concurrent HTTP handlers and tasks;
 each ordinary operation borrows independently from the handle's bounded pool.
-See the [database reference](stdlib/db.md) for transactions, lifecycle,
-timeouts, value mappings, security behavior, and SQLite compatibility.
+Forward-only numbered SQL migrations work with both PostgreSQL and SQLite,
+record SHA-256 history, reject edited or retroactively inserted migrations, and
+serialize concurrent deploys at the database. See the
+[database reference](stdlib/db.md) for the filename contract, transactions,
+lifecycle, timeouts, value mappings, security behavior, and SQLite compatibility.
 
 ### Structured background tasks
 
@@ -127,7 +131,7 @@ Explore the TLang guides and references:
 - **[Standard Library Reference](docs/stdlib/index.md)**: Detailed reference pages for the available native modules.
 - **[Auth Service Example Walkthrough](docs/examples/auth-service.md)**: An in-depth architectural look at the complete backend user registration and authentication service example.
 - **[Concurrent API Example](examples/concurrent-api/README.md)**: A runnable multi-route service with parallel CPU work and shared collection state.
-- **[PostgreSQL API Example](examples/postgres-api/README.md)**: A runnable pooled PostgreSQL notes service using prepared parameters and `RETURNING`.
+- **[PostgreSQL API Example](examples/postgres-api/README.md)**: A runnable migrated and pooled PostgreSQL notes service using prepared parameters and `RETURNING`.
 - **[Performance and Benchmarking](docs/performance.md)**: JMH commands, benchmark coverage, methodology, and result interpretation.
 - **[Concurrent Runtime Architecture](docs/concurrent-runtime.md)**: HTTP execution isolation, shared-state semantics, database concurrency, and lifecycle guarantees.
 - **[Runtime Diagnostics](docs/errors.md)**: Structured error categories, source-aware TLang stack traces, native causes, and safe HTTP error responses.
