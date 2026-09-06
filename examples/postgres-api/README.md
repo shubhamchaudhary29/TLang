@@ -1,7 +1,7 @@
 # PostgreSQL notes API
 
 This small example uses the standard `db` module, forward-only SQL migrations,
-a bounded PostgreSQL pool, prepared parameters, `INSERT ... RETURNING`, and
+a bounded PostgreSQL pool, immutable table builders, transactions, and
 concurrent HTTP handlers.
 
 Create a database and export its configuration (or put the same keys in a
@@ -21,16 +21,27 @@ Run the command from the repository root. Startup applies
 skip it. Add schema changes as new, higher-numbered `.sql` files instead of
 editing an applied file.
 
-Create and list notes:
+Create, read, update, and delete notes:
 
 ```bash
 curl -H 'content-type: application/json' \
   -d '{"content":"prepared and pooled"}' \
   http://127.0.0.1:8080/notes
 curl http://127.0.0.1:8080/notes
+curl http://127.0.0.1:8080/notes/1
+curl -X PUT -H 'content-type: application/json' \
+  -d '{"content":"updated safely"}' http://127.0.0.1:8080/notes/1
+curl -X DELETE http://127.0.0.1:8080/notes/1
 ```
 
 The handle is intentionally global for the process lifetime: concurrent
 handlers borrow separate connections up to `poolSize`. Production process
 shutdown should stop the server and call `connection.close()` from the
 embedding lifecycle.
+
+Create/delete return `{affected: 1}` on success; inserts do not return generated
+IDs. List returns up to 100 notes in ID order; read/update return a note or `nil`
+when the ID does not exist. Update and its read run in one transaction. The
+example uses existing migrations unchanged and never builds SQL from request
+values. For generated IDs in one statement, use raw `INSERT ... RETURNING` via
+`connection.query`; that escape hatch remains available.

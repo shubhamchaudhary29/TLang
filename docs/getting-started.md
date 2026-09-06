@@ -123,3 +123,24 @@ Once you've run your first script, check out these references for deeper learnin
 - **[Standard Library Reference](stdlib/index.md)**: Browse the documentation for built-in modules like `http`, `db` (SQLite/PostgreSQL queries and migrations), `jwt`, `json`, and more.
 - **[Example: Auth Service](examples/auth-service.md)**: Read a walkthrough of a complete JSON API backend authentication service written in TLang.
 - **[Projects and Packages](packages.md)**: Build reproducible projects with local and pinned Git dependencies.
+
+## Common database CRUD
+
+Create tables through [SQL migrations](../stdlib/db.md#forward-only-migrations),
+then use immutable table handles for ordinary reads and writes:
+
+```tiny
+import db
+let connection be db.open("app.db")
+connection.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT)", [])
+let users be connection.table("users")
+users.insert({id: 1, name: "Ada"})
+show users.where("id", "=", 1).first()
+users.where("id", "=", 1).update({name: "Grace"})
+users.where("id", "=", 1).delete()
+connection.close()
+```
+
+`insert`, `update`, and `delete` return affected-row counts. Update/delete require
+filters. See [structured CRUD](../stdlib/db.md#safe-structured-crud) for nil,
+pagination, transactions, limits, and when to use raw SQL.

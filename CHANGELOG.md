@@ -2,6 +2,14 @@
 
 ## Unreleased (0.4.0)
 
+- Added immutable `connection.table()` / `transaction.table()` builders with
+  select, comparisons, membership, ordering, pagination, first/all/count, and
+  map-based insert/update/delete through the existing database sessions.
+- Added strict quoted identifiers, deterministic column ordering, bound values,
+  bounded query complexity, input snapshots, and mandatory mutation predicates.
+- Added exact compiler tests, shared SQLite/PostgreSQL CRUD and concurrency
+  contracts, TLang task/HTTP coverage, repeated CI validation, and CRUD docs.
+
 - Added deterministic, forward-only SQL migrations to SQLite and PostgreSQL
   handles through `migrate(path)` and read-only `migrationStatus(path)`.
 - Added strict numeric filename ordering, UTF-8 migration snapshots, raw-byte

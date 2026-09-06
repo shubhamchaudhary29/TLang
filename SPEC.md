@@ -252,6 +252,34 @@ let multiply be function taking a and b
   propagate until the CLI or an embedding boundary such as the HTTP server
   handles them.
 
+### Structured database queries
+
+Connections and transaction handles expose `table(name)`. Table handles expose
+`select(columns)`, `where(column, operator, value)`, `whereIn(column, values)`,
+`orderBy(column, direction)`, `limit(n)`, `offset(n)`, `all()`, `first()`,
+`count()`, `insert(fields)`, `update(fields)`, and `delete()`.
+
+Builders have immutable query state and snapshot their inputs. Repeated filters
+combine with AND; ordering appends; projection/limit/offset replace. Values are
+bound through the existing session. Identifiers follow
+`[A-Za-z_][A-Za-z0-9_]{0,62}`, are quoted case-preservingly, and cannot contain
+qualified names or expressions. Write maps use sorted identifier order.
+
+`= nil`/`!= nil` use IS NULL/IS NOT NULL; other nil comparisons fail.
+Empty membership matches nothing; membership containing nil also matches NULL.
+`first()` returns nil for no rows and honors zero limit. Count ignores all read
+modifiers except predicates. Limit and offset accept only nonnegative signed
+32-bit integers; offset alone uses the maximum such integer as its limit.
+
+Writes return affected-row counts. Update/delete require predicates. All writes
+reject projection, ordering, and pagination; insert also rejects predicates.
+Query size is limited to 100 predicates/columns/orderings and 900 bound values
+(including pagination). Invalid arguments raise DatabaseError and abort an
+associated transaction. Builders own no database resources, inherit session
+lifetime/concurrency, and leave raw SQL unchanged. Provider value conversions
+and SQL collation/null ordering remain unchanged. See the
+[database reference](stdlib/db.md) for the complete contract.
+
 ### Database migration semantics
 
 - A database handle exposes forward-only `migrate(path)` and read-only

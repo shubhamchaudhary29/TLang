@@ -102,3 +102,13 @@ Background tasks are separate from this executor. `spawn` uses virtual threads;
 `await` inside a handler blocks that handler's fixed-pool worker. Response
 wrappers enforce request-thread ownership, so tasks return data rather than
 writing responses. See [Structured tasks](tasks.md).
+
+### Immutable database query handles
+
+`connection.table(name)` captures immutable query intent. Derived filters,
+projections, and pagination snapshot their input and cannot leak into sibling
+builders. Execution borrows through the existing database session, preserving
+SQLite serialization and PostgreSQL pool concurrency. Builders own no JDBC
+resources and cannot extend a request/task-owned connection's lifetime.
+Transaction builders retain the pinned transaction, including automatic rollback
+on validation/execution failure. See [structured CRUD](../stdlib/db.md#safe-structured-crud).

@@ -117,3 +117,9 @@ simultaneous request failures cannot contaminate one another.
 TLang still has no language-level `try`/`catch`, `throw`, or asynchronous
 exception syntax. Structured diagnostics improve propagation and reporting; they
 do not add a new control-flow feature.
+
+Database table builders report `DatabaseError` for invalid identifiers/operators,
+empty write maps, invalid pagination, query complexity limits, and update/delete
+without predicates. Builder errors retain source locations and abort associated
+transactions. They do not echo invalid input or attach JDBC causes. HTTP clients
+continue to receive `500 Internal Server Error`.
