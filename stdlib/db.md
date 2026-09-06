@@ -90,6 +90,93 @@ its lifetime.
 
 The read-only `provider` field is `"sqlite"` or `"postgresql"`.
 
+## Safe structured CRUD
+
+Use `conn.table("users")` for ordinary CRUD, or `transaction.table("users")`
+inside an existing transaction. Raw `query`/`execute` and their aliases remain
+available for joins, expressions, casts, `RETURNING`, and deliberate bulk SQL.
+Creating and deriving a table handle executes no SQL and owns no JDBC resources.
+
+```tiny
+let users be conn.table("users")
+users.insert({id: 1, name: "Ada", email: "ada@example.com"})
+let user be users.where("email", "=", "ada@example.com").first()
+let page be users.select(["id", "name"]).orderBy("id", "asc").limit(20).offset(0).all()
+users.where("id", "=", 1).update({name: "Ada Lovelace"})
+let total be users.count()
+users.where("id", "=", 1).delete()
+```
+
+TLang uses `let ... be`, map entries such as `{name: value}`, and `nil` for SQL
+NULL. Keep method chains on one line, or assign intermediate builders using
+existing language syntax.
+
+| Method | Behavior |
+| --- | --- |
+| `select(columns)` | Nonempty list of distinct column names; replaces the projection. Default is all columns. |
+| `where(column, operator, value)` | Appends an AND predicate. Operators: `=`, `!=`, `<`, `<=`, `>`, `>=`, `like` (case-insensitive). |
+| `whereIn(column, values)` | Appends membership as an AND predicate; snapshots the list. Empty list matches nothing. `nil` entries also match SQL NULL; duplicates are allowed. |
+| `orderBy(column, direction)` | Appends ordering; only `asc` or `desc`, case-insensitively. Use a unique final sort column for stable pagination. |
+| `limit(n)`, `offset(n)` | Replace the corresponding value; require a TLang integer in `0..2147483647`. Offset alone uses an implicit limit of `2147483647`. |
+| `all()` | Executes and returns the existing list of row maps. |
+| `first()` | Executes with a limit of at most one; retains offset and honors `limit(0)`. Returns a row map or `nil`. |
+| `count()` | Counts matching rows, ignoring select, ordering, limit, and offset. Returns a TLang integer; overflow uses the existing database numeric error. |
+| `insert(fields)` | Inserts one nonempty map; returns affected-row count (normally `1`), never a generated key. |
+| `update(fields)` | Updates a nonempty map on matching rows; returns affected-row count. Requires at least one predicate. |
+| `delete()` | Deletes matching rows and returns affected-row count. Requires at least one predicate. |
+
+`where("name", "=", nil)` generates `IS NULL`; `!= nil` generates `IS NOT
+NULL`. Other comparisons with `nil` are rejected. `whereIn("name", ["Ada",
+nil])` matches either Ada or NULL. As with raw SQL, ordinary non-null comparisons
+against NULL do not match. SQL collation, LIKE case sensitivity, and NULL sort
+placement follow the database; the builder does not replace provider semantics.
+
+All table and column identifiers must match `[A-Za-z_][A-Za-z0-9_]{0,62}`.
+Names are quoted and case-preserving; column references are table-qualified to
+prevent SQLite treating a missing quoted column as a string. Qualified input
+names such as `public.users`, aliases, wildcards, and SQL expressions are not
+accepted. PostgreSQL tables use the connection's normal search path. For custom
+schemas or expressions, use raw SQL with application-controlled identifiers.
+
+Values use exactly the existing string/integer/boolean/`nil` parameter binding.
+Lists/maps and other values are rejected. Dates and timestamps read through the
+builder use the existing ISO string conversion. PostgreSQL date/timestamp writes
+that require SQL casts still use raw parameterized SQL; the builder does not
+infer types or introduce implicit casts. SQLite booleans still read as `0`/`1`.
+
+Insert/update columns are sorted by ASCII identifier order, regardless of map
+insertion order. Each value, including pagination, is a bound parameter. Input
+lists/maps are snapshotted; derived builders never modify their parents. There
+are at most 100 predicates, selected columns, ordering terms, or write columns,
+and at most 900 total bound parameters per compiled operation (including write
+values and pagination). `whereIn` accepts at most 900 entries, including `nil`.
+These conservative bounds produce predictable errors across both providers.
+
+Writes reject `select`, `orderBy`, `limit`, and `offset`, so modifiers cannot be
+silently ignored during mutation. Insert also rejects predicates. Update/delete
+without predicates fail with `DatabaseError`; there is no unsafe bypass. An
+empty `whereIn` is a valid predicate and updates/deletes zero rows. Intentional
+whole-table writes remain possible through raw SQL.
+
+```tiny
+let base be conn.table("users")
+let named be base.where("name", "=", "Ada")
+let other be base.where("name", "=", "Grace")
+# base, named, and other have independent immutable query state.
+let tx be conn.begin()
+tx.table("users").where("id", "=", 1).update({name: "Grace"})
+tx.commit()
+```
+
+Builders may be reused across requests/tasks with an application-owned
+connection. Execution uses the existing SQLite serialization or PostgreSQL
+pool. Transaction builders retain the transaction's pinned session and failure
+semantics: argument validation or database failure aborts the transaction.
+Closing the owning connection, ending a transaction, or finishing a cursor that
+owns the connection invalidates its handles, including derived builders. No
+builder extends resource lifetime. As with other TLang handle maps, do not
+replace method fields in shared handles.
+
 ## Forward-only migrations
 
 `migrate(directory)` discovers, validates, and applies pending SQL migrations.
@@ -111,7 +198,7 @@ let status be conn.migrationStatus("migrations")
 ```
 
 Migrations are intentionally forward-only. There is no `down`, automatic
-rollback migration, schema DSL, model layer, ORM, query builder, or automatic
+rollback migration, schema DSL, model layer, ORM, or automatic
 schema generation. Correct a migration that has never applied, or add a new
 higher-numbered file for a deployed schema.
 
@@ -214,7 +301,7 @@ in [Runtime diagnostics](../docs/errors.md).
 ## Transactions
 
 `begin()` returns a transaction handle with the same query/execute/insert/
-update/delete methods plus `commit()` and `rollback()`.
+update/delete methods and `table(name)`, plus `commit()` and `rollback()`.
 
 ```tiny
 let transaction be conn.begin()
@@ -288,7 +375,7 @@ request input.
 
 ## Current limits
 
-Down migrations, schema DSLs, ORMs, query builders, savepoints/nested
+Down migrations, schema DSLs, ORMs, joins in table builders, savepoints/nested
 transactions, floating-point values, binary values, and automatic JSON decoding
 are not provided. PostgreSQL network failures abort the affected operation or
 transaction; subsequent ordinary operations borrow a validated replacement

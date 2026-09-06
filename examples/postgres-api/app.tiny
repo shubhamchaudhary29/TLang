@@ -16,16 +16,38 @@ let connection be db.open(config.require("DATABASE_URL"), {
 
 connection.migrate("examples/postgres-api/migrations")
 
+let notes be connection.table("notes")
+
 let server be http.server(strings.toNumber(config.getOr("PORT", "8080")))
 
 define createNote taking req and res
     let payload be json.parse(req.body)
-    let rows be connection.query("INSERT INTO notes(content) VALUES (?) RETURNING id, content", [payload.content])
-    res.status(201).json(rows.get(0))
+    let affected be notes.insert({content: payload.content})
+    res.status(201).json({affected: affected})
 
 define listNotes taking req and res
-    res.json(connection.query("SELECT id, content FROM notes ORDER BY id", []))
+    res.json(notes.orderBy("id", "asc").limit(100).all())
 
+define getNote taking req and res
+    let note be notes.where("id", "=", strings.toNumber(req.params.id)).first()
+    res.json(note)
+
+define updateNote taking req and res
+    let payload be json.parse(req.body)
+    let tx be connection.begin()
+    let selected be tx.table("notes").where("id", "=", strings.toNumber(req.params.id))
+    selected.update({content: payload.content})
+    let note be selected.first()
+    tx.commit()
+    res.json(note)
+
+define deleteNote taking req and res
+    let affected be notes.where("id", "=", strings.toNumber(req.params.id)).delete()
+    res.json({affected: affected})
+
+server.get("/notes/:id", getNote)
+server.put("/notes/:id", updateNote)
+server.delete("/notes/:id", deleteNote)
 server.post("/notes", createNote)
 server.get("/notes", listNotes)
 

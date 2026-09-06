@@ -15,6 +15,16 @@ final class SqlParameters {
 
     private SqlParameters() {}
 
+    static void validateValue(Object value) {
+        if (value != null && !(value instanceof Integer) && !(value instanceof String)
+                && !(value instanceof Boolean)) {
+            String type;
+            try { type = Type.of(value).displayName(); }
+            catch (IllegalStateException unknown) { type = "unknown"; }
+            throw new DatabaseFailure("Unsupported database parameter type: " + type + ".");
+        }
+    }
+
     static void bind(
             PreparedStatement statement,
             String sql,
@@ -27,6 +37,7 @@ final class SqlParameters {
         }
         for (int index = 0; index < parameters.size(); index++) {
             Object value = parameters.get(index);
+            validateValue(value);
             int jdbcIndex = index + 1;
             if (value == null) {
                 statement.setNull(jdbcIndex, Types.NULL);
@@ -40,9 +51,6 @@ final class SqlParameters {
                 } else {
                     statement.setBoolean(jdbcIndex, bool);
                 }
-            } else {
-                throw new DatabaseFailure(
-                    "Unsupported database parameter type: " + Type.of(value).displayName() + ".");
             }
         }
     }

@@ -124,3 +124,7 @@ Future optimization work should first capture a full JSON result and matching
 environment metadata, make one focused change, and rerun under the same
 controlled conditions. Improvements should preserve fixture results and the
 full validation suite. Package management remains a separate roadmap phase.
+
+The JMH smoke suite also validates `QueryBuilderBenchmark`: immutable query
+construction/compilation and a SQLite query-builder read through the existing
+session. Smoke timings are correctness checks, not comparative performance data.
