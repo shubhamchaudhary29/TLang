@@ -6,8 +6,21 @@ TLang is a small, dynamically typed scripting language for straightforward backe
 
 ## Quickstart
 
-### 1. Build TLang from Source
-To compile the TLang compiler and runtime CLI, run:
+### 1. Install TLang
+
+TLang v0.4.0 is distributed as native installers for Linux, macOS, and Windows.
+Download the package for your platform from the
+[v0.4.0 GitHub release](https://github.com/shubhamchaudhary29/TLang/releases/tag/v0.4.0):
+
+- Linux: `tlang_0.4.0_amd64.deb`
+- macOS: `TLang-0.4.0.pkg`
+- Windows: `TLang-0.4.0.msi`
+
+The installers include the runtime. Java 21 is required only when building from
+source. After installing, `tlang version` should report `TLang version 0.4.0`.
+
+To build from source instead:
+
 ```bash
 git clone https://github.com/shubhamchaudhary29/TLang.git
 cd TLang
@@ -19,7 +32,8 @@ Create a script named `hello.tiny`:
 ```tiny
 show "Hello, World!"
 ```
-Execute it using the compiled distribution executable:
+With an installed package, execute it with `tlang run hello.tiny`. For a
+source-built distribution, use:
 ```bash
 build/install/tlang/bin/tlang run hello.tiny
 ```

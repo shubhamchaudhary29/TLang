@@ -1,6 +1,6 @@
-# TLang M4 package-management design
+# TLang package-management design
 
-This document records the implementation contract for TLang v0.3 M4. The
+This document records the implementation contract for TLang package management. The
 user-facing guide is `docs/packages.md`; this document focuses on invariants
 that must remain true as the implementation evolves.
 
@@ -100,7 +100,7 @@ Root/project code may import direct manifest dependencies. A dependency module
 may import only dependencies listed on its own lockfile edge. This prevents a
 transitive dependency from accidentally observing unrelated project files.
 Nested sibling modules keep their own directory as the import base. All loaded
-files are lexed with their canonical source path, preserving M2 diagnostics in
+files are lexed with their canonical source path, preserving structured diagnostics in
 closures, HTTP handlers, and spawned tasks. Resolver state belongs to the
 `ModuleLoader`; no global mutable package context is introduced.
 

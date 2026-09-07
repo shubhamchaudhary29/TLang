@@ -1,62 +1,60 @@
 # Changelog
 
-## Unreleased (0.4.0)
+## v0.4.0
 
-- Added lightweight immutable `connection.repository(table, definition)` and
-  transaction repositories over the existing query builder and database sessions.
-- Added explicit field projections, single-key find/exists/update/delete, create,
-  count, and a normal M3 `query()` escape hatch, with descriptor snapshots and
-  strict unknown/read-only/primary-key mutation guards.
-- Added shared real SQLite/PostgreSQL contracts, TLang task/HTTP tests, lifecycle
-  and transaction rollback checks, descriptor security tests, repository benchmark
-  smoke, repeated CI coverage, and a repository-based PostgreSQL example.
+### Database and PostgreSQL
 
-- Added immutable `connection.table()` / `transaction.table()` builders with
-  select, comparisons, membership, ordering, pagination, first/all/count, and
-  map-based insert/update/delete through the existing database sessions.
-- Added strict quoted identifiers, deterministic column ordering, bound values,
-  bounded query complexity, input snapshots, and mandatory mutation predicates.
-- Added exact compiler tests, shared SQLite/PostgreSQL CRUD and concurrency
-  contracts, TLang task/HTTP coverage, repeated CI validation, and CRUD docs.
+- Refactored the `db` module behind provider-neutral connection, session,
+  conversion, error, and lifecycle boundaries while preserving SQLite behavior.
+- Added PostgreSQL with authenticated URLs/options, bounded HikariCP pools,
+  connection waits, statement timeouts, transaction isolation, and recovery from
+  broken pooled connections.
+- Added explicit transactions with commit, rollback, automatic rollback on
+  operation failure, predictable closed-state behavior, and cleanup across
+  runtime, HTTP, and task failures.
+- Preserved parameterized raw SQL, affected-row operations, SQLite
+  `lastInsertId()`, PostgreSQL `RETURNING`, and provider-neutral value conversion.
 
-- Added deterministic, forward-only SQL migrations to SQLite and PostgreSQL
-  handles through `migrate(path)` and read-only `migrationStatus(path)`.
-- Added strict numeric filename ordering, UTF-8 migration snapshots, raw-byte
-  SHA-256 drift detection, append-only history validation, and the namespaced
-  `_tlang_migrations` history table.
-- Added transactional multi-statement execution with correct handling of SQL
-  strings, quoted identifiers, comments, PostgreSQL dollar-quoted blocks, and
-  SQLite trigger bodies; failed SQL and history writes roll back together.
-- Serialized deploys across application processes with PostgreSQL session
-  advisory locks and SQLite immediate transactions, including bounded waits and
-  cleanup/recovery on every success and failure path.
-- Added SQLite edge/integrity/persistence/concurrency tests, real Testcontainers
-  PostgreSQL migration and lock tests, repeated CI stress validation, complete
-  migration documentation, and a runnable migrated PostgreSQL example.
-- Refactored the single `db` module behind provider, connection, value-conversion,
-  error-translation, and lifecycle boundaries while preserving path-based SQLite
-  behavior.
-- Added first-class PostgreSQL JDBC support with authenticated URLs/options,
-  safe parameter binding, queries and affected-row commands, `RETURNING`, null/
-  boolean/integer/text/date/timestamp conversion, and deterministic rejection of
-  lossy or unsupported values.
-- Added bounded per-handle HikariCP pools with configurable size, connection wait
-  timeout, statement timeout, validation, broken-connection recovery, and clean
-  shutdown.
-- Added explicit transaction handles with commit, rollback, automatic rollback
-  on operation failure, predictable closed-state behavior, and resource release
-  across runtime/HTTP/task failures.
+### Migrations
+
+- Added deterministic forward-only migrations through `migrate(path)` and
+  read-only `migrationStatus(path)` for SQLite and PostgreSQL.
+- Added numeric ordering, strict UTF-8 discovery, SHA-256 drift detection,
+  append-only `_tlang_migrations` history, and transactional multi-statement
+  execution.
+- Serialized concurrent deploys with PostgreSQL advisory locks and SQLite
+  immediate transactions, including bounded waits and complete failure cleanup.
+
+### Query builder
+
+- Added immutable `connection.table()` and `transaction.table()` builders with
+  projection, comparisons, membership, ordering, pagination, first/all/count,
+  and map-based insert/update/delete.
+- Added strict quoted identifiers, deterministic map ordering, bound values,
+  bounded query complexity, input snapshots, and mandatory predicates for
+  update/delete.
+
+### Repositories
+
+- Added immutable `connection.repository(table, definition)` and transaction
+  repositories with explicit primary-key, field, and read-only contracts.
+- Added `find`, `exists`, `create`, `update`, `delete`, `count`, and a normal
+  query-builder escape hatch, with stable read projections and strict mutation
+  validation.
+
+### Security, concurrency, and validation
+
 - Added credential-safe PostgreSQL diagnostics for transport, authentication,
   timeout, syntax, missing-table, and constraint failures while preserving
   source-aware `DatabaseError` stacks and generic remote HTTP 500 responses.
-- Added SQLite regression/security/concurrency tests plus real Testcontainers
-  PostgreSQL integration, pool, timeout, recovery, transaction, task, concurrent
-  HTTP, 100-operation stress, repeated lifecycle, and credential-leakage tests.
-- Added a dedicated PostgreSQL CI lane with ten-run repetition of critical
-  database concurrency/runtime tests and documented configuration, pooling,
-  transactions, types, security, concurrency, and current limitations.
+- Added real SQLite and Testcontainers PostgreSQL coverage for CRUD, pooling,
+  migrations, locks, transactions, immutable builders/repositories, HTTP/tasks,
+  concurrency, lifecycle, injection resistance, and credential redaction.
+- Added repeated CI stress validation, database and repository benchmark smoke
+  cases, complete database documentation, and a runnable migrated PostgreSQL
+  repository example.
 - Reconciled the language philosophy with the concurrent HTTP and explicit
-  `spawn` / `await` runtime behavior already shipped in v0.3.
+  `spawn` / `await` behavior introduced in v0.3.
 
 ## v0.3.0
 

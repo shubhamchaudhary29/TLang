@@ -161,7 +161,7 @@ inside ordinary calls, closures, HTTP handlers, and spawned tasks.
 - **Corrupt install/cache:** online install repairs it from the locked source;
   an offline Git repair requires an intact cache.
 
-M4 has no hosted registry, publishing, login, package scripts, version-range
+The package manager has no hosted registry, publishing, login, package scripts, version-range
 solver, submodule support, or global installation. Git authentication is
 delegated to the user's normal Git configuration without storing embedded
 credentials in project files.

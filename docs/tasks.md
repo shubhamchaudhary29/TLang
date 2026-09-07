@@ -69,7 +69,7 @@ set `-Dtlang.tasks.maxOutstanding=N` to choose a positive process configuration
 for newly created root interpreters.
 
 Capacity is released after success, TLang failure, unexpected native failure,
-or fatal host termination. Cancellation is not implemented in M3.
+or fatal host termination. Task cancellation is not implemented.
 
 ## Errors and cycles
 
@@ -102,7 +102,7 @@ as `set counter to counter + 1` remain multiple operations and are not atomic.
 
 Tasks may be created and awaited inside simultaneous handlers. Awaiting blocks
 that handler's current bounded-pool worker; it is not coroutine suspension and
-does not change the M1 HTTP worker architecture.
+does not change the bounded HTTP worker architecture.
 
 Request method, path, body, query, headers, JSON, and parameter values are
 copied into request-local TLang data before the handler runs. A task may read

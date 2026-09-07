@@ -256,7 +256,7 @@ let multiply be function taking a and b
 
 Connections and transactions expose `repository(table, definition)`.
 The definition requires `primaryKey` and `fields`, with optional `readOnly`;
-unknown options are errors. Identifiers follow M3 rules. Fields are an ordered,
+unknown options are errors. Identifiers follow the query-builder rules. Fields are an ordered,
 nonempty list of at most 100 names, distinct even under ASCII case folding.
 The primary key is exactly one declared field. Read-only entries must be unique
 declared fields. Membership checks use exact case. Definitions snapshot all
@@ -271,9 +271,9 @@ updates additionally reject the primary key. Mutations return affected-row
 counts; missing rows yield nil/false/zero as appropriate. The database must
 supply actual non-null key uniqueness and other constraints.
 
-Query returns fresh M3 query intent with the declared projection. Callers may
+Query returns fresh query-builder intent with the declared projection. Callers may
 explicitly replace it; this is an escape hatch, not an authorization boundary.
-Count and all mutations reuse M3 without independent SQL generation. M3's
+Count and all mutations reuse the query builder without independent SQL generation. Its
 projection restrictions on writes remain unchanged. Creation returns no generated
 key, and no schema inference, relationships, caching, or hooks are provided.
 

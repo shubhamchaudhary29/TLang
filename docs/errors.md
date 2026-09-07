@@ -128,5 +128,5 @@ Repository definition and mutation failures also use `DatabaseError`: malformed
 metadata, undeclared/read-only fields, primary-key updates, empty maps, and nil
 IDs are rejected without echoing hostile input. Transaction repository validation
 errors abort the transaction, just like database execution errors. Missing rows
-return nil/false/zero instead of raising an error. The shared M3 native adapter
+return nil/false/zero instead of raising an error. The shared query-builder adapter
 omits JDBC causes and preserves generic remote HTTP 500 responses.

@@ -6,11 +6,21 @@ TLang is a small, dynamically typed scripting language for straightforward backe
 
 ## Installation
 
-### Prerequisites
-- **Java 21** or later (JDK).
-- **Bash** shell (for Linux, macOS, or WSL).
+### Native installers
+
+Download the TLang v0.4.0 installer for your platform from the
+[GitHub release](https://github.com/shubhamchaudhary29/TLang/releases/tag/v0.4.0):
+
+- Linux: `tlang_0.4.0_amd64.deb`
+- macOS: `TLang-0.4.0.pkg`
+- Windows: `TLang-0.4.0.msi`
+
+After installation, `tlang version` should print `TLang version 0.4.0`.
 
 ### Build from Source
+
+Building from source requires a Java 21 JDK and Bash on Linux, macOS, or WSL.
+
 1. Clone the repository:
    ```bash
    git clone https://github.com/shubhamchaudhary29/TLang.git
@@ -164,5 +174,5 @@ connection.close()
 
 This uses the `users` table from the previous example. Repositories do not create
 tables; use migrations for a deployed schema. Choose repository methods for CRUD
-by ID, M3 builders for filters/pagination, and raw SQL for advanced expressions
+by ID, query builders for filters/pagination, and raw SQL for advanced expressions
 or generated keys. See [repository contracts](../stdlib/db.md#lightweight-repositories).
