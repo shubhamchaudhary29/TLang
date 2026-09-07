@@ -68,7 +68,7 @@ jobs:
         env:
           # macOS exposes its default temp directory through the /var symlink,
           # while migration security deliberately rejects symlink components.
-          JAVA_TOOL_OPTIONS: -Djava.io.tmpdir=/private/tmp
+          TMPDIR: /private/tmp
         run: ./gradlew clean check jpackage
       - name: Validate tag and build installer (Windows)
         if: runner.os == 'Windows'
