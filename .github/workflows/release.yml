@@ -65,11 +65,17 @@ jobs:
         run: ./gradlew clean check jpackage
       - name: Validate tag and build installer (macOS)
         if: runner.os == 'macOS'
-        env:
+        run: |
           # macOS exposes its default temp directory through the /var symlink,
           # while migration security deliberately rejects symlink components.
-          TMPDIR: /private/tmp
-        run: ./gradlew clean check jpackage
+          cat > "${RUNNER_TEMP}/macos-test-temp.gradle" <<'EOF'
+          allprojects {
+              tasks.withType(org.gradle.api.tasks.testing.Test).configureEach {
+                  systemProperty 'java.io.tmpdir', '/private/tmp'
+              }
+          }
+          EOF
+          ./gradlew --init-script "${RUNNER_TEMP}/macos-test-temp.gradle" clean check jpackage
       - name: Validate tag and build installer (Windows)
         if: runner.os == 'Windows'
         run: .\gradlew.bat clean test packageTests verifyVersion jpackage
