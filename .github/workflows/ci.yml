@@ -5,7 +5,7 @@ permissions:
 
 on:
   push:
-    branches: [ main, v0.2, v0.3-m4-packages, v0.4-m1-database, v0.4-m2-migrations, v0.4-m3-query-builder ]
+    branches: [ main, v0.2, v0.3-m4-packages, v0.4-m1-database, v0.4-m2-migrations, v0.4-m3-query-builder, v0.4-m4-repositories ]
   pull_request:
     branches: [ main ]
 
@@ -38,11 +38,12 @@ jobs:
       - name: Compile and smoke test JMH benchmarks
         run: ./gradlew benchmarkSmoke --no-daemon --console=plain
 
-      - name: Repeat query builder safety, SQLite concurrency, and runtime tests 10 times
+      - name: Repeat query builder and repository safety, SQLite concurrency, and runtime tests 10 times
         shell: bash
         run: |
           for iteration in {1..10}; do
             ./gradlew test --tests '*DatabaseQueryTest' --tests '*SqliteQueryTest' --tests '*QueryRuntimeTest' \
+              --tests '*RepositoryDefinitionTest' --tests '*SqliteRepository*' \
               --rerun-tasks --no-daemon --console=plain
           done
 
@@ -125,6 +126,8 @@ jobs:
           for iteration in {1..10}; do
             echo "::group::PostgreSQL stress iteration ${iteration}/10"
             if ./gradlew postgresIntegrationTest \
+              --tests 'dev.tlang.runtime.database.PostgresRepositoryIntegrationTest.*' \
+              --tests 'dev.tlang.runtime.database.PostgresRepositoryRuntimeIntegrationTest.*' \
               --tests 'dev.tlang.runtime.database.PostgresQueryIntegrationTest.*' \
               --tests 'dev.tlang.runtime.database.PostgresQueryRuntimeIntegrationTest.*' \
               --tests 'dev.tlang.runtime.database.PostgresIntegrationTest.concurrentReadsWritesAndMixedLoadPreserveAllRows' \

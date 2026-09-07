@@ -90,6 +90,113 @@ its lifetime.
 
 The read-only `provider` field is `"sqlite"` or `"postgresql"`.
 
+## Lightweight repositories
+
+Choose the smallest database API that expresses the operation:
+
+| Level | Use it for | Example |
+| --- | --- | --- |
+| Repository | CRUD by one primary key with an explicit field contract | `users.find(id)` |
+| Query builder | Filtering, sorting, pagination, or deliberate bulk operations | `users.query().where("active", "=", true).all()` |
+| Raw SQL | Joins, expressions, casts, custom schemas, or generated keys | `conn.query(sql, params)` |
+
+Create a repository on a connection or an existing transaction:
+
+```tiny
+let definition be {
+    primaryKey: "id",
+    fields: ["id", "name", "email", "active", "created_at"],
+    readOnly: ["created_at"]
+}
+let users be conn.repository("users", definition)
+users.create({id: 42, name: "Ada", email: "ada@example.com", active: true})
+let user be users.find(42)
+let found be users.exists(42)
+users.update(42, {name: "Ada Lovelace"})
+let page be users.query().where("active", "=", true).orderBy("id", "asc").limit(20).all()
+let total be users.count()
+users.delete(42)
+```
+
+### Definition contract
+
+`repository(table, definition)` requires a map with `primaryKey` and `fields`;
+`readOnly` is optional and defaults to `[]`. Unknown options are rejected.
+The table and every field use M3's identifier rules: 1–63 ASCII letters,
+digits, or underscores, starting with a letter or underscore. Qualified input
+names, wildcards, aliases, and SQL expressions are rejected.
+
+`fields` is an ordered list of 1–100 distinct field names. Reads preserve its
+projection order. Case-only duplicates are also rejected, preventing ambiguous
+aliases for the same SQLite column. `primaryKey` must be one string matching a
+declared field exactly. `readOnly` is a list of at most 100 distinct declared
+fields; names in definitions and mutation maps must match exactly, including
+case. A read-only primary key is allowed and cannot be supplied to `create`.
+
+Definitions are application contracts, not schema declarations. Create the
+schema through migrations and ensure the named primary key is actually a
+non-null primary key or unique key in the database. Repositories do not inspect,
+create, or synchronize schemas. Required fields, defaults, types, and database
+constraints remain database responsibilities.
+
+Definition maps, field lists, and read-only lists are snapshotted at creation.
+Later caller mutations cannot change a repository. Repository metadata is
+immutable and owns no JDBC resources.
+
+### Methods and return values
+
+| Method | Contract |
+| --- | --- |
+| `find(id)` | Returns a map containing only declared fields, or `nil` when absent. Uses M3 equality and `first()`. |
+| `exists(id)` | Returns a boolean, reading at most one row and only the primary-key column. |
+| `create(fields)` | Inserts one nonempty map of declared writable fields; returns affected-row count, normally `1`. |
+| `update(id, fields)` | Updates matching rows with a nonempty map of declared writable fields; rejects changing the primary key. Returns affected-row count, including `0` for a missing row. |
+| `delete(id)` | Deletes by primary-key equality; returns affected-row count, including `0` when absent. |
+| `count()` | Counts all rows using M3 count semantics and the existing signed 32-bit integer conversion. |
+| `query()` | Returns a fresh normal M3 builder, initially selecting declared fields. |
+
+IDs must be non-`nil` values supported by existing parameter binding (integer,
+string, or boolean); compatibility with the key's SQL type follows the database.
+All four ID-based methods reject `nil`, avoiding accidental NULL-key mutations.
+Other fields may contain `nil`. Existing boolean and date/timestamp conversions
+are unchanged; PostgreSQL writes requiring SQL casts use the raw SQL API.
+
+Create/update reject unknown fields, read-only fields, empty maps, and unsupported
+values. Create can supply the primary key unless it is read-only. No defaults,
+generated-key retrieval, or hidden follow-up reads are added. For PostgreSQL
+`RETURNING id`, use `conn.query(...)` explicitly.
+
+`find` and the default `query()` projection do not expose newly added columns
+such as password hashes or reset tokens. `query()` is an explicit escape to M3:
+callers can change its projection or filter other columns. It is not an
+authorization boundary. M3 rejects mutations on a projected builder; deliberate
+bulk writes use `conn.table(...)` or raw SQL. Repositories have no mass-mutation
+or unsafe method.
+
+### Transactions, concurrency, and lifetime
+
+```tiny
+let tx be conn.begin()
+let transactional be tx.repository("users", definition)
+transactional.create({id: 43, name: "Grace", email: "grace@example.com", active: true})
+transactional.update(43, {name: "Grace Hopper"})
+tx.commit()
+```
+
+Repository operations use the same M3 builders and M1 sessions as table handles.
+Definition validation, mutation validation, and database failures on a transaction
+abort that transaction. A missing row is not a failure. Commit, rollback, parent
+close, and cursor cleanup invalidate repository handles and their derived native
+query handles. Repositories do not extend connection or transaction lifetimes.
+
+An application-owned repository can be shared across tasks and HTTP handlers.
+Every operation constructs independent immutable query intent, preserving SQLite
+serialization and PostgreSQL bounded pooling. Transaction repositories retain the
+existing rule against sharing a transaction across unrelated requests/tasks.
+No reflection, caching, identity map, relationships, hooks, or unit of work is
+introduced. Errors use the existing safe `DatabaseError` boundary; remote HTTP
+clients receive the existing generic 500 response.
+
 ## Safe structured CRUD
 
 Use `conn.table("users")` for ordinary CRUD, or `transaction.table("users")`
@@ -301,7 +408,7 @@ in [Runtime diagnostics](../docs/errors.md).
 ## Transactions
 
 `begin()` returns a transaction handle with the same query/execute/insert/
-update/delete methods and `table(name)`, plus `commit()` and `rollback()`.
+update/delete methods, `table(name)`, and `repository(table, definition)`, plus `commit()` and `rollback()`.
 
 ```tiny
 let transaction be conn.begin()

@@ -98,6 +98,22 @@ let activeUsers be conn.query("SELECT id, name FROM users WHERE active = ?", [tr
 PostgreSQL handles are safe to share across concurrent HTTP handlers and tasks;
 each ordinary operation borrows independently from the handle's bounded pool.
 
+For CRUD by primary key, declare an explicit repository field contract:
+
+```tiny
+let usersRepository be conn.repository("users", {
+    primaryKey: "id",
+    fields: ["id", "name", "active"]
+})
+let userById be usersRepository.find(42)
+usersRepository.update(42, {name: "Ada"})
+```
+
+Repositories provide `find`, `exists`, `create`, `update`, `delete`, `count`, and
+`query`. Use repositories for field-checked CRUD, `repository.query()` or
+`connection.table()` for structured queries, and raw SQL for full control.
+See the [repository contract](stdlib/db.md#lightweight-repositories).
+
 Common CRUD is available without writing SQL:
 
 ```tiny
@@ -145,7 +161,7 @@ Explore the TLang guides and references:
 - **[Standard Library Reference](docs/stdlib/index.md)**: Detailed reference pages for the available native modules.
 - **[Auth Service Example Walkthrough](docs/examples/auth-service.md)**: An in-depth architectural look at the complete backend user registration and authentication service example.
 - **[Concurrent API Example](examples/concurrent-api/README.md)**: A runnable multi-route service with parallel CPU work and shared collection state.
-- **[PostgreSQL API Example](examples/postgres-api/README.md)**: A runnable PostgreSQL notes service with pooling, migrations, and safe structured CRUD.
+- **[PostgreSQL API Example](examples/postgres-api/README.md)**: A runnable PostgreSQL notes service with pooling, migrations, repository CRUD, and a query-builder escape hatch.
 - **[Performance and Benchmarking](docs/performance.md)**: JMH commands, benchmark coverage, methodology, and result interpretation.
 - **[Concurrent Runtime Architecture](docs/concurrent-runtime.md)**: HTTP execution isolation, shared-state semantics, database concurrency, and lifecycle guarantees.
 - **[Runtime Diagnostics](docs/errors.md)**: Structured error categories, source-aware TLang stack traces, native causes, and safe HTTP error responses.

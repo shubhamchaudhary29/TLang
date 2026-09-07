@@ -123,3 +123,10 @@ empty write maps, invalid pagination, query complexity limits, and update/delete
 without predicates. Builder errors retain source locations and abort associated
 transactions. They do not echo invalid input or attach JDBC causes. HTTP clients
 continue to receive `500 Internal Server Error`.
+
+Repository definition and mutation failures also use `DatabaseError`: malformed
+metadata, undeclared/read-only fields, primary-key updates, empty maps, and nil
+IDs are rejected without echoing hostile input. Transaction repository validation
+errors abort the transaction, just like database execution errors. Missing rows
+return nil/false/zero instead of raising an error. The shared M3 native adapter
+omits JDBC causes and preserves generic remote HTTP 500 responses.

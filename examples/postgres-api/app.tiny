@@ -16,33 +16,35 @@ let connection be db.open(config.require("DATABASE_URL"), {
 
 connection.migrate("examples/postgres-api/migrations")
 
-let notes be connection.table("notes")
+let noteDefinition be {primaryKey: "id", fields: ["id", "content"], readOnly: ["id"]}
+let notes be connection.repository("notes", noteDefinition)
 
 let server be http.server(strings.toNumber(config.getOr("PORT", "8080")))
 
 define createNote taking req and res
     let payload be json.parse(req.body)
-    let affected be notes.insert({content: payload.content})
+    let affected be notes.create({content: payload.content})
     res.status(201).json({affected: affected})
 
 define listNotes taking req and res
-    res.json(notes.orderBy("id", "asc").limit(100).all())
+    res.json(notes.query().orderBy("id", "asc").limit(100).all())
 
 define getNote taking req and res
-    let note be notes.where("id", "=", strings.toNumber(req.params.id)).first()
+    let note be notes.find(strings.toNumber(req.params.id))
     res.json(note)
 
 define updateNote taking req and res
     let payload be json.parse(req.body)
     let tx be connection.begin()
-    let selected be tx.table("notes").where("id", "=", strings.toNumber(req.params.id))
-    selected.update({content: payload.content})
-    let note be selected.first()
+    let transactional be tx.repository("notes", noteDefinition)
+    let id be strings.toNumber(req.params.id)
+    transactional.update(id, {content: payload.content})
+    let note be transactional.find(id)
     tx.commit()
     res.json(note)
 
 define deleteNote taking req and res
-    let affected be notes.where("id", "=", strings.toNumber(req.params.id)).delete()
+    let affected be notes.delete(strings.toNumber(req.params.id))
     res.json({affected: affected})
 
 server.get("/notes/:id", getNote)

@@ -128,3 +128,8 @@ full validation suite. Package management remains a separate roadmap phase.
 The JMH smoke suite also validates `QueryBuilderBenchmark`: immutable query
 construction/compilation and a SQLite query-builder read through the existing
 session. Smoke timings are correctness checks, not comparative performance data.
+
+`RepositoryBenchmark` smoke-validates descriptor construction and a SQLite
+repository `find` through M3. Repositories add bounded metadata validation and
+query construction, with no reflection, runtime generation, or caches. Smoke
+results detect correctness regressions and are not performance guarantees.
