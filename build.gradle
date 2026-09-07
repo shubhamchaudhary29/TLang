@@ -46,7 +46,7 @@ dependencies {
     testImplementation platform('org.junit:junit-bom:5.10.2')
     testImplementation 'org.junit.jupiter:junit-jupiter'
 
-    integrationTestImplementation platform('org.testcontainers:testcontainers-bom:1.21.4')
+    integrationTestImplementation platform('org.testcontainers:testcontainers-bom:2.0.5')
     integrationTestImplementation 'org.testcontainers:junit-jupiter'
     integrationTestImplementation 'org.testcontainers:postgresql'
 
