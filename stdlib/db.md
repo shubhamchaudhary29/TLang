@@ -122,7 +122,7 @@ users.delete(42)
 
 `repository(table, definition)` requires a map with `primaryKey` and `fields`;
 `readOnly` is optional and defaults to `[]`. Unknown options are rejected.
-The table and every field use M3's identifier rules: 1–63 ASCII letters,
+The table and every field use the query builder's identifier rules: 1–63 ASCII letters,
 digits, or underscores, starting with a letter or underscore. Qualified input
 names, wildcards, aliases, and SQL expressions are rejected.
 
@@ -147,13 +147,13 @@ immutable and owns no JDBC resources.
 
 | Method | Contract |
 | --- | --- |
-| `find(id)` | Returns a map containing only declared fields, or `nil` when absent. Uses M3 equality and `first()`. |
+| `find(id)` | Returns a map containing only declared fields, or `nil` when absent. Uses query-builder equality and `first()`. |
 | `exists(id)` | Returns a boolean, reading at most one row and only the primary-key column. |
 | `create(fields)` | Inserts one nonempty map of declared writable fields; returns affected-row count, normally `1`. |
 | `update(id, fields)` | Updates matching rows with a nonempty map of declared writable fields; rejects changing the primary key. Returns affected-row count, including `0` for a missing row. |
 | `delete(id)` | Deletes by primary-key equality; returns affected-row count, including `0` when absent. |
-| `count()` | Counts all rows using M3 count semantics and the existing signed 32-bit integer conversion. |
-| `query()` | Returns a fresh normal M3 builder, initially selecting declared fields. |
+| `count()` | Counts all rows using query-builder count semantics and the existing signed 32-bit integer conversion. |
+| `query()` | Returns a fresh normal query builder, initially selecting declared fields. |
 
 IDs must be non-`nil` values supported by existing parameter binding (integer,
 string, or boolean); compatibility with the key's SQL type follows the database.
@@ -167,9 +167,9 @@ generated-key retrieval, or hidden follow-up reads are added. For PostgreSQL
 `RETURNING id`, use `conn.query(...)` explicitly.
 
 `find` and the default `query()` projection do not expose newly added columns
-such as password hashes or reset tokens. `query()` is an explicit escape to M3:
+such as password hashes or reset tokens. `query()` is an explicit escape to the query builder:
 callers can change its projection or filter other columns. It is not an
-authorization boundary. M3 rejects mutations on a projected builder; deliberate
+authorization boundary. The query builder rejects mutations on a projected builder; deliberate
 bulk writes use `conn.table(...)` or raw SQL. Repositories have no mass-mutation
 or unsafe method.
 
@@ -183,7 +183,7 @@ transactional.update(43, {name: "Grace Hopper"})
 tx.commit()
 ```
 
-Repository operations use the same M3 builders and M1 sessions as table handles.
+Repository operations use the same query builders and database sessions as table handles.
 Definition validation, mutation validation, and database failures on a transaction
 abort that transaction. A missing row is not a failure. Commit, rollback, parent
 close, and cursor cleanup invalidate repository handles and their derived native

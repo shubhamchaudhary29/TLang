@@ -117,8 +117,8 @@ on validation/execution failure. See [structured CRUD](../stdlib/db.md#safe-stru
 
 An application-owned repository captures only its session and a snapshotted field
 contract. Concurrent find/exists/create/update and independently derived `query()`
-builders share no mutable metadata or parameter arrays. They inherit M3 query
-isolation and M1 SQLite serialization/PostgreSQL pooling. Repositories from a
+builders share no mutable metadata or parameter arrays. They inherit immutable
+query isolation and SQLite serialization/PostgreSQL pooling. Repositories from a
 request/task-owned connection become unusable at cursor cleanup, and transaction
 repositories become unusable at commit/rollback or automatic abort. They do not
 borrow a connection until an operation executes. See

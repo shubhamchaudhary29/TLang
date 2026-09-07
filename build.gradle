@@ -60,7 +60,7 @@ test {
 
 tasks.register('packageTests', Test) {
     group = 'verification'
-    description = 'Runs the M4 manifest, lockfile, resolver, Git, CLI, import, and installer suites.'
+    description = 'Runs the manifest, lockfile, resolver, Git, CLI, import, and installer suites.'
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
     useJUnitPlatform()
