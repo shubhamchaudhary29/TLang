@@ -172,6 +172,7 @@ public final class DatabaseModule implements NativeModule {
             DatabaseSession session, DatabaseTransaction transaction) {
         Map<String, Object> result = RuntimeCollections.newMap();
         result.put("table", DatabaseQueryHandle.table(session));
+        result.put("repository", DatabaseRepositoryHandle.repository(session));
         result.put("query", new NativeFunction("query", 3) {
             @Override
             public Object call(List<Object> args, Token token) {
