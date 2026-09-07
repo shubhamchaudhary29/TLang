@@ -60,8 +60,15 @@ jobs:
           java-version: '21'
           cache: gradle
       - uses: gradle/actions/wrapper-validation@v4
-      - name: Validate tag and build installer (Unix)
-        if: runner.os != 'Windows'
+      - name: Validate tag and build installer (Linux)
+        if: runner.os == 'Linux'
+        run: ./gradlew clean check jpackage
+      - name: Validate tag and build installer (macOS)
+        if: runner.os == 'macOS'
+        env:
+          # macOS exposes its default temp directory through the /var symlink,
+          # while migration security deliberately rejects symlink components.
+          JAVA_TOOL_OPTIONS: -Djava.io.tmpdir=/private/tmp
         run: ./gradlew clean check jpackage
       - name: Validate tag and build installer (Windows)
         if: runner.os == 'Windows'
