@@ -1,7 +1,7 @@
 # PostgreSQL notes API
 
 This small example uses the standard `db` module, forward-only SQL migrations,
-a bounded PostgreSQL pool, immutable table builders, transactions, and
+a bounded PostgreSQL pool, immutable repositories, a query-builder escape hatch, transactions, and
 concurrent HTTP handlers.
 
 Create a database and export its configuration (or put the same keys in a
@@ -45,3 +45,12 @@ when the ID does not exist. Update and its read run in one transaction. The
 example uses existing migrations unchanged and never builds SQL from request
 values. For generated IDs in one statement, use raw `INSERT ... RETURNING` via
 `connection.query`; that escape hatch remains available.
+
+The shared `notes` repository declares only `id` and `content`, with `id`
+read-only so PostgreSQL supplies its existing serial default. Handlers use
+`create`, `find`, `update`, and `delete`; list uses `notes.query()` for ordering
+and pagination. Transaction handlers reuse the same definition on `tx.repository`.
+Future private columns are excluded from repository reads automatically. For
+bulk writes use `connection.table("notes")`; for SQL-specific operations use
+`connection.query`/`execute`. Repository metadata does not create or migrate
+schema and is not an authorization boundary.

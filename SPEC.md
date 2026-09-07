@@ -252,6 +252,35 @@ let multiply be function taking a and b
   propagate until the CLI or an embedding boundary such as the HTTP server
   handles them.
 
+### Lightweight database repositories
+
+Connections and transactions expose `repository(table, definition)`.
+The definition requires `primaryKey` and `fields`, with optional `readOnly`;
+unknown options are errors. Identifiers follow M3 rules. Fields are an ordered,
+nonempty list of at most 100 names, distinct even under ASCII case folding.
+The primary key is exactly one declared field. Read-only entries must be unique
+declared fields. Membership checks use exact case. Definitions snapshot all
+caller-owned maps/lists and never alter database schemas.
+
+Repository methods are `find(id)`, `exists(id)`, `create(fields)`,
+`update(id, fields)`, `delete(id)`, `count()`, and `query()`. Find explicitly
+projects declared fields and returns a row or nil. Exists reads at most one
+primary-key value and returns a boolean. IDs use existing non-nil parameter
+values. Create/update require nonempty maps of declared writable fields;
+updates additionally reject the primary key. Mutations return affected-row
+counts; missing rows yield nil/false/zero as appropriate. The database must
+supply actual non-null key uniqueness and other constraints.
+
+Query returns fresh M3 query intent with the declared projection. Callers may
+explicitly replace it; this is an escape hatch, not an authorization boundary.
+Count and all mutations reuse M3 without independent SQL generation. M3's
+projection restrictions on writes remain unchanged. Creation returns no generated
+key, and no schema inference, relationships, caching, or hooks are provided.
+
+Repositories retain session lifecycle and concurrency. Validation/execution
+failures abort associated transactions; ended or closed sessions reject use.
+See the [repository reference](stdlib/db.md#lightweight-repositories).
+
 ### Structured database queries
 
 Connections and transaction handles expose `table(name)`. Table handles expose

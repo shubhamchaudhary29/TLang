@@ -22,7 +22,7 @@ final class DatabaseQueryHandle {
         return method("table", 1, session, args -> handle(session, DatabaseQuery.table(args.get(1))));
     }
 
-    private static Map<String, Object> handle(DatabaseSession session, DatabaseQuery query) {
+    static Map<String, Object> handle(DatabaseSession session, DatabaseQuery query) {
         Map<String, Object> result = RuntimeCollections.newMap();
         result.put("select", method("select", 1, session, a -> handle(session, query.select(a.get(1)))));
         result.put("where", method("where", 3, session, a -> handle(session, query.where(a.get(1), a.get(2), a.get(3)))));
@@ -39,7 +39,7 @@ final class DatabaseQueryHandle {
         return result;
     }
 
-    private static NativeFunction method(String name, int arity, DatabaseSession session,
+    static NativeFunction method(String name, int arity, DatabaseSession session,
                                          Function<List<Object>, Object> action) {
         return new NativeFunction(name, arity + 1) {
             @Override

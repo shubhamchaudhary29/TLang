@@ -144,3 +144,25 @@ connection.close()
 `insert`, `update`, and `delete` return affected-row counts. Update/delete require
 filters. See [structured CRUD](../stdlib/db.md#safe-structured-crud) for nil,
 pagination, transactions, limits, and when to use raw SQL.
+
+## Repositories for repeated CRUD
+
+Once your schema exists, use a repository to define which fields routine reads
+return and which fields writes accept:
+
+```tiny
+import db
+let connection be db.open("app.db")
+let users be connection.repository("users", {primaryKey: "id", fields: ["id", "name"]})
+users.create({id: 2, name: "Ada"})
+show users.find(2)
+users.update(2, {name: "Grace"})
+show users.query().orderBy("id", "asc").all()
+users.delete(2)
+connection.close()
+```
+
+This uses the `users` table from the previous example. Repositories do not create
+tables; use migrations for a deployed schema. Choose repository methods for CRUD
+by ID, M3 builders for filters/pagination, and raw SQL for advanced expressions
+or generated keys. See [repository contracts](../stdlib/db.md#lightweight-repositories).

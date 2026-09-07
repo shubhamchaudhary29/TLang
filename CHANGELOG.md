@@ -2,6 +2,15 @@
 
 ## Unreleased (0.4.0)
 
+- Added lightweight immutable `connection.repository(table, definition)` and
+  transaction repositories over the existing query builder and database sessions.
+- Added explicit field projections, single-key find/exists/update/delete, create,
+  count, and a normal M3 `query()` escape hatch, with descriptor snapshots and
+  strict unknown/read-only/primary-key mutation guards.
+- Added shared real SQLite/PostgreSQL contracts, TLang task/HTTP tests, lifecycle
+  and transaction rollback checks, descriptor security tests, repository benchmark
+  smoke, repeated CI coverage, and a repository-based PostgreSQL example.
+
 - Added immutable `connection.table()` / `transaction.table()` builders with
   select, comparisons, membership, ordering, pagination, first/all/count, and
   map-based insert/update/delete through the existing database sessions.
